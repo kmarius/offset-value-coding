@@ -6,7 +6,6 @@
 #include "lib/io/ExternalRunR.h"
 
 #include <vector>
-#include <algorithm>
 #include <sstream>
 
 #define IS_IN_WORKSPACE(ptr, ws) (ptr >= ws.begin().base() && ptr < ws.end().base())
@@ -89,6 +88,7 @@ bool Sort::generate_initial_runs() {
     assert(queue.isCorrect());
 
     if (inserted == 0) {
+        log_trace("Sort::generate_initial_runs(): input empty");
         return false;
     }
 
@@ -117,7 +117,7 @@ bool Sort::generate_initial_runs() {
             }
             assert(!row_->less(prev));
             prev = *row_;
-        };
+        }
 #endif
 
         rows_processed++;
@@ -150,34 +150,64 @@ bool Sort::generate_initial_runs() {
         }
     }
 
-    assert(queue.isCorrect());
 
-    // finalize by inserting in-memory-memory_runs here
-    size_t i;
-    for (i = 0; i < memory_runs.size(); i++) {
-        // replace top element with run
-        Row *row1 = queue.pop_push_memory(&memory_runs[i]);
-        run.add(row1);
-        log_trace("final: %s", row1->c_str());
+    if (queue.size() < queue.capacity()) {
+        // The queue is not even full once. Pop everything, we then have a single in-memory run.
+        while (!queue.isEmpty()) {
+            log_trace("pan run_idx=%lu", queue.top_run_idx());
+            Row *row1 = queue.pop(MERGE_RUN_IDX);
+            run.add(row1);
+        }
+
+    } else {
+        // We filled the queue at least once. We must pop (QUEUE_CAPACITY - inserted) to fill the current run,
+        // and then (inserted) to fill the remaining run
+        size_t i = 0;
+        size_t j = 0;
+        for (; i < QUEUE_CAPACITY - inserted; i++) {
+            log_trace("run_idx=%lu", queue.top_run_idx());
+            if (j < memory_runs.size()) {
+                Row *row1 = queue.pop_push_memory(&memory_runs[j++]);
+                run.add(row1);
+            } else {
+                Row *row1 = queue.pop(MERGE_RUN_IDX);
+                run.add(row1);
+            }
+        }
+
+        assert(queue.isCorrect());
+
+        if (!run.isEmpty()) {
+            memory_runs.push_back(std::move(run));
+            run = {};
+        }
+
+        // we do not have enough memory_runs to replace the rows with, pop the rest
+        for (; i < QUEUE_CAPACITY; i++) {
+            log_trace("run_idx=%lu", queue.top_run_idx());
+            if (j < memory_runs.size()) {
+                Row *row1 = queue.pop_push_memory(&memory_runs[j++]);
+                run.add(row1);
+            } else {
+                Row *row1 = queue.pop(MERGE_RUN_IDX);
+                run.add(row1);
+            }
+        }
     }
 
     assert(queue.isCorrect());
 
-    // we do not have enough memory_runs to replace the rows with, pop the rest
-    for (; i < inserted; i++) {
-        Row *row1 = queue.pop(MERGE_RUN_IDX);
-        run.add(row1);
+    if (!run.isEmpty()) {
+        memory_runs.push_back(std::move(run));
+        run = {};
     }
-    assert(queue.isCorrect());
-
-    memory_runs.push_back(std::move(run));
-    run = {};
-    assert(memory_runs.back().isSorted());
 
     // insert the last run
     queue.push_memory(memory_runs.back());
+
     assert(queue.isCorrect());
     for (auto &r: memory_runs) {
+        assert(r.size() > 0);
         assert(r.isSorted());
     }
 
@@ -188,7 +218,7 @@ bool Sort::generate_initial_runs() {
     log_trace("%lu rows processed", rows_processed);
 
     if (row == nullptr) {
-        log_trace("Sort::generate_initial_runs(): input isEmpty");
+        log_trace("Sort::generate_initial_runs(): input empty");
     }
     return row != nullptr;
 }
@@ -293,7 +323,7 @@ std::string Sort::merge_external(size_t fan_in) {
 
     external_run_paths.push(path);
 
-    log_trace("Sort::merge_external(): offset=%lu", run.size());
+    log_trace("Sort::merge_external(): size=%lu", run.size());
 
     return path;
 }
@@ -312,9 +342,12 @@ void Sort::open() {
     if (num_runs > QUEUE_CAPACITY) {
         // this guarantees maximal fan-in for the later merges
         size_t initial_merge_fan_in = num_runs % (QUEUE_CAPACITY - 1);
+        assert(initial_merge_fan_in);
         merge_external(initial_merge_fan_in);
+        log_info("merging %lu", initial_merge_fan_in);
     }
     while (external_run_paths.size() > QUEUE_CAPACITY) {
+        log_info("merging %lu", QUEUE_CAPACITY);
         merge_external(QUEUE_CAPACITY);
     }
 

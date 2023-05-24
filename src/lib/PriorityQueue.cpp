@@ -428,3 +428,7 @@ const std::string &PriorityQueue::top_path() {
     assert(!isEmpty());
     return workspace[heap[0].index].external_run->path();
 }
+
+size_t PriorityQueue::top_run_idx() {
+    return heap[0].run_index();
+}

@@ -119,6 +119,8 @@ public:
 
     Row *top();
 
+    size_t top_run_idx();
+
     const std::string &top_path();
 
 

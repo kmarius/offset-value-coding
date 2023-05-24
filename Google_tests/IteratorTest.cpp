@@ -14,6 +14,7 @@ protected:
 
     void SetUp() override {
         log_set_quiet(true);
+        log_set_level(LOG_INFO);
     }
 
     void TearDown() override {
@@ -101,6 +102,18 @@ TEST_F(IteratorTest, SortSmall) {
     delete plan;
 }
 
+TEST_F(IteratorTest, SortSmall2) {
+    size_t num_rows = QUEUE_SIZE + QUEUE_SIZE/2;
+    auto *plan = new AssertSorted(
+            new Sort(
+                    new Generator(num_rows, 100, SEED
+                    )));
+    plan->run();
+    ASSERT_TRUE(plan->isSorted());
+    ASSERT_EQ(plan->count(), num_rows);
+    delete plan;
+}
+
 TEST_F(IteratorTest, SortSmallish) {
     size_t num_rows = QUEUE_SIZE * 3;
     auto *plan = new AssertSorted(
@@ -114,7 +127,43 @@ TEST_F(IteratorTest, SortSmallish) {
 }
 
 TEST_F(IteratorTest, SortMedium) {
-    size_t num_rows = QUEUE_SIZE * QUEUE_SIZE;
+    size_t num_rows = QUEUE_SIZE * (QUEUE_SIZE - 3);
+    auto *plan = new AssertSorted(
+            new Sort(
+                    new Generator(num_rows, 100, SEED
+                    )));
+    plan->run();
+    ASSERT_TRUE(plan->isSorted());
+    ASSERT_EQ(plan->count(), num_rows);
+    delete plan;
+}
+
+TEST_F(IteratorTest, SortMediumButSmaller) {
+    size_t num_rows = QUEUE_SIZE * (QUEUE_SIZE - 3) - QUEUE_SIZE/2;
+    auto *plan = new AssertSorted(
+            new Sort(
+                    new Generator(num_rows, 100, SEED
+                    )));
+    plan->run();
+    ASSERT_TRUE(plan->isSorted());
+    ASSERT_EQ(plan->count(), num_rows);
+    delete plan;
+}
+
+TEST_F(IteratorTest, SortMediumButABitLarger) {
+    size_t num_rows = QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3) + QUEUE_SIZE/2;
+    auto *plan = new AssertSorted(
+            new Sort(
+                    new Generator(num_rows, 100, SEED
+                    )));
+    plan->run();
+    ASSERT_TRUE(plan->isSorted());
+    ASSERT_EQ(plan->count(), num_rows);
+    delete plan;
+}
+
+TEST_F(IteratorTest, SortMediumButABitLarger2) {
+    size_t num_rows = QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3) + QUEUE_SIZE + QUEUE_SIZE/2;
     auto *plan = new AssertSorted(
             new Sort(
                     new Generator(num_rows, 100, SEED
@@ -138,7 +187,7 @@ TEST_F(IteratorTest, SortLarge) {
 }
 
 TEST_F(IteratorTest, SortLarger) {
-    size_t num_rows = QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3) * 2;
+    size_t num_rows = QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3) * 17 + 1337;
     auto *plan = new AssertSorted(
             new Sort(
                     new Generator(num_rows, 100, SEED
