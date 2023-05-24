@@ -61,7 +61,7 @@ struct PriorityQueue::WorkspaceNode {
     explicit WorkspaceNode(Row *row) : row(row), memory_run(nullptr) {};
 
     void pop() {
-        assert(memory_run()->size() > 0);
+        assert(memory_run->size() > 0);
         row = memory_run->next();
     }
 };
@@ -354,7 +354,7 @@ Row *PriorityQueue::pop_push_memory(MemoryRun *run) {
 Row *PriorityQueue::pop_memory() {
     assert(!isEmpty());
     Index workspace_index = heap[0].index;
-    assert(workspace[workspace_index].memory_run()->size() > 0);
+    assert(workspace[workspace_index].memory_run->size() > 0);
 
     Row *res = workspace[workspace_index].row;
     res->key = heap[0].ovc();

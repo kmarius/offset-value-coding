@@ -4,11 +4,10 @@ project(ovc)
 set(CMAKE_CXX_STANDARD 14)
 
 # The following are needed for profiling
-# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
 
 # Enable ASAN:
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -flto -g -DNDEBUG")
@@ -53,7 +52,9 @@ add_library(libovc
         src/lib/Row.h
         src/lib/Run.cpp
         src/lib/Run.h
-        src/lib/utils.h src/lib/iterators/VectorScan.cpp src/lib/iterators/VectorScan.h)
+        src/lib/utils.h
+        src/lib/iterators/VectorScan.cpp
+        src/lib/iterators/VectorScan.h)
 target_link_libraries(libovc uring)
 
 add_executable(ovc src/ovc/main.cpp)

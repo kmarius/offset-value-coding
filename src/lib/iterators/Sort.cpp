@@ -16,7 +16,7 @@ static std::string new_run_path() {
     return std::string(BASEDIR "/run_" + std::to_string(i++) + ".dat");
 }
 
-Sort::Sort(Iterator *input) : input(input), queue(QUEUE_CAPACITY), buffer_manager(1024), output(nullptr) {
+Sort::Sort(Iterator *input) : input(input), queue(QUEUE_CAPACITY), buffer_manager(1024) {
     workspace.reserve(QUEUE_CAPACITY * QUEUE_CAPACITY);
 };
 
@@ -98,12 +98,27 @@ bool Sort::generate_initial_runs() {
     }
 
 #ifndef NDEBUG
-    Row prev = {0};
+    prev = {0};
 #endif
 
     for (; (row = input->next()) != nullptr;) {
         workspace.push_back(*row);
         row = &workspace.back();
+
+#ifndef NDEBUG
+        {
+            if (run.isEmpty()) {
+                prev = {0};
+            }
+            Row *row_ = queue.top();
+            if (row_->less(prev)) {
+                log_error("prev: %s", prev.c_str());
+                log_error("cur:  %s", row_->c_str());
+            }
+            assert(!row_->less(prev));
+            prev = *row_;
+        };
+#endif
 
         rows_processed++;
         Row *row1 = queue.pop_push(row, insert_run_index);
@@ -111,18 +126,6 @@ bool Sort::generate_initial_runs() {
         log_trace("popped %s, rows_processed=%lu", row1->c_str(), rows_processed);
         inserted++;
         assert(queue.isCorrect());
-
-#ifndef NDEBUG
-        if (run.size() == 1) {
-            prev = {0};
-        }
-        if (row1->less(prev)) {
-            log_error("prev: %s", prev.c_str());
-            log_error("cur:  %s", row1->c_str());
-        }
-        assert(!row1->less(prev));
-        prev = *row1;
-#endif
 
         if (inserted == QUEUE_CAPACITY) {
             assert(run.isSorted());
@@ -174,7 +177,7 @@ bool Sort::generate_initial_runs() {
     // insert the last run
     queue.push_memory(memory_runs.back());
     assert(queue.isCorrect());
-    for (auto &r : memory_runs) {
+    for (auto &r: memory_runs) {
         assert(r.isSorted());
     }
 
@@ -203,25 +206,25 @@ void Sort::merge_in_memory() {
     ExternalRunW run(path, buffer_manager);
 
 #ifndef NDEBUG
-    Row prev;
+    prev = {0};
 #endif
 
     while (!queue.isEmpty()) {
+#ifndef NDEBUG
+        {
+            Row *row = queue.top();
+            if (row->less(prev)) {
+                log_error("Sort::merge_memory(): not ascending");
+                log_error("Sort::merge_memory(): prev %s", prev.c_str());
+                log_error("Sort::merge_memory(): cur  %s", row->c_str());
+            }
+            assert(!row->less(prev));
+            prev = *row;
+        }
+#endif
         Row *row = queue.pop_memory();
         run.add(*row);
         assert(queue.isCorrect());
-
-#ifndef NDEBUG
-        if (run.size() > 1 && row->less(prev)) {
-            log_error("Sort::merge_memory(): not ascending");
-            log_error("Sort::merge_memory(): prev %s", prev.c_str());
-            log_error("Sort::merge_memory(): cur  %s", row->c_str());
-        }
-        if (run.size() > 1) {
-            assert(!row->less(prev));
-        }
-        prev = *row;
-#endif
     }
 
     if (run.size() > 0) {
@@ -232,60 +235,67 @@ void Sort::merge_in_memory() {
     memory_runs.clear();
 }
 
-// priority queue is isEmpty
-// output is an external run
-// ends with isEmpty priority queue
-void Sort::merge_external() {
-    log_trace("Sort::merge_external()");
-
+std::vector<ExternalRunR> Sort::insert_external(size_t fan_in) {
+    assert(fan_in <= QUEUE_CAPACITY);
     assert(queue.isEmpty());
-    assert(external_run_paths.size() > 1);
+    assert(external_run_paths.size() >= fan_in);
 
     std::vector<ExternalRunR> external_runs;
     external_runs.reserve(external_run_paths.size());
 
-    int fan_in = 0;
-    while (fan_in < queue.capacity() && !external_run_paths.empty()) {
-        auto &path = external_run_paths.top();
+    for (size_t i = 0; i < fan_in; i++) {
+        assert(!external_run_paths.empty());
+        auto &path = external_run_paths.front();
         external_runs.emplace_back(path, buffer_manager);
         external_run_paths.pop();
         queue.push_external(external_runs.back());
     }
+    return external_runs;
+}
+
+// priority queue is isEmpty
+// output is an external run
+// ends with isEmpty priority queue
+std::string Sort::merge_external(size_t fan_in) {
+    log_trace("Sort::merge_external()");
+    external_runs = insert_external(fan_in);
 
     std::string path = new_run_path();
     ExternalRunW run(path, buffer_manager);
 
 #ifndef NDEBUG
-    Row prev;
+    prev = {0};
 #endif
 
     while (!queue.isEmpty()) {
 #ifndef NDEBUG
-        const std::string &run_path = queue.top_path();
+        {
+            Row *row_ = queue.top();
+            const std::string &run_path = queue.top_path();
+            if (row_->less(prev)) {
+                log_error("Sort::merge_external(): not ascending in run %s", run_path.c_str());
+                log_error("Sort::merge_external(): prev %s", prev.c_str());
+                log_error("Sort::merge_external(): cur  %s", row_->c_str());
+            }
+            assert(!row_->less(prev));
+            prev = *row_;
+        }
 #endif
+
         Row *row = queue.pop_external();
         run.add(*row);
-
-#ifndef NDEBUG
-        if (run.size() > 1 && row->less(prev)) {
-            log_error("Sort::merge_external(): not ascending in run %s", run_path.c_str());
-            log_error("Sort::merge_external(): prev %s", prev.c_str());
-            log_error("Sort::merge_external(): cur  %s", row->c_str());
-        }
-        if (run.size() > 1) {
-            assert(!row->less(prev));
-        }
-        prev = *row;
-#endif
     }
 
     for (auto &r: external_runs) {
         r.remove();
     }
+    external_runs.clear();
 
     external_run_paths.push(path);
 
     log_trace("Sort::merge_external(): offset=%lu", run.size());
+
+    return path;
 }
 
 void Sort::open() {
@@ -297,25 +307,48 @@ void Sort::open() {
         has_more_input = generate_initial_runs();
         merge_in_memory();
         assert(memory_runs.empty());
-        // todo: add a counter, because  this actually merges runs of different levels
-        if (external_run_paths.size() == queue.capacity()) {
-            merge_external();
-        }
     }
-    while (external_run_paths.size() > 1) {
-        merge_external();
+    size_t num_runs = external_run_paths.size();
+    if (num_runs > QUEUE_CAPACITY) {
+        // this guarantees maximal fan-in for the later merges
+        size_t initial_merge_fan_in = num_runs % (QUEUE_CAPACITY - 1);
+        merge_external(initial_merge_fan_in);
     }
-    if (!external_run_paths.empty()) {
-        output = new ExternalRunR(external_run_paths.top(), buffer_manager);
+    while (external_run_paths.size() > QUEUE_CAPACITY) {
+        merge_external(QUEUE_CAPACITY);
     }
+
+    external_runs = insert_external(external_run_paths.size());
+
+#ifndef NDEBUG
+    prev = {0};
+#endif
+    log_info("Sort::open() fan-in for the last merge step is %lu", external_runs.size());
 }
 
 Row *Sort::next() {
     assert(status == Opened);
-    if (output == nullptr) {
+
+    if (queue.isEmpty()) {
         return nullptr;
     }
-    return output->read();
+
+#ifndef NDEBUG
+    {
+        Row *row = queue.top();
+        if (row->less(prev)) {
+            const std::string &run_path = queue.top_path();
+            log_error("Sort::merge_external(): not ascending in run %s", run_path.c_str());
+            log_error("Sort::merge_external(): prev %s", prev.c_str());
+            log_error("Sort::merge_external(): cur  %s", row->c_str());
+        }
+        assert(!row->less(prev));
+
+        prev = *row;
+    };
+#endif
+
+    return queue.pop_external();
 }
 
 void Sort::free() {}
@@ -323,10 +356,8 @@ void Sort::free() {}
 void Sort::close() {
     assert(status == Opened);
     status = Closed;
-    if (output != nullptr) {
-        output->remove();
-        delete output;
-        output = nullptr;
+    for (auto &run: external_runs) {
+        run.remove();
     }
     input->close();
 }

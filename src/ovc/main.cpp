@@ -23,13 +23,13 @@ void example_simple_tree() {
 
 void example_run_generation() {
     // three "memory_runs" are reserved for: low fences, high fences, and the we-are-merging-indicator
-    size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3) * 17;
+    size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3);
 
     log_info("num_rows=%lu", num_rows);
 
     Iterator *plan = new AssertSorted(
             new Sort(
-                    new Generator(num_rows, DOMAIN, 7)
+                    new Generator(num_rows, DOMAIN, 1337)
             )
     );
 
