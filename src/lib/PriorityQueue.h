@@ -69,7 +69,7 @@ public:
      * @param row The first row of the run
      * @param size The offset of the run.
      */
-    void push_memory(MemoryRun *run);
+    void push_memory(MemoryRun &run);
 
     /**
      * Push an external run into the queue.

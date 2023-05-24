@@ -1,12 +1,6 @@
 #include <sstream>
 #include "PriorityQueue.h"
 
-#define root() ((Index) 0)
-#define parent(slot) (slot / 2)
-#define left_child(index) (2 * index)
-#define right_child(index) (2 * index + 1)
-
-
 /*
  * comparison key, numbers of bits:
  *
@@ -19,6 +13,11 @@
  * run2 index 0 are low sentinel values, run2 index 1024 high sentinel values
  *
  */
+
+#define root() ((Index) 0)
+#define parent(slot) ((slot) / 2)
+#define left_child(index) (2 * index)
+#define right_child(index) (2 * index + 1)
 
 #define node_key_t uint64_t
 #define node_index_t uint64_t
@@ -46,28 +45,24 @@
 #define LOW_SENTINEL(run_index) (NODE_KEYGEN(0, run_index))
 #define HIGH_SENTINEL(run_index) (NODE_RUN_INDEX_MASK | (run_index))
 
-
 struct PriorityQueue::WorkspaceNode {
     Row *row;
-    uint64_t data;
+    union {
+        MemoryRun *memory_run;
+        ExternalRunR *external_run;
+    };
 
     WorkspaceNode() = default;
 
-    WorkspaceNode(Row *row, MemoryRun *run) : row(row), data((uint64_t) run) {};
+    WorkspaceNode(Row *row, MemoryRun *run) : row(row), memory_run(run) {};
 
-    WorkspaceNode(Row *row, ExternalRunR &run) : row(row), data((uint64_t) &run) {};
+    WorkspaceNode(Row *row, ExternalRunR *run) : row(row), external_run(run) {};
+
+    explicit WorkspaceNode(Row *row) : row(row), memory_run(nullptr) {};
 
     void pop() {
         assert(memory_run()->size() > 0);
-        row = memory_run()->next();
-    }
-
-    MemoryRun *memory_run() const {
-        return (MemoryRun *) data;
-    }
-
-    ExternalRunR *external_run() const {
-        return (ExternalRunR *) data;
+        row = memory_run->next();
     }
 };
 
@@ -151,8 +146,6 @@ struct PriorityQueue::Node {
     }
 };
 
-Row *pop_push_memory(MemoryRun *run);
-
 PriorityQueue::PriorityQueue(size_t capacity) : capacity_(capacity), size_(0), empty_slots() {
     assert(std::__popcount(capacity) == 1);
 
@@ -190,7 +183,7 @@ bool PriorityQueue::isCorrect() const {
             }
 
             if (heap[j].key <= heap[i].key &&
-                    workspace[heap[j].index].row->less(*workspace[heap[i].index].row)) {
+                workspace[heap[j].index].row->less(*workspace[heap[i].index].row)) {
 #ifndef NDEBUG
                 log_error("Element at position %lu is not smaller than the one in position %lu", i, j);
                 // TODO: log the queue here
@@ -271,18 +264,18 @@ void PriorityQueue::push(Row *row, Index run_index) {
     size_++;
 }
 
-void PriorityQueue::push_memory(MemoryRun *run) {
+void PriorityQueue::push_memory(MemoryRun &run) {
     assert(size_ < capacity_);
     assert(!empty_slots.empty());
 
     Index workspace_index = empty_slots.top();
     empty_slots.pop();
 
-    Row *row = run->front();
+    Row *row = run.front();
 
-    log_trace("push_memory of offset %lu at %lu, starting with %s", run->size(), workspace_index, row->c_str());
+    log_trace("push_memory of offset %lu at %lu, starting with %s", run.size(), workspace_index, row->c_str());
 
-    workspace[workspace_index] = WorkspaceNode(row, run);
+    workspace[workspace_index] = WorkspaceNode(row, &run);
     pass(workspace_index, NODE_KEYGEN(MERGE_RUN_IDX, row->key), true);
     size_++;
 }
@@ -301,7 +294,7 @@ void PriorityQueue::push_external(ExternalRunR &run) {
     empty_slots.pop();
 
     log_trace("push_external %lu", workspace_index);
-    workspace[workspace_index] = WorkspaceNode(row, run);
+    workspace[workspace_index] = WorkspaceNode(row, &run);
     pass(workspace_index, NODE_KEYGEN(MERGE_RUN_IDX, row->key), true);
     size_++;
 }
@@ -333,7 +326,7 @@ Row *PriorityQueue::pop_push(Row *row, Index run_index) {
     Row *res = workspace[workspace_index].row;
     res->key = heap[0].ovc();
 
-    workspace[workspace_index] = WorkspaceNode(row, nullptr);
+    workspace[workspace_index] = WorkspaceNode(row);
 
     // perform leaf-to-root pass
     pass(workspace_index, NODE_KEYGEN(run_index, DOMAIN * ROW_ARITY + row->columns[0]), true);
@@ -368,7 +361,7 @@ Row *PriorityQueue::pop_memory() {
 
     workspace[workspace_index].pop();
 
-    if (likely(workspace[workspace_index].memory_run()->size() > 0)) {
+    if (likely(workspace[workspace_index].memory_run->size() > 0)) {
         // normal leaf-to-root pass
         pass(workspace_index, NODE_KEYGEN(MERGE_RUN_IDX, workspace[workspace_index].row->key), true);
     } else {
@@ -390,7 +383,7 @@ Row *PriorityQueue::pop_external() {
     Row *res = workspace[workspace_index].row;
     res->key = heap[0].ovc();
 
-    ExternalRunR *run = workspace[workspace_index].external_run();
+    ExternalRunR *run = workspace[workspace_index].external_run;
     Row *next = run->read();
     workspace[workspace_index].row = next;
 
@@ -433,6 +426,5 @@ std::string PriorityQueue::to_string() const {
 
 const std::string &PriorityQueue::top_path() {
     assert(!isEmpty());
-    return workspace[heap[0].index].external_run()->path();
+    return workspace[heap[0].index].external_run->path();
 }
-

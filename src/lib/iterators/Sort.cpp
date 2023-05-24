@@ -49,7 +49,7 @@ bool Sort::generate_initial_runs_q() {
 
     // fill up queue
     for (auto &run: memory_runs) {
-        queue.push_memory(&run);
+        queue.push_memory(run);
     }
 
     return row != nullptr;
@@ -172,7 +172,7 @@ bool Sort::generate_initial_runs() {
     assert(memory_runs.back().isSorted());
 
     // insert the last run
-    queue.push_memory(&memory_runs.back());
+    queue.push_memory(memory_runs.back());
     assert(queue.isCorrect());
     for (auto &r : memory_runs) {
         assert(r.isSorted());
