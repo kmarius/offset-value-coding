@@ -15,12 +15,15 @@ static std::string new_run_path() {
     return std::string(BASEDIR "/run_" + std::to_string(i++) + ".dat");
 }
 
-Sort::Sort(Iterator *input) : input(input), queue(QUEUE_CAPACITY), buffer_manager(1024) {
-    workspace.reserve(QUEUE_CAPACITY * QUEUE_CAPACITY);
+Sort::Sort(Iterator *input) : input(input), queue(QUEUE_CAPACITY), buffer_manager(1024),
+                              workspace(new Row[QUEUE_CAPACITY * (QUEUE_CAPACITY - 3)]),
+                              workspace_size(0) {
+
 };
 
 Sort::~Sort() {
     assert(status == Closed);
+    delete[] workspace;
     delete input;
 };
 
@@ -67,7 +70,7 @@ bool Sort::generate_initial_runs() {
     MemoryRun run;
     run.reserve(QUEUE_CAPACITY);
     memory_runs.reserve(QUEUE_CAPACITY);
-    workspace.clear();
+    workspace_size = 0;
 
     Index insert_run_index = INITIAL_RUN_IDX;
     size_t inserted = 0;
@@ -77,8 +80,8 @@ bool Sort::generate_initial_runs() {
     Row *row;
 
     for (; queue.size() < queue.capacity() && (row = input->next()) != nullptr;) {
-        workspace.push_back(*row);
-        row = &workspace.back();
+        row = &workspace[workspace_size];
+        workspace[workspace_size++] = *row;
 
         queue.push(row, insert_run_index);
         inserted++;
@@ -102,8 +105,8 @@ bool Sort::generate_initial_runs() {
 #endif
 
     for (; (row = input->next()) != nullptr;) {
-        workspace.push_back(*row);
-        row = &workspace.back();
+        row = &workspace[workspace_size];
+        workspace[workspace_size++] = *row;
 
 #ifndef NDEBUG
         {
