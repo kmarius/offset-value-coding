@@ -1,4 +1,5 @@
 #include "lib/iterators/Generator.h"
+#include "lib/log.h"
 
 #include <cstdlib>
 
@@ -6,6 +7,7 @@
 // TODO: once we support different schemas, allow specification via arguments
 
 int main(int argc, char *argv[]) {
+    log_set_quiet(true);
     if (argc < 3) {
         fprintf(stderr, "usage: %s <path_sync> <n>\n", argv[0]);
         return 1;
