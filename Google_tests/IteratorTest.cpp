@@ -21,6 +21,17 @@ protected:
 
     }
 
+    void testSorted(size_t num_rows) {
+        auto *plan = new AssertSorted(
+                new Sort(
+                        new Generator(num_rows, 100, SEED
+                        )));
+        plan->run();
+        ASSERT_TRUE(plan->isSorted());
+        ASSERT_EQ(plan->count(), num_rows);
+        delete plan;
+    }
+
 };
 
 TEST_F(IteratorTest, EmptyTest) {
@@ -44,156 +55,53 @@ TEST_F(IteratorTest, DetectUnsorted) {
 }
 
 TEST_F(IteratorTest, SortEmpty) {
-    auto *plan = new AssertSorted(
-            new Sort(
-                    new Generator(0, 100, SEED
-                    )));
-    plan->run();
-    ASSERT_TRUE(plan->isSorted());
-    ASSERT_EQ(plan->count(), 0);
-    delete plan;
+    testSorted(0);
 }
 
 TEST_F(IteratorTest, SortOne) {
-    size_t num_rows = 1;
-    auto *plan = new AssertSorted(
-            new Sort(
-                    new Generator(num_rows, 100, SEED
-                    )));
-    plan->run();
-    ASSERT_TRUE(plan->isSorted());
-    ASSERT_EQ(plan->count(), num_rows);
-    delete plan;
+    testSorted(1);
 }
 
 TEST_F(IteratorTest, SortTwo) {
-    size_t num_rows = 2;
-    auto *plan = new AssertSorted(
-            new Sort(
-                    new Generator(num_rows, 100, SEED
-                    )));
-    plan->run();
-    ASSERT_TRUE(plan->isSorted());
-    ASSERT_EQ(plan->count(), num_rows);
-    delete plan;
+    testSorted(2);
 }
 
 TEST_F(IteratorTest, SortTiny) {
-    size_t num_rows = 5;
-    auto *plan = new AssertSorted(
-            new Sort(
-                    new Generator(num_rows, 100, SEED
-                    )));
-    plan->run();
-    ASSERT_TRUE(plan->isSorted());
-    ASSERT_EQ(plan->count(), num_rows);
-    delete plan;
+    testSorted(5);
 }
 
 TEST_F(IteratorTest, SortSmall) {
-    size_t num_rows = QUEUE_SIZE;
-    auto *plan = new AssertSorted(
-            new Sort(
-                    new Generator(num_rows, 100, SEED
-                    )));
-    plan->run();
-    ASSERT_TRUE(plan->isSorted());
-    ASSERT_EQ(plan->count(), num_rows);
-    delete plan;
+    testSorted(QUEUE_SIZE);
 }
 
 TEST_F(IteratorTest, SortSmall2) {
-    size_t num_rows = QUEUE_SIZE + QUEUE_SIZE/2;
-    auto *plan = new AssertSorted(
-            new Sort(
-                    new Generator(num_rows, 100, SEED
-                    )));
-    plan->run();
-    ASSERT_TRUE(plan->isSorted());
-    ASSERT_EQ(plan->count(), num_rows);
-    delete plan;
+    testSorted(QUEUE_SIZE + QUEUE_SIZE/2);
 }
 
 TEST_F(IteratorTest, SortSmallish) {
-    size_t num_rows = QUEUE_SIZE * 3;
-    auto *plan = new AssertSorted(
-            new Sort(
-                    new Generator(num_rows, 100, SEED
-                    )));
-    plan->run();
-    ASSERT_TRUE(plan->isSorted());
-    ASSERT_EQ(plan->count(), num_rows);
-    delete plan;
+    testSorted(QUEUE_SIZE * 3);
 }
 
 TEST_F(IteratorTest, SortMedium) {
-    size_t num_rows = QUEUE_SIZE * (QUEUE_SIZE - 3);
-    auto *plan = new AssertSorted(
-            new Sort(
-                    new Generator(num_rows, 100, SEED
-                    )));
-    plan->run();
-    ASSERT_TRUE(plan->isSorted());
-    ASSERT_EQ(plan->count(), num_rows);
-    delete plan;
+    testSorted(QUEUE_SIZE * (QUEUE_SIZE - 3));
 }
 
 TEST_F(IteratorTest, SortMediumButSmaller) {
-    size_t num_rows = QUEUE_SIZE * (QUEUE_SIZE - 3) - QUEUE_SIZE/2;
-    auto *plan = new AssertSorted(
-            new Sort(
-                    new Generator(num_rows, 100, SEED
-                    )));
-    plan->run();
-    ASSERT_TRUE(plan->isSorted());
-    ASSERT_EQ(plan->count(), num_rows);
-    delete plan;
+    testSorted(QUEUE_SIZE * (QUEUE_SIZE - 3) - QUEUE_SIZE/2);
 }
 
 TEST_F(IteratorTest, SortMediumButABitLarger) {
-    size_t num_rows = QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3) + QUEUE_SIZE/2;
-    auto *plan = new AssertSorted(
-            new Sort(
-                    new Generator(num_rows, 100, SEED
-                    )));
-    plan->run();
-    ASSERT_TRUE(plan->isSorted());
-    ASSERT_EQ(plan->count(), num_rows);
-    delete plan;
+    testSorted(QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3) + QUEUE_SIZE/2);
 }
 
 TEST_F(IteratorTest, SortMediumButABitLarger2) {
-    size_t num_rows = QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3) + QUEUE_SIZE + QUEUE_SIZE/2;
-    auto *plan = new AssertSorted(
-            new Sort(
-                    new Generator(num_rows, 100, SEED
-                    )));
-    plan->run();
-    ASSERT_TRUE(plan->isSorted());
-    ASSERT_EQ(plan->count(), num_rows);
-    delete plan;
+    testSorted(QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3) + QUEUE_SIZE + QUEUE_SIZE/2);
 }
 
 TEST_F(IteratorTest, SortLarge) {
-    size_t num_rows = QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3);
-    auto *plan = new AssertSorted(
-            new Sort(
-                    new Generator(num_rows, 100, SEED
-                    )));
-    plan->run();
-    ASSERT_TRUE(plan->isSorted());
-    ASSERT_EQ(plan->count(), num_rows);
-    delete plan;
+    testSorted(QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3));
 }
 
 TEST_F(IteratorTest, SortLarger) {
-    size_t num_rows = QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3) * 17 + 1337;
-    auto *plan = new AssertSorted(
-            new Sort(
-                    new Generator(num_rows, 100, SEED
-                    )));
-    plan->run();
-    ASSERT_TRUE(plan->isSorted());
-    ASSERT_EQ(plan->count(), num_rows);
-    delete plan;
+    testSorted(QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3) * 17 + 1337);
 }
