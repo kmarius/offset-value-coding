@@ -17,6 +17,17 @@ typedef unsigned long Key;
 #define MERGE_RUN_IDX (QUEUE_CAPACITY - 2)
 #define INITIAL_RUN_IDX 1
 
+
+struct priority_queue_stats {
+    size_t comparisons;
+    size_t full_comparisons;
+    size_t actual_full_comparisons;
+};
+
+extern struct priority_queue_stats stats;
+
+void priority_queue_stats_reset();
+
 class PriorityQueue {
 private:
     struct Node;

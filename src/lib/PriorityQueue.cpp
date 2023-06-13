@@ -45,6 +45,8 @@
 #define LOW_SENTINEL(run_index) (NODE_KEYGEN(0, run_index))
 #define HIGH_SENTINEL(run_index) (NODE_RUN_INDEX_MASK | (run_index))
 
+struct priority_queue_stats stats;
+
 struct PriorityQueue::WorkspaceNode {
     Row *row;
     union {
@@ -62,7 +64,8 @@ struct PriorityQueue::WorkspaceNode {
 
     void pop() {
         assert(memory_run->size() > 0);
-        row = memory_run->next();
+        memory_run->next();
+        row = memory_run->front();
     }
 };
 
@@ -124,13 +127,17 @@ struct PriorityQueue::Node {
 
     // sets ovc of the loser w.r.t. the winner
     inline bool less(Node &node, bool full_comp, WorkspaceNode *ws) {
+        stats.comparisons++;
+#ifdef PRIORITYQUEUE_USE_OVC
         if (full_comp || key == node.key) {
+            stats.full_comparisons++;
             if (IS_HIGH_SENTINEL(key) || IS_HIGH_SENTINEL(node.key)) {
                 return key < node.key;
             }
             if (run_index() != node.run_index()) {
                 return key < node.key;
             }
+            stats.actual_full_comparisons++;
 
             OVC ovc;
             // set key of the loser
@@ -143,6 +150,26 @@ struct PriorityQueue::Node {
             }
         }
         return key < node.key;
+#else
+        stats.full_comparisons++;
+        if (IS_HIGH_SENTINEL(key) || IS_HIGH_SENTINEL(node.key)) {
+            return key < node.key;
+        }
+        if (run_index() != node.run_index()) {
+            return key < node.key;
+        }
+        stats.actual_full_comparisons++;
+
+        OVC ovc;
+        // set key of the loser
+        if (ws[index].row->less(*ws[node.index].row, ovc)) {
+            node.setOvc(ovc);
+            return true;
+        } else {
+            setOvc(ovc);
+            return false;
+        }
+#endif
     }
 };
 
@@ -271,9 +298,9 @@ void PriorityQueue::push_memory(MemoryRun &run) {
     Index workspace_index = empty_slots.top();
     empty_slots.pop();
 
-    Row *row = run.front();
+    log_trace("push_memory of size %lu at %lu, starting with %s", run.size(), workspace_index, run.front()->c_str());
 
-    log_trace("push_memory of offset %lu at %lu, starting with %s", run.size(), workspace_index, row->c_str());
+    Row *row = run.front();
 
     workspace[workspace_index] = WorkspaceNode(row, &run);
     pass(workspace_index, NODE_KEYGEN(MERGE_RUN_IDX, row->key), true);
@@ -363,6 +390,7 @@ Row *PriorityQueue::pop_memory() {
 
     if (likely(workspace[workspace_index].memory_run->size() > 0)) {
         // normal leaf-to-root pass
+        log_trace("pass %s", workspace[workspace_index].row->c_str());
         pass(workspace_index, NODE_KEYGEN(MERGE_RUN_IDX, workspace[workspace_index].row->key), true);
     } else {
         // last row, perform leaf-to-root with high fence
@@ -411,6 +439,10 @@ std::ostream &operator<<(std::ostream &stream, const PriorityQueue &pq) {
         }
     }
     return stream;
+}
+
+void priority_queue_stats_reset() {
+    memset(&stats, 0, sizeof stats);
 }
 
 Row *PriorityQueue::top() {

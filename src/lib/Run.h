@@ -82,12 +82,12 @@ public:
     }
 
     /**
-     * Get the very first row of the run.
-     * @return The first row of the run.
+     * Peek the next row of the run.
+     * @return The next row of the run.
      */
     Row *front() {
-        assert(!data.empty());
-        return data.front();
+        assert(ind < data.size());
+        return data[ind];
     }
 
     /**

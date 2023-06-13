@@ -80,8 +80,9 @@ bool Sort::generate_initial_runs() {
     Row *row;
 
     for (; queue.size() < queue.capacity() && (row = input->next()) != nullptr;) {
-        row = &workspace[workspace_size];
-        workspace[workspace_size++] = *row;
+        workspace[workspace_size] = *row;
+        row = &workspace[workspace_size++];
+        log_trace("workspace[%lu]=%s", workspace_size-1, row->c_str());
 
         queue.push(row, insert_run_index);
         inserted++;
@@ -105,8 +106,8 @@ bool Sort::generate_initial_runs() {
 #endif
 
     for (; (row = input->next()) != nullptr;) {
-        row = &workspace[workspace_size];
-        workspace[workspace_size++] = *row;
+        workspace[workspace_size] = *row;
+        row = &workspace[workspace_size++];
 
 #ifndef NDEBUG
         {
@@ -157,7 +158,7 @@ bool Sort::generate_initial_runs() {
     if (queue.size() < queue.capacity()) {
         // The queue is not even full once. Pop everything, we then have a single in-memory run.
         while (!queue.isEmpty()) {
-            log_trace("pan run_idx=%lu", queue.top_run_idx());
+            log_trace("pop run_idx=%lu", queue.top_run_idx());
             Row *row1 = queue.pop(MERGE_RUN_IDX);
             run.add(row1);
         }
@@ -256,6 +257,7 @@ void Sort::merge_in_memory() {
         }
 #endif
         Row *row = queue.pop_memory();
+        log_trace("merge_in_memory: %s", row->c_str());
         run.add(*row);
         assert(queue.isCorrect());
     }
@@ -383,7 +385,6 @@ Row *Sort::next() {
         prev = *row;
     };
 #endif
-
     return queue.pop_external();
 }
 
