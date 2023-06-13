@@ -3,8 +3,8 @@
 
 #include <random>
 
-Generator::Generator(Count num_rows, unsigned long upper, unsigned long seed)
-        : num_rows(num_rows), tid(0) {
+Generator::Generator(Count num_rows, unsigned long upper, unsigned long seed, bool store)
+        : num_rows(num_rows), tid(0), store(store) {
     std::random_device dev;
     seed = seed == (unsigned long) -1 ? dev() : seed;
     rng = std::mt19937(seed);
@@ -29,7 +29,10 @@ Row *Generator::next() {
     if (num_rows == 0)
         return nullptr;
     num_rows--;
-    buf = {0, tid++, {dist(rng), dist(rng), dist(rng), dist(rng)}};
+    buf = {0, tid++, {dist(rng) % 2, dist(rng) % 4, dist(rng) % 8, dist(rng)}};
+    if (store) {
+        rows.push_back(buf);
+    }
     return &buf;
 }
 
