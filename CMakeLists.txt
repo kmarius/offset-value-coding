@@ -54,7 +54,7 @@ add_library(libovc
         src/lib/Run.h
         src/lib/utils.h
         src/lib/iterators/VectorScan.cpp
-        src/lib/iterators/VectorScan.h)
+        src/lib/iterators/VectorScan.h src/lib/Schema.cpp src/lib/Schema.h src/lib/iterators/Dedup.cpp src/lib/iterators/Dedup.h src/lib/iterators/AssertSortedUnique.h src/lib/iterators/AssertSortedUnique.cpp src/lib/iterators/AssertEqual.cpp src/lib/iterators/AssertEqual.h)
 target_link_libraries(libovc uring)
 
 add_executable(ovc src/ovc/main.cpp)
