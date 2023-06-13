@@ -15,7 +15,8 @@ Row *AssertSortedUnique::next() {
     }
 
     if (has_prev && sorted && !prev.less(*row)) {
-        log_error("input not sorted: %s", row->c_str());
+        log_error("input not is_sorted: prev: %s", prev.c_str());
+        log_error("                      cur: %s", row->c_str());
         sorted = false;
     }
     has_prev = true;
@@ -43,7 +44,7 @@ AssertSortedUnique::~AssertSortedUnique() {
     delete input;
 }
 
-bool AssertSortedUnique::isSorted() const {
+bool AssertSortedUnique::isSortedAndUnique() const {
     return sorted;
 }
 

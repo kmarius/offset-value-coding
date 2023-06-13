@@ -2,6 +2,9 @@
 
 #include "Iterator.h"
 
+/**
+ * Checks if the input is strictly ascending and therefore sorted and uniqe.
+ */
 class AssertSortedUnique : public Iterator {
 private:
     Iterator *input;
@@ -15,7 +18,7 @@ public:
 
     ~AssertSortedUnique() override;
 
-    bool isSorted() const;
+    bool isSortedAndUnique() const;
 
     size_t count() const;
 

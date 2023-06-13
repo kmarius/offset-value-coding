@@ -13,16 +13,12 @@ Row *AssertSorted::next() {
     if (row == nullptr) {
         return nullptr;
     }
-    if (prev) {
-        if (sorted && row->less(*prev)) {
-            fail0 = *prev;
-            fail1 = *row;
-            first_fail = num_rows;
-            sorted = false;
-        }
+    if (is_sorted && row->less(prev)) {
+        log_error("input not is_sorted: prev: %s", prev.c_str());
+        log_error("                      cur: %s", row->c_str());
+        is_sorted = false;
     }
-    prev_buf = *row;
-    prev = &prev_buf;
+    prev = *row;
     num_rows++;
     return row;
 }
@@ -37,7 +33,7 @@ void AssertSorted::close() {
     input->close();
 }
 
-AssertSorted::AssertSorted(Iterator *iterator) : input(iterator), prev(nullptr), sorted(true), num_rows(0) {}
+AssertSorted::AssertSorted(Iterator *iterator) : input(iterator), is_sorted(true), num_rows(0), prev({0}) {}
 
 AssertSorted::~AssertSorted() {
     assert(status == Closed);
@@ -45,7 +41,7 @@ AssertSorted::~AssertSorted() {
 }
 
 bool AssertSorted::isSorted() const {
-    return sorted;
+    return is_sorted;
 }
 
 size_t AssertSorted::count() const {

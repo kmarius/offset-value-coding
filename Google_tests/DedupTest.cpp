@@ -29,7 +29,7 @@ protected:
                         new Sort(
                                 new Generator(num_rows, 100, SEED, true))));
         plan->run();
-        ASSERT_TRUE(plan->isSorted());
+        ASSERT_TRUE(plan->isSortedAndUnique());
         delete plan;
     }
 };
@@ -37,7 +37,7 @@ protected:
 TEST_F(DedupTest, EmptyTest) {
     auto *plan = new AssertSortedUnique(new Generator(0, 100, SEED));
     plan->run();
-    ASSERT_TRUE(plan->isSorted());
+    ASSERT_TRUE(plan->isSortedAndUnique());
     ASSERT_EQ(plan->count(), 0);
     delete plan;
 }
@@ -50,7 +50,7 @@ TEST_F(DedupTest, DetectUnsorted) {
             }
     ));
     plan->run();
-    ASSERT_FALSE(plan->isSorted());
+    ASSERT_FALSE(plan->isSortedAndUnique());
     delete plan;
 }
 
@@ -64,7 +64,7 @@ TEST_F(DedupTest, DetectDupe) {
             }
     ));
     plan->run();
-    ASSERT_FALSE(plan->isSorted());
+    ASSERT_FALSE(plan->isSortedAndUnique());
     delete plan;
 }
 

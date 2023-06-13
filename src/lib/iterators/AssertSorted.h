@@ -2,18 +2,19 @@
 
 #include "Iterator.h"
 
+/**
+ * Checks if the input is ascending and therefore sorted.
+ */
 class AssertSorted : public Iterator {
 private:
     Iterator *input;
-    Row prev_buf;
-    Row *prev;
-    bool sorted;
-    size_t first_fail;
+    Row prev;
+    bool is_sorted;
     size_t num_rows;
-    Row fail0, fail1;
 
 public:
     explicit AssertSorted(Iterator *iterator);
+
     ~AssertSorted();
 
     bool isSorted() const;
