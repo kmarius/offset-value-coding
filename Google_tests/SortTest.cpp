@@ -1,0 +1,112 @@
+#include "lib/Row.h"
+#include "lib/iterators/AssertSorted.h"
+#include "lib/iterators/Generator.h"
+#include "lib/iterators/VectorScan.h"
+#include "lib/iterators/Sort.h"
+#include "lib/iterators/AssertEqual.h"
+
+#include <gtest/gtest.h>
+
+class SortTest : public ::testing::Test {
+protected:
+
+    const size_t QUEUE_SIZE = QUEUE_CAPACITY;
+    const size_t SEED = 1337;
+
+    void SetUp() override {
+        log_set_quiet(true);
+        log_set_level(LOG_ERROR);
+    }
+
+    void TearDown() override {
+
+    }
+
+    void testSorted(size_t num_rows) {
+        auto gen = new Generator(num_rows, 100, SEED, true);
+        auto rows = Generator(num_rows, 100, SEED, true).collect();
+        auto sorted = new AssertSorted(new Sort(gen));
+        std::sort(rows.begin(), rows.end(),
+                  [](const Row &a, const Row &b) -> bool {
+                      return a.less(b);
+                  });
+        auto *plan = new AssertEqual(sorted, new VectorScan(rows));
+        plan->run();
+        ASSERT_TRUE(sorted->isSorted());
+        ASSERT_EQ(sorted->count(), num_rows);
+        ASSERT_TRUE(plan->equal);
+        delete plan;
+    }
+};
+
+TEST_F(SortTest, EmptyTest) {
+    auto *plan = new AssertSorted(new Generator(0, 100, SEED));
+    plan->run();
+    ASSERT_TRUE(plan->isSorted());
+    ASSERT_EQ(plan->count(), 0);
+    delete plan;
+}
+
+TEST_F(SortTest, DetectUnsorted) {
+    auto *plan = new AssertSorted(new VectorScan(
+            {
+                    {0, 0, {1, 0, 0, 0}},
+                    {0, 0, {0, 0, 0, 0}}
+            }
+    ));
+    plan->run();
+    ASSERT_FALSE(plan->isSorted());
+    delete plan;
+}
+
+TEST_F(SortTest, SortEmpty) {
+    testSorted(0);
+}
+
+TEST_F(SortTest, SortOne) {
+    testSorted(1);
+}
+
+TEST_F(SortTest, SortTwo) {
+    testSorted(2);
+}
+
+TEST_F(SortTest, SortTiny) {
+    testSorted(5);
+}
+
+TEST_F(SortTest, SortSmall) {
+    testSorted(QUEUE_SIZE);
+}
+
+TEST_F(SortTest, SortSmall2) {
+    testSorted(QUEUE_SIZE + QUEUE_SIZE / 2);
+}
+
+TEST_F(SortTest, SortSmallish) {
+    testSorted(QUEUE_SIZE * 3);
+}
+
+TEST_F(SortTest, SortMedium) {
+    testSorted(QUEUE_SIZE * (QUEUE_SIZE - 3));
+}
+
+TEST_F(SortTest, SortMediumButSmaller) {
+    testSorted(QUEUE_SIZE * (QUEUE_SIZE - 3) - QUEUE_SIZE / 2);
+}
+
+TEST_F(SortTest, SortMediumButABitLarger) {
+    testSorted(QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3) + QUEUE_SIZE / 2);
+}
+
+TEST_F(SortTest, SortMediumButABitLarger2) {
+    testSorted(QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3) + QUEUE_SIZE + QUEUE_SIZE / 2);
+}
+
+TEST_F(SortTest, SortLarge) {
+    testSorted(QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3));
+}
+
+TEST_F(SortTest, SortLarger) {
+    testSorted(QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3) * 17 + 1337);
+}
