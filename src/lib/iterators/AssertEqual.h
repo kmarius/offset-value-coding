@@ -6,7 +6,7 @@ class AssertEqual : public Iterator {
 public:
     AssertEqual(Iterator *left, Iterator *right);
 
-    ~AssertEqual();
+    ~AssertEqual() override;
 
     void open() override;
 

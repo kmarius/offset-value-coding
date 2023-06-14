@@ -2,9 +2,7 @@
 #include "lib/log.h"
 #include "lib/io/ExternalRunW.h"
 
-Iterator::Iterator() = default;
-
-Iterator::~Iterator() = default;
+Iterator::Iterator() : status(Unopened) {}
 
 void Iterator::run(bool print) {
     Count rows_seen = 0;
@@ -40,3 +38,4 @@ void Iterator::write(const std::string &path) {
     }
     close();
 }
+

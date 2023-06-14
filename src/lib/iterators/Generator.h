@@ -9,15 +9,7 @@ class Generator : public Iterator {
 public :
     explicit Generator(Count rows, unsigned long upper, unsigned long seed = -1, bool store = false);
 
-    ~Generator() override;
-
-    void open() override;
-
-    void close() override;
-
     Row *next() override;
-
-    void free() override;
 
     std::vector<Row> rows;
 

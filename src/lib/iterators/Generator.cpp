@@ -12,22 +12,12 @@ Generator::Generator(Count num_rows, unsigned long upper, unsigned long seed, bo
     log_info("using seed %lu", seed);
 }
 
-Generator::~Generator() = default;
-
-void Generator::open() {
-    assert(status == Unopened);
-    status = Opened;
-}
-
-void Generator::close() {
-    assert(status == Opened);
-    status = Closed;
-}
-
 Row *Generator::next() {
-    assert(status == Opened);
-    if (num_rows == 0)
+    Iterator::next();
+
+    if (num_rows == 0) {
         return nullptr;
+    }
     num_rows--;
     buf = {0, tid++, {dist(rng) % 2, dist(rng) % 4, dist(rng) % 8, dist(rng)}};
     if (store) {
@@ -35,5 +25,3 @@ Row *Generator::next() {
     }
     return &buf;
 }
-
-void Generator::free() {}

@@ -15,7 +15,7 @@ private:
 public:
     explicit AssertSorted(Iterator *iterator);
 
-    ~AssertSorted();
+    ~AssertSorted() override;
 
     bool isSorted() const;
 

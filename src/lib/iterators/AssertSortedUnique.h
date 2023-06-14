@@ -10,7 +10,7 @@ private:
     Iterator *input;
     Row prev;
     bool has_prev;
-    bool sorted;
+    bool is_sorted;
     size_t num_rows;
 
 public:

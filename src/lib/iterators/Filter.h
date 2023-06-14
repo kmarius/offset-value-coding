@@ -18,6 +18,14 @@ public :
 
     void free() override;
 
+    bool outputIsSorted() override {
+        return input_->outputIsSorted();
+    };
+
+    bool outputIsHashed() override {
+        return input_->outputIsHashed();
+    };
+
 private :
     Predicate *const predicate_;
     Iterator *const input_;

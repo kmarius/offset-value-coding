@@ -1,14 +1,20 @@
 #include "AssertSorted.h"
 #include "lib/log.h"
 
+AssertSorted::AssertSorted(Iterator *iterator) : input(iterator), is_sorted(true), num_rows(0), prev({0}) {}
+
+AssertSorted::~AssertSorted() {
+    assert(status == Closed);
+    delete input;
+}
+
 void AssertSorted::open() {
-    assert(status == Unopened);
-    status = Opened;
+    Iterator::open();
     input->open();
 }
 
 Row *AssertSorted::next() {
-    assert(status == Opened);
+    Iterator::next();
     Row *row = input->next();
     if (row == nullptr) {
         return nullptr;
@@ -24,21 +30,15 @@ Row *AssertSorted::next() {
 }
 
 void AssertSorted::free() {
+    Iterator::free();
     input->free();
 }
 
 void AssertSorted::close() {
-    assert(status == Opened);
-    status = Closed;
+    Iterator::close();
     input->close();
 }
 
-AssertSorted::AssertSorted(Iterator *iterator) : input(iterator), is_sorted(true), num_rows(0), prev({0}) {}
-
-AssertSorted::~AssertSorted() {
-    assert(status == Closed);
-    delete input;
-}
 
 bool AssertSorted::isSorted() const {
     return is_sorted;

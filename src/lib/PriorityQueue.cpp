@@ -128,15 +128,29 @@ struct PriorityQueue::Node {
     // sets ovc of the loser w.r.t. the winner
     inline bool less(Node &node, bool full_comp, WorkspaceNode *ws) {
         stats.comparisons++;
-#ifdef PRIORITYQUEUE_USE_OVC
+
+#ifdef PRIORITYQUEUE_NO_USE_OVC
+        stats.full_comparisons++;
+        if (IS_HIGH_SENTINEL(key) || IS_HIGH_SENTINEL(node.key)) {
+            return key < node.key;
+        }
+        if (run_index() != node.run_index()) {
+            return key < node.key;
+        }
+        stats.actual_full_comparisons++;
+
+        return ws[index].row->less(*ws[node.index].row);
+#else
         if (full_comp || key == node.key) {
             stats.full_comparisons++;
+
             if (IS_HIGH_SENTINEL(key) || IS_HIGH_SENTINEL(node.key)) {
                 return key < node.key;
             }
             if (run_index() != node.run_index()) {
                 return key < node.key;
             }
+
             stats.actual_full_comparisons++;
 
             OVC ovc;
@@ -149,26 +163,8 @@ struct PriorityQueue::Node {
                 return false;
             }
         }
-        return key < node.key;
-#else
-        stats.full_comparisons++;
-        if (IS_HIGH_SENTINEL(key) || IS_HIGH_SENTINEL(node.key)) {
-            return key < node.key;
-        }
-        if (run_index() != node.run_index()) {
-            return key < node.key;
-        }
-        stats.actual_full_comparisons++;
 
-        OVC ovc;
-        // set key of the loser
-        if (ws[index].row->less(*ws[node.index].row, ovc)) {
-            node.setOvc(ovc);
-            return true;
-        } else {
-            setOvc(ovc);
-            return false;
-        }
+        return key < node.key;
 #endif
     }
 };

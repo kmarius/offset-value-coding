@@ -5,24 +5,21 @@ Filter::Filter(Predicate *const predicate, Iterator *const input)
 }
 
 Filter::~Filter() {
-    assert(status == Closed);
     delete input_;
 }
 
 void Filter::open() {
-    assert(status == Unopened);
-    status = Opened;
+    Iterator::open();
     input_->open();
 }
 
 void Filter::close() {
-    assert(status == Opened);
-    status = Closed;
+    Iterator::close();
     input_->close();
 }
 
 Row *Filter::next() {
-    assert(status == Opened);
+    Iterator::next();
 
     Row *row;
     for (; (row = input_->next());) {

@@ -1,12 +1,22 @@
 #include "AssertEqual.h"
 #include "lib/log.h"
 
+AssertEqual::AssertEqual(Iterator *left, Iterator *right) : left_(left), right_(right), equal(true) {
+}
+
+AssertEqual::~AssertEqual() {
+    delete left_;
+    delete right_;
+}
+
 void AssertEqual::open() {
+    Iterator::open();
     left_->open();
     right_->open();
 }
 
 Row *AssertEqual::next() {
+    Iterator::next();
     Row *left = left_->next();
     Row *right = right_->next();
     if (left == nullptr && right == nullptr) {
@@ -36,19 +46,13 @@ Row *AssertEqual::next() {
 }
 
 void AssertEqual::free() {
+    Iterator::free();
     left_->free();
     right_->free();
 }
 
 void AssertEqual::close() {
+    Iterator::close();
     left_->close();
     right_->close();
-}
-
-AssertEqual::AssertEqual(Iterator *left, Iterator *right) : left_(left), right_(right), equal(true) {
-}
-
-AssertEqual::~AssertEqual() {
-    delete left_;
-    delete right_;
 }
