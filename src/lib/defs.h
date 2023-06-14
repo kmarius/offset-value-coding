@@ -20,9 +20,9 @@
 // This currently controls how many bits we use to store the run index in the key in the priority queue
 // which at the same time controls the fan-in of the merge
 // TODO: we should decouple this from the queue size
-#define RUN_IDX_BITS 6
+#define RUN_IDX_BITS 5
 
-#define PRIORITYQUEUE_USE_OVC
+//#define PRIORITYQUEUE_NO_USE_OVC
 
 #define LOGPATH "/tmp/ovc.log"
 

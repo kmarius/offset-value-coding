@@ -19,7 +19,8 @@ Row *Generator::next() {
         return nullptr;
     }
     num_rows--;
-    buf = {0, tid++, {dist(rng) % 2, dist(rng) % 4, dist(rng) % 8, dist(rng)}};
+    //buf = {0, tid++, {dist(rng) % 2, dist(rng) % 4, dist(rng) % 8, dist(rng) % 16}};
+    buf = {0, tid++, {dist(rng) % 1, dist(rng) % 2, dist(rng) % 4, dist(rng) % 8, dist(rng) % 8, dist(rng) % 8, dist(rng) % 8, dist(rng) % 8}};
     if (store) {
         rows.push_back(buf);
     }
