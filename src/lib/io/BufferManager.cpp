@@ -44,7 +44,6 @@ void BufferManager::read(int fd, Buffer *buffer, size_t &offset) {
     assert(fd < MAX_DESCRIPTORS);
     assert(offset % BUFFER_ALIGNMENT == 0);
 
-    // stats
     if (fd > max_fd) {
         max_fd = fd;
     }

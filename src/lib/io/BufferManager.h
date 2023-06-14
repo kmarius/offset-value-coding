@@ -62,7 +62,6 @@ public:
      */
     void give(Buffer *buffer);
 
-    // for stats only
     int max_fd = -1;
     unsigned long waited_total = 0;
 };
