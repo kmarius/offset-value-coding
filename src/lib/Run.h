@@ -86,6 +86,9 @@ public:
      * @return The next row of the run.
      */
     Row *front() {
+        if (ind >= data.size()) {
+            return nullptr;
+        }
         assert(ind < data.size());
         return data[ind];
     }
