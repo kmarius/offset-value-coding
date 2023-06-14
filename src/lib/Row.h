@@ -6,13 +6,15 @@
 
 #include "defs.h"
 
-#define ROW_ARITY 4
+#define ROW_ARITY 8
 #define DOMAIN 100
 
 typedef struct Row {
     OVC key;
     unsigned long tid;
     unsigned long columns[ROW_ARITY];
+
+    unsigned long setHash();
 
     /**
      * Check if two rows are equal.

@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "Row.h"
 #include "log.h"
 
@@ -61,10 +62,37 @@ const char *Row::c_str() const {
     int pos = sprintf(buf, "[%lu: ", key);
     for (int i = 0; i < ROW_ARITY; i++) {
         pos += sprintf(buf + pos, "%lu", columns[i]);
-        if (i < ROW_ARITY-1) {
+        if (i < ROW_ARITY - 1) {
             pos += sprintf(buf + pos, ", ");
         }
     }
     sprintf(buf + pos, "]");
     return buf;
+}
+
+/*
+ * https://en.m.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
+ */
+static inline uint64_t hashl(const char *buf, size_t l) {
+    uint64_t h = 0xcbf29ce484222325;
+    for (size_t i = 0; i < l; i++) {
+        h = (h ^ buf[i]) * 0x00000100000001b3;
+    }
+    return h;
+}
+
+unsigned long Row::setHash() {
+
+    /*
+    unsigned long h = 0xcbf29ce484222325;
+    for (unsigned long column: columns) {
+        h ^= hashl((char *) &column, sizeof(column)) + (h << 6) + (h >> 2);
+        //h ^= hashl((char *) &column, sizeof(column));
+    }
+    key = h;
+     */
+
+    key = hashl((char *) columns, sizeof(columns));
+
+    return key;
 }
