@@ -18,9 +18,22 @@ public:
 
     Row *next() override;
 
-    void free() override;
-
     void close() override;
+
+    bool outputIsSorted() override {
+        return true;
+    }
+
+    bool outputHasOVC() override {
+#ifdef PRIORITYQUEUE_NO_USE_OVC
+        return false;
+#endif
+        return true;
+    }
+
+    bool outputIsHashed() override {
+        return false;
+    }
 
 private:
     Iterator *input;

@@ -81,6 +81,7 @@ bool Sort::generate_initial_runs() {
 
     for (; queue.size() < queue.capacity() && (row = input->next()) != nullptr;) {
         workspace[workspace_size] = *row;
+        input->free();
         row = &workspace[workspace_size++];
         log_trace("workspace[%lu]=%s", workspace_size-1, row->c_str());
 
@@ -108,6 +109,7 @@ bool Sort::generate_initial_runs() {
     for (; (row = input->next()) != nullptr;) {
         workspace[workspace_size] = *row;
         row = &workspace[workspace_size++];
+        input->free();
 
 #ifndef NDEBUG
         {
@@ -334,8 +336,7 @@ std::string Sort::merge_external(size_t fan_in) {
 }
 
 void Sort::open() {
-    assert(status == Unopened);
-    status = Opened;
+    Iterator::open();
     input->open();
 
     for (bool has_more_input = true; has_more_input;) {
@@ -365,7 +366,7 @@ void Sort::open() {
 }
 
 Row *Sort::next() {
-    assert(status == Opened);
+    Iterator::next();
 
     if (queue.isEmpty()) {
         return nullptr;
@@ -388,11 +389,8 @@ Row *Sort::next() {
     return queue.pop_external();
 }
 
-void Sort::free() {}
-
 void Sort::close() {
-    assert(status == Opened);
-    status = Closed;
+    Iterator::close();
     for (auto &run: external_runs) {
         run.remove();
     }
