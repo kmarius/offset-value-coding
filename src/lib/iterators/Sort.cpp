@@ -350,10 +350,10 @@ void Sort::open() {
         size_t initial_merge_fan_in = num_runs % (QUEUE_CAPACITY - 1);
         assert(initial_merge_fan_in);
         merge_external(initial_merge_fan_in);
-        log_info("merging %lu", initial_merge_fan_in);
+        log_trace("merging %lu", initial_merge_fan_in);
     }
     while (external_run_paths.size() > QUEUE_CAPACITY) {
-        log_info("merging %lu", QUEUE_CAPACITY);
+        log_trace("merging %lu", QUEUE_CAPACITY);
         merge_external(QUEUE_CAPACITY);
     }
 
@@ -362,7 +362,7 @@ void Sort::open() {
 #ifndef NDEBUG
     prev = {0};
 #endif
-    log_info("Sort::open() fan-in for the last merge step is %lu", external_runs.size());
+    log_trace("Sort::open() fan-in for the last merge step is %lu", external_runs.size());
 }
 
 Row *Sort::next() {
