@@ -25,7 +25,7 @@ Row *Dedup::next() {
 
     for (Row *row; (row = input_->next());) {
 #ifdef PRIORITYQUEUE_NO_USE_OVC
-        if (has_prev && !row->equals(prev)) {
+        if (!has_prev || !row->equals(prev)) {
             prev = *row;
             has_prev = true;
             return row;
