@@ -4,6 +4,10 @@
 
 #define RUN_EMPTY ((size_t) -1)
 
+ExternalRunR::ExternalRunR() : fd(-1) {
+
+}
+
 ExternalRunR::ExternalRunR(const std::string &path,
                            BufferManager &buffer_manager) : path_(path), offset(0),
                                                             buffer(nullptr),
@@ -30,7 +34,6 @@ ExternalRunR::ExternalRunR(const std::string &path,
 
 ExternalRunR::~ExternalRunR() {
     finalize();
-
 }
 
 const std::string &ExternalRunR::path() const {

@@ -3,6 +3,10 @@
 #include "lib/log.h"
 #include "lib/utils.h"
 
+ExternalRunW::ExternalRunW() : fd(-1) {
+
+}
+
 ExternalRunW::ExternalRunW(const std::string &path, BufferManager &buffer_manager) :
         current(0), rows(0), rows_total(0), offset(0), path_(path), buffer_manager(&buffer_manager) {
 
@@ -113,7 +117,7 @@ const std::string &ExternalRunW::path() const {
 
 void ExternalRunW::finalize() {
     if (fd > 0) {
-        log_trace("finalizing %s", path_.c_str());
+        log_trace("finalizing %s (fd=%d)", path_.c_str(), fd);
         if (rows > 0) {
             flush(current);
         }
@@ -126,7 +130,6 @@ void ExternalRunW::finalize() {
         buffer_manager->give(buffers[0]);
         buffer_manager->give(buffers[1]);
 
-        close(fd);
         fd = -1;
     }
 }

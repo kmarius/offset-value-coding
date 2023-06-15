@@ -22,6 +22,8 @@ private:
 public:
     ExternalRunR(const std::string &path, BufferManager &buffer_manager);
 
+    ExternalRunR();
+
     ~ExternalRunR();
 
     /**
@@ -36,9 +38,9 @@ public:
      */
     Row *read();
 
-     /**
-     * Flush all buffer and close the file. This function is automatically called on destruction.
-     */
+    /**
+    * Flush all buffer and close the file. This function is automatically called on destruction.
+    */
     void finalize();
 
     /**

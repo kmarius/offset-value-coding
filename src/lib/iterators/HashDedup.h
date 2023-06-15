@@ -1,7 +1,9 @@
 #pragma once
 
+#include <unordered_set>
 #include "Iterator.h"
-#include "lib/HashSet.h"
+#include "lib/Partitioner.h"
+#include "lib/io/ExternalRunR.h"
 
 class HashDedup : public Iterator {
 public :
@@ -15,11 +17,17 @@ public :
 
     Row *next() override;
 
+
     bool outputIsHashed() override {
         return true;
     };
 
 private :
     Iterator *input_;
-    HashSet hashSet;
+    std::vector<std::string> partitions;
+    ExternalRunR *partition;
+    BufferManager bufferManager;
+    std::unordered_set<Row> set;
+
+    Row *next_from_part();
 };

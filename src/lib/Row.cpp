@@ -14,7 +14,7 @@ std::ostream &operator<<(std::ostream &stream, const Row &row) {
     return stream;
 }
 
-bool Row::equals(const Row &row) {
+bool Row::equals(const Row &row) const {
 //#pragma unroll
     for (int i = 0; i < ROW_ARITY; i++) {
         if (columns[i] != row.columns[i]) {

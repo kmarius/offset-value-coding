@@ -21,7 +21,12 @@ typedef struct Row {
      * @param row
      * @return
      */
-    bool equals(const Row &row);
+    bool equals(const Row &row) const;
+
+    bool operator==(const Row &other) const {
+        return equals(other);
+    };
+
 
     /**
      * less-than semantics
@@ -46,3 +51,12 @@ typedef struct Row {
 
     friend std::ostream &operator<<(std::ostream &stream, const Row &row);
 } Row;
+
+namespace std {
+    template<>
+    struct hash<Row> {
+        std::size_t operator()(const Row &p) const noexcept {
+            return p.key;
+        }
+    };
+}

@@ -47,6 +47,8 @@ private:
 public:
     explicit ExternalRunW(const std::string &path, BufferManager &buffer_manager);
 
+    explicit ExternalRunW();
+
     ~ExternalRunW();
 
     /**
