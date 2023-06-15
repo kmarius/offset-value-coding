@@ -14,6 +14,6 @@ int main(int argc, char **argv) {
         for (count = 0; (row = run.read()) != nullptr; count++) {
             printf("%4d %s\n", count, row->c_str());
         }
-        printf("%d rows next\n", count);
+        printf("%d rows read\n", count);
     }
 }

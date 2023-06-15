@@ -47,7 +47,7 @@ void example_dedup() {
     log_info("actual_full_comparisons: %lu", stats.actual_full_comparisons);
 }
 
-void example_hashing() {
+void example_comparison() {
     //size_t num_rows = 1000000;
     size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3);
     size_t seed = 1337;
@@ -129,8 +129,29 @@ void raw_rows() {
     delete a;
 }
 
+void example_hashing() {
+    //size_t num_rows = 100000;
+    size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3);
+    size_t seed = 1337;
+
+    auto plan = new HashDedup(new Generator(num_rows, 100, seed));
+
+    hash_set_stats_reset();
+    auto start = now();
+    plan->run();
+    auto duration = since(start);
+
+    log_info("hashing:");
+    log_info("hashes calculated:       %lu", num_rows);
+    log_info("hash_comparisons:        %lu", hs_stats.hash_comparisons);
+    log_info("row_comparisons:         %lu", hs_stats.row_comparisons);
+    log_info("duration:                %lums", duration);
+
+    delete plan;
+}
+
 int main(int argc, char *argv[]) {
-    log_open(LOG_INFO);
+    log_open(LOG_TRACE);
     // log_set_quiet(true);
     log_set_level(LOG_INFO);
     log_info("start", "");
@@ -140,7 +161,8 @@ int main(int argc, char *argv[]) {
     //raw_rows();
     //example_sort();
     //example_dedup();
-    example_hashing();
+    example_comparison();
+    //example_hashing();
 
     log_info("elapsed=%lums", since(start));
 

@@ -18,9 +18,9 @@ int main(int argc, char **argv) {
         int count;
         for (count = 1; (row = run.read()) != nullptr; count++, prev = *row) {
             if (row->less(prev)) {
-                printf("row at index=%d is smaller than the previous\n", i);
-                printf("prev: %s\n", prev.c_str());
-                printf("cur:  %s\n", row->c_str());
+                fprintf(stderr, "row at index=%d is smaller than the previous\n", i);
+                fprintf(stderr, "prev: %s\n", prev.c_str());
+                fprintf(stderr, "cur:  %s\n", row->c_str());
                 fail++;
                 break;
             }
