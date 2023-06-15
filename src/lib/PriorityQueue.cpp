@@ -130,14 +130,14 @@ struct PriorityQueue::Node {
         stats.comparisons++;
 
 #ifdef PRIORITYQUEUE_NO_USE_OVC
-        has_stats.row_comparisons++;
+        stats.full_comparisons++;
         if (IS_HIGH_SENTINEL(key) || IS_HIGH_SENTINEL(node.key)) {
             return key < node.key;
         }
         if (run_index() != node.run_index()) {
             return key < node.key;
         }
-        has_stats.actual_full_comparisons++;
+        stats.actual_full_comparisons++;
 
         return ws[index].row->less(*ws[node.index].row);
 #else
