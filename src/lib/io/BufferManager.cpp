@@ -75,6 +75,9 @@ Buffer *BufferManager::wait(int fd) {
     bool waited = false;
     auto start = now();
 
+    auto it = loading.find(fd);
+    assert(it != loading.end());
+
     while (!completed[fd]) {
         waited = true;
         io_uring_submit_and_wait(&ring, 1);
@@ -104,9 +107,6 @@ Buffer *BufferManager::wait(int fd) {
         auto duration = since(start);
         waited_total += duration;
     }
-
-    auto it = loading.find(fd);
-    assert(it != loading.end());
 
     auto buffer = it->second;
     loading.erase(it);
