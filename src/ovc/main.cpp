@@ -26,7 +26,7 @@ void example_simple_tree() {
 }
 
 void example_dedup() {
-    size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3) * 4;
+    size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3);
 
     log_info("num_rows=%lu", num_rows);
 
@@ -35,42 +35,48 @@ void example_dedup() {
                     new Generator(num_rows, DOMAIN, 1337)
             ));
     Iterator *plan = new AssertSortedUnique(dedup);
-    plan->run(true);
+    plan->run();
 
     log_info("num_dupex: %d", dedup->num_dupes);
 
     delete plan;
 
-    log_info("nlogn:                   %lu", num_rows * (size_t) log((double) num_rows));
-    log_info("hash_comparisons:             %lu", stats.comparisons);
-    log_info("row_comparisons:        %lu", stats.full_comparisons);
+    log_info("nlogn:                   %lu", (size_t) (num_rows *  log((double) num_rows)));
+    log_info("comparisons:             %lu", stats.comparisons);
+    log_info("full_comparisons:        %lu", stats.full_comparisons);
     log_info("actual_full_comparisons: %lu", stats.actual_full_comparisons);
 }
 
 void example_hashing() {
     //size_t num_rows = 1000000;
-    size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3) * 10;
+    size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3);
     size_t seed = 1337;
 
     auto plan = new HashDedup(new Generator(num_rows, 100, seed));
     auto plan_sort = new Dedup(new Sort(new Generator(num_rows, 100, seed)));
 
     hash_set_stats_reset();
+    auto start = now();
     plan->run();
+    auto duration = since(start);
 
     priority_queue_stats_reset();
+    auto start_sort = now();
     plan_sort->run();
+    auto duration_sort = since(start_sort);
 
     log_info("hashing:");
     log_info("hashes calculated:       %lu", num_rows);
     log_info("hash_comparisons:        %lu", hs_stats.hash_comparisons);
     log_info("row_comparisons:         %lu", hs_stats.row_comparisons);
+    log_info("duration:                %lums", duration);
 
     log_info("sorting:");
     log_info("nlogn:                   %lu", num_rows * (size_t) log((double) num_rows));
     log_info("comparisons:             %lu", stats.comparisons);
     log_info("full_comparisons:        %lu", stats.full_comparisons);
     log_info("actual_full_comparisons: %lu", stats.actual_full_comparisons);
+    log_info("duration:                %lums", duration_sort);
 
     delete plan;
     delete plan_sort;
@@ -78,7 +84,7 @@ void example_hashing() {
 
 void example_sort() {
     // three "memory_runs" are reserved for: low fences, high fences, and the we-are-merging-indicator
-    size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3) * 1;
+    size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3) ;
 
     log_info("num_rows=%lu", num_rows);
 
@@ -91,9 +97,9 @@ void example_sort() {
 
     delete plan;
 
-    log_info("nlogn:                   %lu", num_rows * (size_t) log((double) num_rows));
-    log_info("hash_comparisons:             %lu", stats.comparisons);
-    log_info("row_comparisons:        %lu", stats.full_comparisons);
+    log_info("nlogn:                   %lu", (size_t)  (num_rows * log((double) num_rows)));
+    log_info("comparisons:             %lu", stats.comparisons);
+    log_info("full_comparisons:        %lu", stats.full_comparisons);
     log_info("actual_full_comparisons: %lu", stats.actual_full_comparisons);
 }
 
@@ -124,7 +130,7 @@ void raw_rows() {
 }
 
 int main(int argc, char *argv[]) {
-    log_open(LOG_TRACE);
+    log_open(LOG_INFO);
     // log_set_quiet(true);
     log_set_level(LOG_INFO);
     log_info("start", "");
