@@ -2,8 +2,6 @@
 #include "lib/log.h"
 #include "lib/io/ExternalRunW.h"
 
-Iterator::Iterator() : status(Unopened) {}
-
 void Iterator::run(bool print) {
     Count rows_seen = 0;
 

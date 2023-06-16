@@ -13,7 +13,7 @@ typedef enum IteratorStatus {
 
 class Iterator {
 public:
-    Iterator();
+    Iterator() : status(Unopened) {};
 
     virtual ~Iterator() {
         assert(status == Closed);
