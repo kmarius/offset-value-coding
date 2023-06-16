@@ -8,23 +8,20 @@
 #include <vector>
 #include <sstream>
 
-#define IS_IN_WORKSPACE(ptr, ws) (ptr >= ws.begin().base() && ptr < ws.end().base())
-
 static std::string new_run_path() {
     static int i = 0;
     return std::string(BASEDIR "/run_" + std::to_string(i++) + ".dat");
 }
 
-Sort::Sort(Iterator *input) : input(input), queue(QUEUE_CAPACITY), buffer_manager(1024),
+Sort::Sort(Iterator *input) : UnaryIterator(input),
+                              queue(QUEUE_CAPACITY),
+                              buffer_manager(1024),
                               workspace(new Row[QUEUE_CAPACITY * (QUEUE_CAPACITY - 3)]),
                               workspace_size(0) {
-
 };
 
 Sort::~Sort() {
-    assert(status == Closed);
     delete[] workspace;
-    delete input;
 };
 
 // assume the priority queue is isEmpty and we are creating generate_initial_runs memory_runs
@@ -41,8 +38,9 @@ bool Sort::generate_initial_runs_q() {
         MemoryRun run;
         run.reserve(QUEUE_CAPACITY);
 
-        for (; run.size() < QUEUE_CAPACITY && (row = input->next()) != nullptr;) {
+        for (; run.size() < QUEUE_CAPACITY && (row = UnaryIterator::next());) {
             run.add(row);
+            UnaryIterator::free();
         }
         run.sort();
         run.setOvcs();
@@ -79,11 +77,11 @@ bool Sort::generate_initial_runs() {
 
     Row *row;
 
-    for (; queue.size() < queue.capacity() && (row = input->next()) != nullptr;) {
+    for (; queue.size() < queue.capacity() && (row = UnaryIterator::next());) {
         workspace[workspace_size] = *row;
-        input->free();
+        UnaryIterator::free();
         row = &workspace[workspace_size++];
-        log_trace("workspace[%lu]=%s", workspace_size-1, row->c_str());
+        log_trace("workspace[%lu]=%s", workspace_size - 1, row->c_str());
 
         queue.push(row, insert_run_index);
         inserted++;
@@ -93,7 +91,7 @@ bool Sort::generate_initial_runs() {
     assert(queue.isCorrect());
 
     if (inserted == 0) {
-        log_trace("Sort::generate_initial_runs(): input empty");
+        log_trace("Sort::generate_initial_runs(): input_ empty");
         return false;
     }
 
@@ -106,10 +104,10 @@ bool Sort::generate_initial_runs() {
     prev = {0};
 #endif
 
-    for (; (row = input->next()) != nullptr;) {
+    for (; (row = UnaryIterator::next());) {
         workspace[workspace_size] = *row;
+        UnaryIterator::free();
         row = &workspace[workspace_size++];
-        input->free();
 
 #ifndef NDEBUG
         {
@@ -156,7 +154,6 @@ bool Sort::generate_initial_runs() {
         }
     }
 
-
     if (queue.size() < queue.capacity()) {
         // The queue is not even full once. Pop everything, we then have a single in-memory run.
         while (!queue.isEmpty()) {
@@ -164,7 +161,6 @@ bool Sort::generate_initial_runs() {
             Row *row1 = queue.pop(MERGE_RUN_IDX);
             run.add(row1);
         }
-
     } else {
         // We filled the queue at least once. We must pop (QUEUE_CAPACITY - inserted) to fill the current run,
         // and then (inserted) to fill the remaining run
@@ -336,8 +332,7 @@ std::string Sort::merge_external(size_t fan_in) {
 }
 
 void Sort::open() {
-    Iterator::open();
-    input->open();
+    UnaryIterator::open();
 
     for (bool has_more_input = true; has_more_input;) {
         has_more_input = generate_initial_runs();
@@ -366,8 +361,6 @@ void Sort::open() {
 }
 
 Row *Sort::next() {
-    Iterator::next();
-
     if (queue.isEmpty()) {
         return nullptr;
     }
@@ -390,9 +383,8 @@ Row *Sort::next() {
 }
 
 void Sort::close() {
-    Iterator::close();
+    UnaryIterator::close();
     for (auto &run: external_runs) {
         run.remove();
     }
-    input->close();
 }

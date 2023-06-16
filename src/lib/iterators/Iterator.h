@@ -93,7 +93,7 @@ public:
     std::vector<Row> collect();
 
     /**
-     * Consume all input and add it into a run in a file at the given path_sync.
+     * Consume all input_ and add it into a run in a file at the given path_sync.
      * Must be called on an unopened Iterator.
      * @param path The path_sync of the file.
      */

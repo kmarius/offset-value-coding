@@ -1,32 +1,23 @@
 #pragma once
 
-#include "Iterator.h"
+#include "UnaryIterator.h"
 
 /**
- * Checks if the input is strictly ascending and therefore sorted and uniqe.
+ * Checks if the input_ is strictly ascending and therefore sorted and uniqe.
  */
-class AssertSortedUnique : public Iterator {
-private:
-    Iterator *input;
-    Row prev;
-    bool has_prev;
-    bool is_sorted;
-    size_t num_rows;
-
+class AssertSortedUnique : public UnaryIterator {
 public:
-    explicit AssertSortedUnique(Iterator *iterator);
-
-    ~AssertSortedUnique() override;
+    explicit AssertSortedUnique(Iterator *input);
 
     bool isSortedAndUnique() const;
 
     size_t count() const;
 
-    void open() override;
-
     Row *next() override;
 
-    void free() override;
-
-    void close() override;
+private:
+    Row prev;
+    bool has_prev;
+    bool is_sorted;
+    size_t num_rows;
 };

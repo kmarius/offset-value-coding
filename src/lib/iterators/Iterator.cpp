@@ -7,7 +7,7 @@ void Iterator::run(bool print) {
 
     open();
     for (Row *row; (row = next()); free()) {
-        ++rows_seen;
+        rows_seen++;
         if (print) {
             log_info("%s", row->c_str());
         }
@@ -36,4 +36,3 @@ void Iterator::write(const std::string &path) {
     }
     close();
 }
-

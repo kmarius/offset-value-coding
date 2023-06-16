@@ -1,31 +1,22 @@
 #pragma once
 
-#include "Iterator.h"
+#include "UnaryIterator.h"
 
 /**
- * Checks if the input is ascending and therefore sorted.
+ * Checks if the input_ is ascending and therefore sorted.
  */
-class AssertSorted : public Iterator {
-private:
-    Iterator *input;
-    Row prev;
-    bool is_sorted;
-    size_t num_rows;
-
+class AssertSorted : public UnaryIterator {
 public:
     explicit AssertSorted(Iterator *iterator);
-
-    ~AssertSorted() override;
 
     bool isSorted() const;
 
     size_t count() const;
 
-    void open() override;
-
     Row *next() override;
 
-    void free() override;
-
-    void close() override;
+private:
+    Row prev;
+    bool is_sorted;
+    size_t num_rows;
 };

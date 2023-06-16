@@ -4,11 +4,12 @@
 #include "Iterator.h"
 #include "lib/PriorityQueue.h"
 #include "lib/Run.h"
+#include "UnaryIterator.h"
 
 #include <vector>
 #include <queue>
 
-class Sort : public Iterator {
+class Sort : public UnaryIterator {
 public:
     explicit Sort(Iterator *input);
 
@@ -36,7 +37,6 @@ public:
     }
 
 private:
-    Iterator *input;
     Row *workspace;
     size_t workspace_size;
     std::vector<MemoryRun> memory_runs;

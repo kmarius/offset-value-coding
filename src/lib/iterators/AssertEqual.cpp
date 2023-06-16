@@ -1,7 +1,7 @@
 #include "AssertEqual.h"
 #include "lib/log.h"
 
-AssertEqual::AssertEqual(Iterator *left, Iterator *right) : left_(left), right_(right), equal(true) {
+AssertEqual::AssertEqual(Iterator *left, Iterator *right) : left_(left), right_(right), equal(true), count(0) {
 }
 
 AssertEqual::~AssertEqual() {
@@ -36,12 +36,13 @@ Row *AssertEqual::next() {
     }
     if (!left->equals(*right)) {
         equal = false;
-        log_error("AssertEqual: ");
+        log_error("AssertEqual at row %lu:", count);
         log_error("%s", left->c_str());
         log_error("%s", right->c_str());
         return nullptr;
     }
 
+    count++;
     return left;
 }
 

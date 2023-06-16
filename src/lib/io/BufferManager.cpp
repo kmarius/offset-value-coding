@@ -71,15 +71,10 @@ void BufferManager::read(int fd, Buffer *buffer, size_t &offset) {
 }
 
 Buffer *BufferManager::wait(int fd) {
-    // TODO: wrap in macros
-    bool waited = false;
-    auto start = now();
-
     auto it = loading.find(fd);
     assert(it != loading.end());
 
     while (!completed[fd]) {
-        waited = true;
         io_uring_submit_and_wait(&ring, 1);
         io_uring_cqe *cqe;
         unsigned head;
@@ -101,11 +96,6 @@ Buffer *BufferManager::wait(int fd) {
             processed++;
         }
         io_uring_cq_advance(&ring, processed);
-    }
-
-    if (waited) {
-        auto duration = since(start);
-        waited_total += duration;
     }
 
     auto buffer = it->second;

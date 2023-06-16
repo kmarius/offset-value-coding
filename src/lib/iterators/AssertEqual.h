@@ -20,4 +20,5 @@ public:
 private:
     Iterator *left_;
     Iterator *right_;
+    unsigned long count;
 };

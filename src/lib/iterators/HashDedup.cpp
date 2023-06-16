@@ -2,22 +2,16 @@
 #include "HashDedup.h"
 #include "lib/log.h"
 
-HashDedup::HashDedup(Iterator *input) : input_(input), partition(nullptr), bufferManager(4) {
-}
-
-HashDedup::~HashDedup() {
-    assert(status == Closed);
-    delete input_;
+HashDedup::HashDedup(Iterator *input) : UnaryIterator(input), partition(nullptr), bufferManager(4) {
 }
 
 void HashDedup::open() {
-    Iterator::open();
-    input_->open();
+    UnaryIterator::open();
 
     Partitioner partitioner(1 << RUN_IDX_BITS);
 
     // fill and probe external hashmap
-    for (Row *row = input_->next(); row; row = input_->next()) {
+    for (Row *row; (row = UnaryIterator::next()) ; UnaryIterator::free()) {
         row->setHash();
         partitioner.put(row);
     }
@@ -26,16 +20,8 @@ void HashDedup::open() {
     partition = new ExternalRunR(partitions.back(), bufferManager);
 }
 
-void HashDedup::close() {
-    Iterator::close();
-    input_->close();
-}
-
 Row *HashDedup::next() {
-    Iterator::next();
-
-    Row *row;
-    while ((row = next_from_part())) {
+    for (Row *row; (row = next_from_part()); ) {
         auto pair = set.insert(*row);
         if (pair.second) {
             // element was actually inserted

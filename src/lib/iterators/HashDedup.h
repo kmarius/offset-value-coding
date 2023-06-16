@@ -1,29 +1,23 @@
 #pragma once
 
 #include <unordered_set>
-#include "Iterator.h"
 #include "lib/Partitioner.h"
 #include "lib/io/ExternalRunR.h"
+#include "UnaryIterator.h"
 
-class HashDedup : public Iterator {
+class HashDedup : public UnaryIterator {
 public :
     explicit HashDedup(Iterator *input);
 
-    ~HashDedup() override;
-
     void open() override;
 
-    void close() override;
-
     Row *next() override;
-
 
     bool outputIsHashed() override {
         return true;
     };
 
-private :
-    Iterator *input_;
+private:
     std::vector<std::string> partitions;
     ExternalRunR *partition;
     BufferManager bufferManager;

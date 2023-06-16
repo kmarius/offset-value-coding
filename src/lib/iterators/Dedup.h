@@ -1,27 +1,20 @@
 #pragma once
 
-#include "Iterator.h"
+#include "UnaryIterator.h"
 
-class Dedup : public Iterator {
-    Iterator *input_;
-    Row prev;
-    bool has_prev;
+class Dedup : public UnaryIterator {
 public:
     explicit Dedup(Iterator *input);
 
-    ~Dedup() override;
-
-    void open() override;
-
     Row *next() override;
-
-    void free() override;
-
-    void close() override;
 
     bool outputIsSorted() override {
         return true;
     }
 
     size_t num_dupes;
+
+private:
+    Row prev;
+    bool has_prev;
 };
