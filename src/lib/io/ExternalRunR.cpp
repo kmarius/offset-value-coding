@@ -57,27 +57,30 @@ Row *ExternalRunR::read() {
         rows = *(size_t *) buffer;
         cur = 0;
 
-        // we never save isEmpty pages
+        // we currently never save isEmpty pages
         if (unlikely(rows == 0)) {
             log_error("Empty page in %s", path().c_str());
+            rows = RUN_EMPTY;
+            return nullptr;
         }
         assert(rows > 0);
     }
 
     Row *res = &((Row *) ((uint8_t *) buffer->data + sizeof(rows)))[cur];
     cur++;
-    rows--;
 
     // TODO: why do we need buffer for the last two rows? Fix this!
     // technically, one global buffer for the last but one row would be enough, I think
-    if (rows == 1) {
+    if (rows - cur == 1) {
         buf[1] = *res;
         res = &buf[1];
     }
 
-    if (rows == 0) {
-        buf[0] = *res;
-        res = &buf[0];
+    // if a new page only has one row, we can not used the buffer for the last row because it still
+    // cotains the last row from the previous page
+    if (rows - cur == 0) {
+        buf[rows > 1 ? 0 : 1] = *res;
+        res = &buf[rows > 1 ? 0 : 1];
 
         buffer_manager->read(fd, buffer, offset);
         buffer = nullptr;
