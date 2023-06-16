@@ -52,7 +52,7 @@ add_library(libovc
         src/lib/Run.h
         src/lib/utils.h
         src/lib/iterators/VectorScan.cpp
-        src/lib/iterators/VectorScan.h src/lib/Schema.cpp src/lib/Schema.h src/lib/iterators/Dedup.cpp src/lib/iterators/Dedup.h src/lib/iterators/AssertSortedUnique.h src/lib/iterators/AssertSortedUnique.cpp src/lib/iterators/AssertEqual.cpp src/lib/iterators/AssertEqual.h src/lib/iterators/HashDedup.cpp src/lib/Partitioner.cpp src/lib/Partitioner.h)
+        src/lib/iterators/VectorScan.h src/lib/Schema.cpp src/lib/Schema.h src/lib/iterators/Dedup.cpp src/lib/iterators/Dedup.h src/lib/iterators/AssertSortedUnique.h src/lib/iterators/AssertSortedUnique.cpp src/lib/iterators/AssertEqual.cpp src/lib/iterators/AssertEqual.h src/lib/iterators/HashDedup.cpp src/lib/Partitioner.cpp src/lib/Partitioner.h src/lib/iterators/PrefixCompressionCounter.cpp src/lib/iterators/PrefixCompressionCounter.h src/lib/iterators/UnaryIterator.h)
 target_link_libraries(libovc uring)
 
 add_executable(ovc src/ovc/main.cpp)
