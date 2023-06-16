@@ -1,32 +1,22 @@
 #pragma once
 
 #include "Iterator.h"
+#include "UnaryIterator.h"
 
-class Filter : public Iterator {
+class Filter : public UnaryIterator {
 public :
-    typedef bool (Predicate)(Row *row);
+    typedef bool (Predicate)(const Row *row);
 
-    Filter(Predicate *predicate, Iterator *input);
-
-    ~Filter() override;
-
-    void open() override;
-
-    void close() override;
+    Filter(Iterator *input, Predicate *predicate);
 
     Row *next() override;
 
-    void free() override;
+    bool outputIsSorted() override;
 
-    bool outputIsSorted() override {
-        return input_->outputIsSorted();
-    };
+    bool outputIsHashed() override;
 
-    bool outputIsHashed() override {
-        return input_->outputIsHashed();
-    };
+    bool outputHasOVC() override;
 
 private :
     Predicate *const predicate_;
-    Iterator *const input_;
 };

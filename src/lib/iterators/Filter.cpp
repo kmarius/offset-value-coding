@@ -1,36 +1,27 @@
 #include "Filter.h"
 
-Filter::Filter(Predicate *const predicate, Iterator *const input)
-        : predicate_(predicate), input_(input) {
-}
-
-Filter::~Filter() {
-    delete input_;
-}
-
-void Filter::open() {
-    Iterator::open();
-    input_->open();
-}
-
-void Filter::close() {
-    Iterator::close();
-    input_->close();
+Filter::Filter(Iterator *input, Predicate *predicate)
+        : UnaryIterator(input), predicate_(predicate) {
 }
 
 Row *Filter::next() {
-    Iterator::next();
-
-    Row *row;
-    for (; (row = input_->next());) {
+    for (Row *row; (row = UnaryIterator::next());) {
         if (predicate_(row)) {
             return row;
         };
-        input_->free();
+        UnaryIterator::free();
     }
     return nullptr;
 }
 
-void Filter::free() {
-    input_->free();
+bool Filter::outputIsHashed() {
+    return input_->outputIsHashed();
+}
+
+bool Filter::outputIsSorted() {
+    return input_->outputIsSorted();
+}
+
+bool Filter::outputHasOVC() {
+    return input_->outputHasOVC();
 }
