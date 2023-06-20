@@ -9,17 +9,20 @@
 #include "lib/iterators/Dedup.h"
 #include "lib/iterators/AssertSortedUnique.h"
 #include "lib/iterators/HashDedup.h"
+#include "lib/iterators/AssertEqual.h"
+#include "lib/iterators/VectorScan.h"
+#include "lib/iterators/PrefixTruncationCounter.h"
 
 #include <vector>
 
-bool pred(Row *row) {
+bool pred(const Row *row) {
     return row->columns[0] & 1;
 }
 
 void example_simple_tree() {
     Iterator *plan = new Filter(
-            pred,
-            new Generator(10000, 1000)
+            new Generator(10000, 1000),
+            pred
     );
     plan->run(true);
     delete plan;
@@ -41,7 +44,7 @@ void example_dedup() {
 
     delete plan;
 
-    log_info("nlogn:                   %lu", (size_t) (num_rows *  log((double) num_rows)));
+    log_info("nlogn:                   %lu", (size_t) (num_rows * log((double) num_rows)));
     log_info("comparisons:             %lu", stats.comparisons);
     log_info("full_comparisons:        %lu", stats.full_comparisons);
     log_info("actual_full_comparisons: %lu", stats.actual_full_comparisons);
@@ -84,23 +87,24 @@ void example_comparison() {
 
 void example_sort() {
     // three "memory_runs" are reserved for: low fences, high fences, and the we-are-merging-indicator
-    size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3) ;
+    //size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3) ;
+    size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3) * 17 + 1337;
 
     log_info("num_rows=%lu", num_rows);
 
-    Iterator *plan =
+    auto plan = new AssertSorted(
             new Sort(
                     new Generator(num_rows, DOMAIN, 1337)
-            );
+            ));
 
     plan->run();
 
-    delete plan;
-
-    log_info("nlogn:                   %lu", (size_t)  (num_rows * log((double) num_rows)));
+    log_info("%d", plan->count());
+    log_info("nlogn:                   %lu", (size_t) (num_rows * log((double) num_rows)));
     log_info("comparisons:             %lu", stats.comparisons);
     log_info("full_comparisons:        %lu", stats.full_comparisons);
     log_info("actual_full_comparisons: %lu", stats.actual_full_comparisons);
+    delete plan;
 }
 
 void example_empty_run() {
@@ -131,6 +135,7 @@ void raw_rows() {
 
 void example_hashing() {
     //size_t num_rows = 100000;
+
     size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3);
     size_t seed = 1337;
 
@@ -150,6 +155,24 @@ void example_hashing() {
     delete plan;
 }
 
+void example_truncation() {
+    size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3);
+    auto sort = new Sort(new Generator(num_rows, 100, 1337));
+    auto plan = new PrefixTruncationCounter(sort);
+    plan->run();
+
+    log_info("nlogn:                   %lu", (size_t) (num_rows * log((double) num_rows)));
+    log_info("comparisons:             %lu", stats.comparisons);
+    log_info("full_comparisons:        %lu", stats.full_comparisons);
+    log_info("full_comparisons_eq_key: %lu", stats.full_comparisons_equal_key);
+    log_info("actual_full_comparisons: %lu", stats.actual_full_comparisons);
+
+    log_info("column comparisons in sort:               %lu", sort->getColumnComparisons());
+    log_info("column comparisons for prefix truncation: %lu", plan->getColumnComparisons());
+
+    delete plan;
+}
+
 int main(int argc, char *argv[]) {
     log_open(LOG_TRACE);
     // log_set_quiet(true);
@@ -161,8 +184,9 @@ int main(int argc, char *argv[]) {
     //raw_rows();
     //example_sort();
     //example_dedup();
-    example_comparison();
+    //example_comparison();
     //example_hashing();
+    example_truncation();
 
     log_info("elapsed=%lums", since(start));
 

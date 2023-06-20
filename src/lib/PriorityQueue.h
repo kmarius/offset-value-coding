@@ -17,10 +17,10 @@ typedef unsigned long Key;
 #define MERGE_RUN_IDX (QUEUE_CAPACITY - 2)
 #define INITIAL_RUN_IDX 1
 
-
 struct priority_queue_stats {
     size_t comparisons;
     size_t full_comparisons;
+    size_t full_comparisons_equal_key;
     size_t actual_full_comparisons;
 };
 
@@ -38,6 +38,7 @@ private:
     Node *heap;
     WorkspaceNode *workspace;
     std::stack<uint16_t, std::vector<uint16_t>> empty_slots;
+    struct ovc_stats ovc_stats;
 
 public:
     explicit PriorityQueue(size_t capacity);
@@ -134,6 +135,9 @@ public:
 
     const std::string &top_path();
 
+    unsigned long getColumnComparisons() const {
+        return ovc_stats.column_comparisons;
+    }
 
 private:
 
@@ -148,5 +152,5 @@ private:
      * @param key
      * @param full_comp
      */
-    void pass(Index index, Key key, bool full_comp = false);
+    void pass(Index index, Key key, bool full_comp);
 };

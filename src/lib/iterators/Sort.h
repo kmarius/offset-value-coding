@@ -36,6 +36,10 @@ public:
         return false;
     }
 
+    unsigned long getColumnComparisons() const {
+        return queue.getColumnComparisons();
+    }
+
 private:
     Row *workspace;
     size_t workspace_size;
