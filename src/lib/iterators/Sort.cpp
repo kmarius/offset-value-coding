@@ -81,7 +81,6 @@ bool Sort::generate_initial_runs() {
         workspace[workspace_size] = *row;
         UnaryIterator::free();
         row = &workspace[workspace_size++];
-        log_trace("workspace[%lu]=%s", workspace_size - 1, row->c_str());
 
         queue.push(row, insert_run_index);
         inserted++;
@@ -127,7 +126,7 @@ bool Sort::generate_initial_runs() {
         rows_processed++;
         Row *row1 = queue.pop_push(row, insert_run_index);
         run.add(row1);
-        log_trace("popped %s, rows_processed=%lu", row1->c_str(), rows_processed);
+
         inserted++;
         assert(queue.isCorrect());
 
@@ -186,7 +185,6 @@ bool Sort::generate_initial_runs() {
 
         // we do not have enough memory_runs to replace the rows with, pop the rest
         for (; i < QUEUE_CAPACITY; i++) {
-            log_trace("run_idx=%lu", queue.top_run_idx());
             if (j < memory_runs.size()) {
                 Row *row1 = queue.pop_push_memory(&memory_runs[j++]);
                 run.add(row1);
@@ -255,7 +253,6 @@ void Sort::merge_in_memory() {
         }
 #endif
         Row *row = queue.pop_memory();
-        log_trace("merge_in_memory: %s", row->c_str());
         run.add(*row);
         assert(queue.isCorrect());
     }
@@ -339,16 +336,18 @@ void Sort::open() {
         merge_in_memory();
         assert(memory_runs.empty());
     }
+
     size_t num_runs = external_run_paths.size();
     if (num_runs > QUEUE_CAPACITY) {
         // this guarantees maximal fan-in for the later merges
         size_t initial_merge_fan_in = num_runs % (QUEUE_CAPACITY - 1);
         assert(initial_merge_fan_in);
+        log_trace("merging %lu external runs", initial_merge_fan_in);
         merge_external(initial_merge_fan_in);
-        log_trace("merging %lu", initial_merge_fan_in);
     }
+
     while (external_run_paths.size() > QUEUE_CAPACITY) {
-        log_trace("merging %lu", QUEUE_CAPACITY);
+        log_trace("merging %lu external runs", QUEUE_CAPACITY);
         merge_external(QUEUE_CAPACITY);
     }
 
@@ -379,6 +378,7 @@ Row *Sort::next() {
         prev = *row;
     };
 #endif
+
     return queue.pop_external();
 }
 

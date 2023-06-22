@@ -5,7 +5,6 @@
 #include "lib/log.h"
 #include "lib/iterators/AssertSorted.h"
 #include "lib/utils.h"
-#include "lib/Schema.h"
 #include "lib/iterators/Dedup.h"
 #include "lib/iterators/AssertSortedUnique.h"
 #include "lib/iterators/HashDedup.h"
@@ -87,8 +86,9 @@ void example_comparison() {
 
 void example_sort() {
     // three "memory_runs" are reserved for: low fences, high fences, and the we-are-merging-indicator
-    //size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3) ;
-    size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3) * 17 + 1337;
+    //size_t num_rows = 10000;
+    //size_t num_rows = ((1 << RUN_IDX_BITS )- 3) * ((1 << RUN_IDX_BITS) - 3) * QUEUE_CAPACITY;
+    size_t num_rows = 2 * ((1 << RUN_IDX_BITS) - 3) * QUEUE_CAPACITY;
 
     log_info("num_rows=%lu", num_rows);
 
@@ -117,22 +117,6 @@ void example_empty_run() {
     delete plan;
 }
 
-void raw_rows() {
-    Schema schema(4, INTEGER, INTEGER, CHAR, VARCHAR + 17);
-    log_info("%s", schema.to_string().c_str());
-
-    uint8_t buf[1024];
-    //auto row = (RawRow *) buf;
-    RawRow *a = create(&schema, 1, 2, 'a', "hey dude");
-
-    log_info("col 0: %d", a->get<int>(0, schema));
-    log_info("col 3: %s", &a->get<char>(3, schema));
-
-    log_info("%s", a->to_string(schema).c_str());
-
-    delete a;
-}
-
 void example_hashing() {
     //size_t num_rows = 100000;
 
@@ -156,7 +140,7 @@ void example_hashing() {
 }
 
 void example_truncation() {
-    size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3);
+    size_t num_rows = 1000 * 1000 * 2;
     auto sort = new Sort(new Generator(num_rows, 100, 1337));
     auto plan = new PrefixTruncationCounter(sort);
     plan->run();
@@ -175,7 +159,7 @@ void example_truncation() {
 
 int main(int argc, char *argv[]) {
     log_open(LOG_TRACE);
-    // log_set_quiet(true);
+    log_set_quiet(true);
     log_set_level(LOG_INFO);
     log_info("start", "");
 
@@ -186,7 +170,22 @@ int main(int argc, char *argv[]) {
     //example_dedup();
     //example_comparison();
     //example_hashing();
-    example_truncation();
+    //example_truncation();
+
+    printf("n,trunc_comp,sort_comp\n");
+    for (size_t num_rows: {100000, 500000, 1000000, 2000000, 3000000, 4000000, 5000000, 6000000, 7000000, 8000000,
+                         10000000, 14000000, 16000000}) {
+        auto sort = new Sort(new Generator(num_rows, 100, 1337));
+        auto plan = new PrefixTruncationCounter(sort);
+        plan->run();
+
+        printf("%lu,%lu,%lu\n", num_rows, plan->getColumnComparisons(), sort->getColumnComparisons());
+
+        log_info("nlogn:                   %lu", (size_t) (num_rows * log((double) num_rows)));
+        log_info("comparisons:             %lu", stats.comparisons);
+        log_info("full_comparisons:        %lu", stats.full_comparisons);
+        delete plan;
+    }
 
     log_info("elapsed=%lums", since(start));
 

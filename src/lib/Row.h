@@ -176,7 +176,7 @@ namespace std {
     template<>
     struct hash<Row> {
         std::size_t operator()(const Row &p) const noexcept {
-            return p.key;
+            return p.key >> 8;
         }
     };
 }

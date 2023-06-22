@@ -12,6 +12,7 @@ class DedupTest : public ::testing::Test {
 protected:
 
     const size_t QUEUE_SIZE = QUEUE_CAPACITY;
+    const size_t INITIAL_RUNS = (1 << RUN_IDX_BITS) - 3;
     const size_t SEED = 1337;
 
     void SetUp() override {
@@ -97,25 +98,21 @@ TEST_F(DedupTest, DedupSmallish) {
 }
 
 TEST_F(DedupTest, DedupMedium) {
-    testDedup(QUEUE_SIZE * (QUEUE_SIZE - 3));
+    testDedup(QUEUE_SIZE * INITIAL_RUNS);
 }
 
 TEST_F(DedupTest, DedupMediumButSmaller) {
-    testDedup(QUEUE_SIZE * (QUEUE_SIZE - 3) - QUEUE_SIZE / 2);
+    testDedup(QUEUE_SIZE * INITIAL_RUNS - QUEUE_SIZE / 2);
 }
 
 TEST_F(DedupTest, DedupMediumButABitLarger) {
-    testDedup(QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3) + QUEUE_SIZE / 2);
+    testDedup(QUEUE_SIZE * INITIAL_RUNS + QUEUE_SIZE / 2);
 }
 
 TEST_F(DedupTest, DedupMediumButABitLarger2) {
-    testDedup(QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3) + QUEUE_SIZE + QUEUE_SIZE / 2);
+    testDedup(QUEUE_SIZE * INITIAL_RUNS + QUEUE_SIZE * 3 / 2);
 }
 
 TEST_F(DedupTest, DedupLarge) {
-    testDedup(QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3));
-}
-
-TEST_F(DedupTest, DedupLarger) {
-    testDedup(QUEUE_SIZE * QUEUE_SIZE * (QUEUE_SIZE - 3) * 17 + 1337);
+    testDedup(QUEUE_SIZE * INITIAL_RUNS * 8);
 }

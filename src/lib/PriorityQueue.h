@@ -13,8 +13,8 @@
 
 typedef unsigned long Key;
 
-#define QUEUE_CAPACITY (((size_t) 1) << RUN_IDX_BITS)
-#define MERGE_RUN_IDX (QUEUE_CAPACITY - 2)
+#define QUEUE_CAPACITY PRIORITYQUEUE_CAPACITY
+#define MERGE_RUN_IDX ((1ul << RUN_IDX_BITS) - 2)
 #define INITIAL_RUN_IDX 1
 
 struct priority_queue_stats {

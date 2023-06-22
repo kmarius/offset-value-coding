@@ -139,7 +139,8 @@ struct PriorityQueue::Node {
         }
         stats.actual_full_comparisons++;
 
-        return ws[index].row->less(*ws[node.index].row);
+        OVC ovc;
+        return ws[index].row->less(*ws[node.index].row, ovc, ovc_stats);
 #else
         unsigned offset = 0;
         if (key == node.key) {
@@ -288,7 +289,6 @@ void PriorityQueue::push(Row *row, Index run_index) {
     Index ind = empty_slots.top();
     empty_slots.pop();
 
-    log_trace("push %lu", ind);
 
     workspace[ind].row = row;
     pass(ind, NODE_KEYGEN(run_index, MAKE_OVC(ROW_ARITY, 0, row->columns[0])), true);
@@ -344,7 +344,7 @@ Row *PriorityQueue::pop(Index run_index) {
 
     size_--;
 
-    log_trace("popped row at index %lu", workspace_index);
+    //log_trace("popped row at index %lu", workspace_index);
 
     return res;
 }
@@ -394,7 +394,7 @@ Row *PriorityQueue::pop_memory() {
 
     if (likely(workspace[workspace_index].memory_run->size() > 0)) {
         // normal leaf-to-root pass
-        log_trace("pass %s", workspace[workspace_index].row->c_str());
+        //log_trace("pass %s", workspace[workspace_index].row->c_str());
         pass(workspace_index, NODE_KEYGEN(MERGE_RUN_IDX, workspace[workspace_index].row->key), false);
     } else {
         // last row, perform leaf-to-root with high fence
