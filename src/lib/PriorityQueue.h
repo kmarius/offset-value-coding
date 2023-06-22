@@ -31,12 +31,12 @@ void priority_queue_stats_reset();
 class PriorityQueue {
 private:
     struct Node;
-    struct WorkspaceNode;
+    struct WorkspaceItem;
 
     size_t size_;
     size_t capacity_;
     Node *heap;
-    WorkspaceNode *workspace;
+    WorkspaceItem *workspace;
     std::stack<uint16_t, std::vector<uint16_t>> empty_slots;
     struct ovc_stats ovc_stats;
 
@@ -153,4 +153,8 @@ private:
      * @param full_comp
      */
     void pass(Index index, Key key, bool full_comp);
+
+
+
+    void passSimple(Index index, Key key, bool full_comp);
 };

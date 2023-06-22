@@ -173,8 +173,7 @@ int main(int argc, char *argv[]) {
     //example_truncation();
 
     printf("n,trunc_comp,sort_comp\n");
-    for (size_t num_rows: {100000, 500000, 1000000, 2000000, 3000000, 4000000, 5000000, 6000000, 7000000, 8000000,
-                         10000000, 14000000, 16000000}) {
+    for (size_t num_rows: {100000, 500000}) {
         auto sort = new Sort(new Generator(num_rows, 100, 1337));
         auto plan = new PrefixTruncationCounter(sort);
         plan->run();

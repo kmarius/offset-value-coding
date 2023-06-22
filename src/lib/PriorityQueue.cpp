@@ -47,20 +47,20 @@
 
 struct priority_queue_stats stats;
 
-struct PriorityQueue::WorkspaceNode {
+struct PriorityQueue::WorkspaceItem {
     Row *row;
     union {
         MemoryRun *memory_run;
         ExternalRunR *external_run;
     };
 
-    WorkspaceNode() = default;
+    WorkspaceItem() = default;
 
-    WorkspaceNode(Row *row, MemoryRun *run) : row(row), memory_run(run) {};
+    WorkspaceItem(Row *row, MemoryRun *run) : row(row), memory_run(run) {};
 
-    WorkspaceNode(Row *row, ExternalRunR *run) : row(row), external_run(run) {};
+    WorkspaceItem(Row *row, ExternalRunR *run) : row(row), external_run(run) {};
 
-    explicit WorkspaceNode(Row *row) : row(row), memory_run(nullptr) {};
+    explicit WorkspaceItem(Row *row) : row(row), memory_run(nullptr) {};
 
     void pop() {
         assert(memory_run->size() > 0);
@@ -126,7 +126,7 @@ struct PriorityQueue::Node {
     }
 
     // sets ovc of the loser w.r.t. the winner
-    inline bool less(Node &node, bool full_comp, WorkspaceNode *ws, struct ovc_stats *ovc_stats = nullptr) {
+    inline bool less(Node &node, bool full_comp, WorkspaceItem *ws, struct ovc_stats *ovc_stats = nullptr) {
         stats.comparisons++;
 
 #ifdef PRIORITYQUEUE_NO_USE_OVC
@@ -142,11 +142,7 @@ struct PriorityQueue::Node {
         OVC ovc;
         return ws[index].row->less(*ws[node.index].row, ovc, ovc_stats);
 #else
-        unsigned offset = 0;
-        if (key == node.key) {
-            offset = NODE_OFFSET(key) + 1;
-            full_comp = true;
-        }
+
         if (full_comp || key == node.key) {
             stats.full_comparisons++;
             if (key == node.key) {
@@ -156,11 +152,14 @@ struct PriorityQueue::Node {
             if (IS_HIGH_SENTINEL(key) || IS_HIGH_SENTINEL(node.key)) {
                 return key < node.key;
             }
+
             if (run_index() != node.run_index()) {
                 return key < node.key;
             }
 
             stats.actual_full_comparisons++;
+
+            unsigned offset = key == node.key ? NODE_OFFSET(key) + 1 : 0;
 
             OVC ovc;
             // set key of the loser
@@ -181,7 +180,7 @@ struct PriorityQueue::Node {
 PriorityQueue::PriorityQueue(size_t capacity) : capacity_(capacity), size_(0), empty_slots() {
     assert(std::__popcount(capacity) == 1);
 
-    workspace = new WorkspaceNode[capacity];
+    workspace = new WorkspaceItem[capacity];
     heap = new Node[capacity];
     log_info("PriorityQueue capacity=%lu", capacity);
     for (int i = 0; i < capacity_; i++) {
@@ -235,7 +234,7 @@ void PriorityQueue::reset() {
         size_t offset = capacity_ / step;
         for (int i = 0; i < capacity_ / step; i++) {
             heap[offset + i].index = l + i * step;
-            heap[offset + i].key = HIGH_SENTINEL(l + i * step);
+            heap[offset + i].key = HIGH_SENTINEL(0);
         }
     }
 }
@@ -246,13 +245,25 @@ static inline void setMax(Key &x, Key const y) {
     }
 }
 
-void PriorityQueue::pass(Index index, Key key, bool full_comp) {
+void PriorityQueue::passSimple(Index index, Key key, bool full_comp = false) {
+    Node candidate(index, key);
+    for (Index slot = capacity_ / 2 + index / 2; slot != 0; slot /= 2) {
+        if (heap[slot].less(candidate, full_comp, workspace, &ovc_stats)) {
+            heap[slot].swap(candidate);
+            full_comp = false;
+        }
+    }
+    heap[0] = candidate;
+}
+
+void PriorityQueue::pass(Index index, Key key, bool full_comp = false) {
     Node candidate(index, key);
     Index slot;
     Index level;
 
-    for (slot = capacity_ / 2 + index / 2, level = 0; level++, slot != root() &&
-                                                               heap[slot].index != index; slot = parent(slot)) {
+    for (slot = capacity_ / 2 + index / 2, level = 0;
+         level++, slot != root() && heap[slot].index != index;
+         slot = parent(slot)) {
         if (heap[slot].less(candidate, full_comp, workspace, &ovc_stats)) {
             heap[slot].swap(candidate);
             full_comp = false;
@@ -289,7 +300,6 @@ void PriorityQueue::push(Row *row, Index run_index) {
     Index ind = empty_slots.top();
     empty_slots.pop();
 
-
     workspace[ind].row = row;
     pass(ind, NODE_KEYGEN(run_index, MAKE_OVC(ROW_ARITY, 0, row->columns[0])), true);
     size_++;
@@ -306,7 +316,7 @@ void PriorityQueue::push_memory(MemoryRun &run) {
 
     Row *row = run.front();
 
-    workspace[workspace_index] = WorkspaceNode(row, &run);
+    workspace[workspace_index] = WorkspaceItem(row, &run);
     pass(workspace_index, NODE_KEYGEN(MERGE_RUN_IDX, row->key), true);
     size_++;
 }
@@ -325,7 +335,7 @@ void PriorityQueue::push_external(ExternalRunR &run) {
     empty_slots.pop();
 
     log_trace("push_external %lu", workspace_index);
-    workspace[workspace_index] = WorkspaceNode(row, &run);
+    workspace[workspace_index] = WorkspaceItem(row, &run);
     pass(workspace_index, NODE_KEYGEN(MERGE_RUN_IDX, row->key), true);
     size_++;
 }
@@ -339,12 +349,10 @@ Row *PriorityQueue::pop(Index run_index) {
     res->key = heap[0].ovc();
 
     // replace workspace item with high sentinel
-    pass(workspace_index, HIGH_SENTINEL(run_index), false);
+    pass(workspace_index, HIGH_SENTINEL(run_index));
     empty_slots.push(workspace_index);
 
     size_--;
-
-    //log_trace("popped row at index %lu", workspace_index);
 
     return res;
 }
@@ -357,10 +365,10 @@ Row *PriorityQueue::pop_push(Row *row, Index run_index) {
     Row *res = workspace[workspace_index].row;
     res->key = heap[0].ovc();
 
-    workspace[workspace_index] = WorkspaceNode(row);
+    workspace[workspace_index] = WorkspaceItem(row);
 
     // perform leaf-to-root pass
-    pass(workspace_index, NODE_KEYGEN(run_index, MAKE_OVC(ROW_ARITY, 0, row->columns[0])), false);
+    passSimple(workspace_index, NODE_KEYGEN(run_index, MAKE_OVC(ROW_ARITY, 0, row->columns[0])));
 
     return res;
 }
@@ -374,10 +382,10 @@ Row *PriorityQueue::pop_push_memory(MemoryRun *run) {
     res->key = heap[0].ovc();
 
     Row *row = run->front();
-    workspace[workspace_index] = WorkspaceNode(row, run);
+    workspace[workspace_index] = WorkspaceItem(row, run);
 
     // perform leaf-to-root pass
-    pass(workspace_index, NODE_KEYGEN(MERGE_RUN_IDX, MAKE_OVC(ROW_ARITY, 0, row->columns[0])), false);
+    passSimple(workspace_index, NODE_KEYGEN(MERGE_RUN_IDX, MAKE_OVC(ROW_ARITY, 0, row->columns[0])));
 
     return res;
 }
@@ -394,15 +402,14 @@ Row *PriorityQueue::pop_memory() {
 
     if (likely(workspace[workspace_index].memory_run->size() > 0)) {
         // normal leaf-to-root pass
-        //log_trace("pass %s", workspace[workspace_index].row->c_str());
-        pass(workspace_index, NODE_KEYGEN(MERGE_RUN_IDX, workspace[workspace_index].row->key), false);
+        passSimple(workspace_index, NODE_KEYGEN(MERGE_RUN_IDX, workspace[workspace_index].row->key));
     } else {
         // last row, perform leaf-to-root with high fence
-        workspace[workspace_index] = WorkspaceNode();
-        pass(workspace_index, HIGH_SENTINEL(workspace_index), false);
+        workspace[workspace_index] = WorkspaceItem();
+        passSimple(workspace_index, HIGH_SENTINEL(MERGE_RUN_IDX));
         empty_slots.push(workspace_index);
         size_--;
-        log_trace("in-memory run at position %lu isEmpty. queue_size: %lu", workspace_index, size());
+        log_trace("in-memory run at position %lu empty. queue_size: %lu", workspace_index, size());
     }
 
     return res;
@@ -421,13 +428,13 @@ Row *PriorityQueue::pop_external() {
 
     if (likely(next != nullptr)) {
         // normal leaf-to-root pass
-        pass(workspace_index, NODE_KEYGEN(MERGE_RUN_IDX, workspace[workspace_index].row->key), false);
+        passSimple(workspace_index, NODE_KEYGEN(MERGE_RUN_IDX, workspace[workspace_index].row->key));
     } else {
         // last next from the run, perform leaf-to-root with high fence
-        pass(workspace_index, HIGH_SENTINEL(MERGE_RUN_IDX), false);
+        passSimple(workspace_index, HIGH_SENTINEL(MERGE_RUN_IDX));
         empty_slots.push(workspace_index);
         size_--;
-        log_trace("external run at position %lu isEmpty. queue_size=%lu", workspace_index, size());
+        log_trace("external run at position %lu empty. queue_size=%lu", workspace_index, size());
     }
     return res;
 }

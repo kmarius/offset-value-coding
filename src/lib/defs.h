@@ -24,7 +24,7 @@
 
 #define PRIORITYQUEUE_CAPACITY (1 << 10)
 
-#define PRIORITYQUEUE_NO_USE_OVC
+//#define PRIORITYQUEUE_NO_USE_OVC
 
 #define LOGPATH "/tmp/ovc.log"
 
