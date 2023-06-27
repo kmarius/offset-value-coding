@@ -31,6 +31,11 @@ public:
         input_->free();
     }
 
+    template<class T>
+    T *getInput() {
+        return reinterpret_cast<T*>(input_);
+    }
+
 protected:
     Iterator *input_;
 };
