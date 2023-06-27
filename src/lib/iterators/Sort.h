@@ -9,11 +9,12 @@
 #include <vector>
 #include <queue>
 
-class Sort : public UnaryIterator {
+template<bool DISTINCT>
+class SortBase : public UnaryIterator {
 public:
-    explicit Sort(Iterator *input);
+    explicit SortBase(Iterator *input);
 
-    ~Sort() override;
+    ~SortBase() override;
 
     void open() override;
 
@@ -80,3 +81,6 @@ private:
      */
     std::vector<ExternalRunR> insert_external(size_t fan_in);
 };
+
+typedef SortBase<false> Sort;
+typedef SortBase<true> SortDistinct;

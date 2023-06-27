@@ -13,22 +13,25 @@ static std::string new_run_path() {
     return std::string(BASEDIR "/run_" + std::to_string(i++) + ".dat");
 }
 
-Sort::Sort(Iterator *input) : UnaryIterator(input),
-                              queue(QUEUE_CAPACITY),
-                              buffer_manager(1024),
-                              workspace(new Row[QUEUE_CAPACITY * (QUEUE_CAPACITY - 3)]),
-                              workspace_size(0) {
+template<bool DISTINCT>
+SortBase<DISTINCT>::SortBase(Iterator *input) : UnaryIterator(input),
+                                                queue(QUEUE_CAPACITY),
+                                                buffer_manager(1024),
+                                                workspace(new Row[QUEUE_CAPACITY * (QUEUE_CAPACITY - 3)]),
+                                                workspace_size(0) {
 };
 
-Sort::~Sort() {
+template<bool DISTINCT>
+SortBase<DISTINCT>::~SortBase() {
     delete[] workspace;
 };
 
 // assume the priority queue is isEmpty and we are creating generate_initial_runs memory_runs
 // output memory_runs are in-memory
 // ends with queue filled with in-memory memory_runs
-bool Sort::generate_initial_runs_q() {
-    log_trace("Sort::generate_initial_runs()");
+template<bool DISTINCT>
+bool SortBase<DISTINCT>::generate_initial_runs_q() {
+    log_trace("SortBase::generate_initial_runs()");
 
     memory_runs = {};
     memory_runs.reserve(QUEUE_CAPACITY);
@@ -58,8 +61,9 @@ bool Sort::generate_initial_runs_q() {
 // assume the priority queue is isEmpty and we are creating generate_initial_runs memory_runs
 // output memory_runs are in-memory
 // ends with queue filled with in-memory memory_runs
-bool Sort::generate_initial_runs() {
-    log_trace("Sort::generate_initial_runs()");
+template<bool DISTINCT>
+bool SortBase<DISTINCT>::generate_initial_runs() {
+    log_trace("SortBase::generate_initial_runs()");
 
     size_t runs_generated = 0;
     size_t rows_processed = 0;
@@ -90,7 +94,7 @@ bool Sort::generate_initial_runs() {
     assert(queue.isCorrect());
 
     if (inserted == 0) {
-        log_trace("Sort::generate_initial_runs(): input_ empty");
+        log_trace("SortBase::generate_initial_runs(): input empty");
         return false;
     }
 
@@ -125,7 +129,9 @@ bool Sort::generate_initial_runs() {
 
         rows_processed++;
         Row *row1 = queue.pop_push(row, insert_run_index);
-        run.add(row1);
+        if (!DISTINCT || row1->key != 0) {
+            run.add(row1);
+        }
 
         inserted++;
         assert(queue.isCorrect());
@@ -158,7 +164,9 @@ bool Sort::generate_initial_runs() {
         while (!queue.isEmpty()) {
             log_trace("pop run_idx=%lu", queue.top_run_idx());
             Row *row1 = queue.pop(MERGE_RUN_IDX);
-            run.add(row1);
+            if (!DISTINCT || row1->key != 0) {
+                run.add(row1);
+            }
         }
     } else {
         // We filled the queue at least once. We must pop (QUEUE_CAPACITY - inserted) to fill the current run,
@@ -169,10 +177,14 @@ bool Sort::generate_initial_runs() {
             log_trace("run_idx=%lu", queue.top_run_idx());
             if (j < memory_runs.size()) {
                 Row *row1 = queue.pop_push_memory(&memory_runs[j++]);
-                run.add(row1);
+                if (!DISTINCT || row1->key != 0) {
+                    run.add(row1);
+                }
             } else {
                 Row *row1 = queue.pop(MERGE_RUN_IDX);
-                run.add(row1);
+                if (!DISTINCT || row1->key != 0) {
+                    run.add(row1);
+                }
             }
         }
 
@@ -187,10 +199,14 @@ bool Sort::generate_initial_runs() {
         for (; i < QUEUE_CAPACITY; i++) {
             if (j < memory_runs.size()) {
                 Row *row1 = queue.pop_push_memory(&memory_runs[j++]);
-                run.add(row1);
+                if (!DISTINCT || row1->key != 0) {
+                    run.add(row1);
+                }
             } else {
                 Row *row1 = queue.pop(MERGE_RUN_IDX);
-                run.add(row1);
+                if (!DISTINCT || row1->key != 0) {
+                    run.add(row1);
+                }
             }
         }
     }
@@ -218,7 +234,7 @@ bool Sort::generate_initial_runs() {
     log_trace("%lu rows processed", rows_processed);
 
     if (row == nullptr) {
-        log_trace("Sort::generate_initial_runs(): input empty");
+        log_trace("SortBase::generate_initial_runs(): input empty");
     }
     return row != nullptr;
 }
@@ -226,8 +242,9 @@ bool Sort::generate_initial_runs() {
 // assume: priority queue is filled with in-memory memory_runs
 // output memory_runs are external
 // ends with isEmpty priority queue
-void Sort::merge_in_memory() {
-    log_trace("Sort::merge_in_memory()");
+template<bool DISTINCT>
+void SortBase<DISTINCT>::merge_in_memory() {
+    log_trace("SortBase::merge_in_memory()");
     if (queue.isEmpty()) {
         return;
     }
@@ -244,16 +261,18 @@ void Sort::merge_in_memory() {
         {
             Row *row = queue.top();
             if (row->less(prev)) {
-                log_error("Sort::merge_memory(): not ascending");
-                log_error("Sort::merge_memory(): prev %s", prev.c_str());
-                log_error("Sort::merge_memory(): cur  %s", row->c_str());
+                log_error("SortBase::merge_memory(): not ascending");
+                log_error("SortBase::merge_memory(): prev %s", prev.c_str());
+                log_error("SortBase::merge_memory(): cur  %s", row->c_str());
             }
             assert(!row->less(prev));
             prev = *row;
         }
 #endif
         Row *row = queue.pop_memory();
-        run.add(*row);
+        if (!DISTINCT || row->key != 0) {
+            run.add(*row);
+        }
         assert(queue.isCorrect());
     }
 
@@ -265,7 +284,8 @@ void Sort::merge_in_memory() {
     memory_runs.clear();
 }
 
-std::vector<ExternalRunR> Sort::insert_external(size_t fan_in) {
+template<bool DISTINCT>
+std::vector<ExternalRunR> SortBase<DISTINCT>::insert_external(size_t fan_in) {
     assert(fan_in <= QUEUE_CAPACITY);
     assert(queue.isEmpty());
     assert(external_run_paths.size() >= fan_in);
@@ -286,8 +306,9 @@ std::vector<ExternalRunR> Sort::insert_external(size_t fan_in) {
 // priority queue is isEmpty
 // output is an external run
 // ends with isEmpty priority queue
-std::string Sort::merge_external(size_t fan_in) {
-    log_trace("Sort::merge_external()");
+template<bool DISTINCT>
+std::string SortBase<DISTINCT>::merge_external(size_t fan_in) {
+    log_trace("SortBase::merge_external()");
     external_runs = insert_external(fan_in);
 
     std::string path = new_run_path();
@@ -303,17 +324,18 @@ std::string Sort::merge_external(size_t fan_in) {
             Row *row_ = queue.top();
             const std::string &run_path = queue.top_path();
             if (row_->less(prev)) {
-                log_error("Sort::merge_external(): not ascending in run %s", run_path.c_str());
-                log_error("Sort::merge_external(): prev %s", prev.c_str());
-                log_error("Sort::merge_external(): cur  %s", row_->c_str());
+                log_error("SortBase::merge_external(): not ascending in run %s", run_path.c_str());
+                log_error("SortBase::merge_external(): prev %s", prev.c_str());
+                log_error("SortBase::merge_external(): cur  %s", row_->c_str());
             }
             assert(!row_->less(prev));
             prev = *row_;
         }
 #endif
-
         Row *row = queue.pop_external();
-        run.add(*row);
+        if (!DISTINCT || row->key != 0) {
+            run.add(*row);
+        }
     }
 
     for (auto &r: external_runs) {
@@ -323,12 +345,13 @@ std::string Sort::merge_external(size_t fan_in) {
 
     external_run_paths.push(path);
 
-    log_trace("Sort::merge_external(): size=%lu", run.size());
+    log_trace("SortBase::merge_external(): size=%lu", run.size());
 
     return path;
 }
 
-void Sort::open() {
+template<bool DISTINCT>
+void SortBase<DISTINCT>::open() {
     UnaryIterator::open();
 
     for (bool has_more_input = true; has_more_input;) {
@@ -356,35 +379,58 @@ void Sort::open() {
 #ifndef NDEBUG
     prev = {0};
 #endif
-    log_trace("Sort::open() fan-in for the last merge step is %lu", external_runs.size());
+    log_trace("SortBase::open() fan-in for the last merge step is %lu", external_runs.size());
 }
 
-Row *Sort::next() {
+template<bool DISTINCT>
+Row *SortBase<DISTINCT>::next() {
     if (queue.isEmpty()) {
         return nullptr;
     }
 
 #ifndef NDEBUG
-    {
-        Row *row = queue.top();
-        if (row->less(prev)) {
-            const std::string &run_path = queue.top_path();
-            log_error("Sort::merge_external(): not ascending in run %s", run_path.c_str());
-            log_error("Sort::merge_external(): prev %s", prev.c_str());
-            log_error("Sort::merge_external(): cur  %s", row->c_str());
-        }
-        assert(!row->less(prev));
+    Row *row;
+    if (DISTINCT) {
+        while ((row = queue.pop_external()) && row->key == 0) {}
+    } else {
+        row = queue.pop_external();
+    }
 
-        prev = *row;
-    };
+    if (row == nullptr) {
+        return nullptr;
+    }
+
+    if (row->less(prev)) {
+        const std::string &run_path = queue.top_path();
+        log_error("SortBase::merge_external(): not ascending in run %s", run_path.c_str());
+        log_error("SortBase::merge_external(): prev %s", prev.c_str());
+        log_error("SortBase::merge_external(): cur  %s", row->c_str());
+    }
+    assert(!row->less(prev));
+
+    prev = *row;
+    return row;
+#else
+    if (DISTINCT) {
+        Row *row;
+        while ((row = queue.pop_external()) && row->key == 0) {}
+        return row;
+    } else {
+        return queue.pop_external();
+    }
 #endif
-
-    return queue.pop_external();
 }
 
-void Sort::close() {
+template<bool DISTINCT>
+void SortBase<DISTINCT>::close() {
     UnaryIterator::close();
     for (auto &run: external_runs) {
         run.remove();
     }
 }
+
+template
+class SortBase<false>;
+
+template
+class SortBase<true>;

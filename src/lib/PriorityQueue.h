@@ -27,7 +27,6 @@ struct priority_queue_stats {
 extern struct priority_queue_stats stats;
 
 void priority_queue_stats_reset();
-
 class PriorityQueue {
 private:
     struct Node;

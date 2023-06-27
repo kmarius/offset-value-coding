@@ -3,14 +3,13 @@
 #include "lib/iterators/Sort.h"
 #include "lib/PriorityQueue.h"
 #include "lib/log.h"
-#include "lib/iterators/AssertSorted.h"
 #include "lib/utils.h"
-#include "lib/iterators/Dedup.h"
 #include "lib/iterators/AssertSortedUnique.h"
 #include "lib/iterators/HashDedup.h"
 #include "lib/iterators/AssertEqual.h"
-#include "lib/iterators/VectorScan.h"
 #include "lib/iterators/PrefixTruncationCounter.h"
+#include "lib/iterators/Dedup.h"
+#include "lib/iterators/AssertSorted.h"
 
 #include <vector>
 
@@ -50,16 +49,15 @@ void example_dedup() {
 }
 
 void example_comparison() {
-    //size_t num_rows = 1000000;
-    size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3);
+    size_t num_rows = 1000000;
     size_t seed = 1337;
 
-    auto plan = new HashDedup(new Generator(num_rows, 100, seed));
+    auto plan_hash = new HashDedup(new Generator(num_rows, 100, seed));
     auto plan_sort = new Dedup(new Sort(new Generator(num_rows, 100, seed)));
 
     hash_set_stats_reset();
     auto start = now();
-    plan->run();
+    plan_hash->run();
     auto duration = since(start);
 
     priority_queue_stats_reset();
@@ -71,6 +69,7 @@ void example_comparison() {
     log_info("hashes calculated:       %lu", num_rows);
     log_info("hash_comparisons:        %lu", hs_stats.hash_comparisons);
     log_info("row_comparisons:         %lu", hs_stats.row_comparisons);
+    log_info("column_comparisons:      %lu", row_equality_column_comparisons);
     log_info("duration:                %lums", duration);
 
     log_info("sorting:");
@@ -78,9 +77,10 @@ void example_comparison() {
     log_info("comparisons:             %lu", stats.comparisons);
     log_info("full_comparisons:        %lu", stats.full_comparisons);
     log_info("actual_full_comparisons: %lu", stats.actual_full_comparisons);
+    log_info("column_comparisons:      %lu", plan_sort->getInput<Sort>()->getColumnComparisons());
     log_info("duration:                %lums", duration_sort);
 
-    delete plan;
+    delete plan_hash;
     delete plan_sort;
 }
 
@@ -157,21 +157,7 @@ void example_truncation() {
     delete plan;
 }
 
-int main(int argc, char *argv[]) {
-    log_open(LOG_TRACE);
-    log_set_quiet(true);
-    log_set_level(LOG_INFO);
-    log_info("start", "");
-
-    auto start = now();
-
-    //raw_rows();
-    //example_sort();
-    //example_dedup();
-    //example_comparison();
-    //example_hashing();
-    //example_truncation();
-
+void example_csv() {
     printf("n,trunc_comp,sort_comp\n");
     for (size_t num_rows: {100000, 500000}) {
         auto sort = new Sort(new Generator(num_rows, 100, 1337));
@@ -185,6 +171,22 @@ int main(int argc, char *argv[]) {
         log_info("full_comparisons:        %lu", stats.full_comparisons);
         delete plan;
     }
+}
+
+int main(int argc, char *argv[]) {
+    log_open(LOG_TRACE);
+    log_set_quiet(false);
+    log_set_level(LOG_INFO);
+    log_info("start", "");
+
+    auto start = now();
+
+    //raw_rows();
+    //example_sort();
+    //example_dedup();
+    example_comparison();
+    //example_hashing();
+    //example_truncation();
 
     log_info("elapsed=%lums", since(start));
 
