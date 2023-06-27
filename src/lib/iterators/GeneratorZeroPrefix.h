@@ -5,9 +5,9 @@
 #include <vector>
 #include <random>
 
-class Generator : public Iterator {
+class GeneratorZeroPrefix : public Iterator {
 public :
-    explicit Generator(Count rows, unsigned long upper, unsigned long seed = -1, bool store = false);
+    explicit GeneratorZeroPrefix(unsigned long num_rows, int upper, int prefix = 0, unsigned long seed = -1);
 
     Row *next() override;
 
@@ -15,9 +15,9 @@ public :
 
 private :
     unsigned long num_rows;
-    unsigned long tid;
+    int prefix;
+    int upper;
     std::mt19937 rng;
     std::uniform_int_distribution<std::mt19937::result_type> dist;
     Row buf;
-    bool store;
 };

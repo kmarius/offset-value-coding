@@ -10,6 +10,7 @@
 #include "lib/iterators/PrefixTruncationCounter.h"
 #include "lib/iterators/Dedup.h"
 #include "lib/iterators/AssertSorted.h"
+#include "lib/iterators/GeneratorZeroPrefix.h"
 
 #include <vector>
 
@@ -184,9 +185,11 @@ int main(int argc, char *argv[]) {
     //raw_rows();
     //example_sort();
     //example_dedup();
-    example_comparison();
+    //example_comparison();
     //example_hashing();
     //example_truncation();
+
+    GeneratorZeroPrefix(10, 100, 2).run(true);
 
     log_info("elapsed=%lums", since(start));
 
