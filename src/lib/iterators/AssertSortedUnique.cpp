@@ -12,7 +12,7 @@ Row *AssertSortedUnique::next() {
 
     if (has_prev && is_sorted && !prev.less(*row)) {
         log_error("input_ not is_sorted: prev: %s", prev.c_str());
-        log_error("                      cur: %s", row->c_str());
+        log_error("                      cur:  %s", row->c_str());
         is_sorted = false;
     }
     has_prev = true;
