@@ -3,7 +3,9 @@
 #include "Row.h"
 #include "log.h"
 
-unsigned long row_equality_column_comparisons;
+unsigned long row_equality_column_comparisons = 0;
+unsigned long row_num_calls_to_hash = 0;
+unsigned long row_num_calls_to_equal = 0;
 
 std::ostream &operator<<(std::ostream &stream, const Row &row) {
     stream << "[" << row.key << ": ";

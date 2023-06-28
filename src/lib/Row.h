@@ -34,6 +34,12 @@ struct ovc_stats {
 // statistics: column comparisons done in the == operator
 extern unsigned long row_equality_column_comparisons;
 
+// statistics: number of times hash was called
+extern unsigned long row_num_calls_to_hash;
+
+// statistics: number of times == was called
+extern unsigned long row_num_calls_to_equal;
+
 typedef struct Row {
     OVC key;
     unsigned long tid;
@@ -49,6 +55,7 @@ typedef struct Row {
     bool equals(const Row &row) const;
 
     bool operator==(const Row &other) const {
+        row_num_calls_to_equal++;
         for (int i = 0; i < ROW_ARITY; i++) {
             row_equality_column_comparisons++;
             if (columns[i] != other.columns[i]) {
@@ -185,6 +192,7 @@ namespace std {
     template<>
     struct hash<Row> {
         std::size_t operator()(const Row &p) const noexcept {
+            row_num_calls_to_hash++;
             return p.key >> 8 | ((p.key & 0xFF) << (sizeof p.key - 8));
             // return p.key >> 8;
         }

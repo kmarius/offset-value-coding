@@ -108,20 +108,8 @@ void example_sort() {
     delete plan;
 }
 
-void example_empty_run() {
-    Iterator *plan = new AssertSorted(
-            new Sort(
-                    new Generator(0, DOMAIN)
-            )
-    );
-    plan->run();
-    delete plan;
-}
-
 void example_hashing() {
-    //size_t num_rows = 100000;
-
-    size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3);
+    size_t num_rows = 1000000;
     size_t seed = 1337;
 
     auto plan = new HashDedup(new Generator(num_rows, 100, seed));
@@ -133,9 +121,10 @@ void example_hashing() {
 
     log_info("hashing:");
     log_info("hashes calculated:       %lu", num_rows);
-    log_info("hash_comparisons:        %lu", hs_stats.hash_comparisons);
-    log_info("row_comparisons:         %lu", hs_stats.row_comparisons);
     log_info("duration:                %lums", duration);
+    log_info("row_comparisons:         %lu", row_num_calls_to_equal);
+    log_info("column_comparisons:      %lu", row_equality_column_comparisons);
+    log_info("calls_to_hash:           %lu", row_num_calls_to_hash);
 
     delete plan;
 }
@@ -158,14 +147,15 @@ void example_truncation() {
     delete plan;
 }
 
-void example_csv() {
-    printf("n,trunc_comp,sort_comp\n");
-    for (size_t num_rows: {100000, 500000}) {
+void example_count_column_comparisons() {
+    log_set_level(LOG_ERROR);
+    printf("n,nxk,trunc_comp,sort_comp\n");
+    for (size_t num_rows: {100000, 500000, 2000000}) {
         auto sort = new Sort(new Generator(num_rows, 100, 1337));
         auto plan = new PrefixTruncationCounter(sort);
         plan->run();
 
-        printf("%lu,%lu,%lu\n", num_rows, plan->getColumnComparisons(), sort->getColumnComparisons());
+        printf("%lu,%zu,%lu,%lu\n", num_rows, num_rows * ROW_ARITY, plan->getColumnComparisons(), sort->getColumnComparisons());
 
         log_info("nlogn:                   %lu", (size_t) (num_rows * log((double) num_rows)));
         log_info("comparisons:             %lu", stats.comparisons);
@@ -186,10 +176,10 @@ int main(int argc, char *argv[]) {
     //example_sort();
     //example_dedup();
     //example_comparison();
-    //example_hashing();
+    example_hashing();
     //example_truncation();
 
-    GeneratorZeroPrefix(10, 100, 2).run(true);
+    example_count_column_comparisons();
 
     log_info("elapsed=%lums", since(start));
 
