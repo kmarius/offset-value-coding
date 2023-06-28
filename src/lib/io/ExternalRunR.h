@@ -12,11 +12,11 @@ private:
     std::string path_;
     int fd;
     Buffer *buffer;
+    Buffer *prev;
     size_t offset;  // offset in the file
     size_t rows;  // rows in current buffer
     size_t cur;  // current index in the buffer
 
-    Row buf[2];
     BufferManager *buffer_manager;
 
 public:

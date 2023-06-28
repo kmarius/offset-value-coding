@@ -11,7 +11,8 @@ ExternalRunR::ExternalRunR() : fd(-1) {
 ExternalRunR::ExternalRunR(const std::string &path,
                            BufferManager &buffer_manager) : path_(path), offset(0),
                                                             buffer(nullptr),
-                                                            buffer_manager(&buffer_manager), rows(0), cur(0) {
+                                                            buffer_manager(&buffer_manager), rows(0), cur(0),
+                                                            prev(nullptr) {
     fd = open(path.c_str(), O_RDONLY
                             #ifdef USE_O_DIRECT
                             | O_DIRECT
@@ -46,6 +47,10 @@ Row *ExternalRunR::read() {
         return nullptr;
     }
     if (buffer == nullptr) {
+        if (prev != nullptr) {
+            buffer_manager->give(prev);
+            prev = nullptr;
+        }
         buffer = buffer_manager->wait(fd);
 
         if (buffer == nullptr) {
@@ -69,20 +74,9 @@ Row *ExternalRunR::read() {
     Row *res = &((Row *) ((uint8_t *) buffer->data + sizeof(rows)))[cur];
     cur++;
 
-    // TODO: why do we need buffer for the last two rows? Fix this!
-    // technically, one global buffer for the last but one row would be enough, I think
-    if (rows - cur == 1) {
-        buf[1] = *res;
-        res = &buf[1];
-    }
-
-    // if a new page only has one row, we can not used the buffer for the last row because it still
-    // cotains the last row from the previous page
     if (rows - cur == 0) {
-        buf[rows > 1 ? 0 : 1] = *res;
-        res = &buf[rows > 1 ? 0 : 1];
-
-        buffer_manager->read(fd, buffer, offset);
+        buffer_manager->read(fd, nullptr, offset);
+        prev = buffer;
         buffer = nullptr;
     }
 
@@ -103,6 +97,9 @@ void ExternalRunR::finalize() {
         }
         if (buffer != nullptr) {
             buffer_manager->give(buffer);
+        }
+        if (prev != nullptr) {
+            buffer_manager->give(prev);
         }
         close(fd);
         fd = -1;
