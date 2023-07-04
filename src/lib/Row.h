@@ -85,44 +85,12 @@ typedef struct Row {
      * @param ovc
      * @return
      */
-    bool less(const Row &row, OVC &ovc) const {
-        int offset = 0;
-        for (; offset < ROW_ARITY && columns[offset] == row.columns[offset]; offset++) {}
-
-        if (offset >= ROW_ARITY) {
-            // rows are equal
-            ovc = 0;
-            return false;
-        }
-
-        assert(offset < ROW_ARITY);
-
-        if (columns[offset] < row.columns[offset]) {
-            // we are smaller
-            ovc = MAKE_OVC(ROW_ARITY, offset, row.columns[offset]);
-            return true;
-        } else {
-            // we are larger
-            ovc = MAKE_OVC(ROW_ARITY, offset, columns[offset]);
-            return false;
-        }
-    }
-
-    /**
-     * less-than semantics, writes the OVC of the loser w.r.t the winner to the provided address
-     * @param row
-     * @param ovc
-     * @return
-     */
-    bool less(const Row &row, OVC &ovc, struct ovc_stats *stats) const {
-        if (stats == nullptr) {
-            return less(row, ovc);
-        }
-
-        int offset = 0;
+    inline bool less(const Row &row, OVC &ovc, unsigned int offset = 0, struct ovc_stats *stats = nullptr) {
         long cmp;
         for (; offset < ROW_ARITY && (cmp = columns[offset] - row.columns[offset]) == 0; offset++) {
-            stats->column_comparisons++;
+            if (stats) {
+                stats->column_comparisons++;
+            }
         }
 
         if (offset >= ROW_ARITY) {
@@ -131,42 +99,9 @@ typedef struct Row {
             return false;
         }
 
-        assert(offset < ROW_ARITY);
-
-        if (cmp < 0) {
-            // we are smaller
-            ovc = MAKE_OVC(ROW_ARITY, offset, row.columns[offset]);
-            return true;
-        } else {
-            // we are larger
-            ovc = MAKE_OVC(ROW_ARITY, offset, columns[offset]);
-            return false;
-        }
-    }
-
-    /**
-     * less-than semantics, writes the OVC of the loser w.r.t the winner to the provided address
-     * @param row
-     * @param ovc
-     * @return
-     */
-    bool less(const Row &row, OVC &ovc, struct ovc_stats *stats, unsigned offset = 0) {
-        if (stats == nullptr) {
-            return less(row, ovc);
-        }
-
-        long cmp;
-        for (; offset < ROW_ARITY && (cmp = columns[offset] - row.columns[offset]) == 0; offset++) {
+        if (stats) {
             stats->column_comparisons++;
         }
-
-        if (offset >= ROW_ARITY) {
-            // rows are equal
-            ovc = 0;
-            return false;
-        }
-
-        assert(offset < ROW_ARITY);
 
         if (cmp < 0) {
             // we are smaller

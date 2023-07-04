@@ -78,6 +78,7 @@ bool SortBase<DISTINCT>::generate_initial_runs() {
     size_t inserted = 0;
 
     assert(queue.isCorrect());
+    queue.reset();
 
     Row *row;
 
@@ -90,6 +91,8 @@ bool SortBase<DISTINCT>::generate_initial_runs() {
         inserted++;
         rows_processed++;
     }
+
+    queue.flush_sentinels();
 
     assert(queue.isCorrect());
 
@@ -163,7 +166,7 @@ bool SortBase<DISTINCT>::generate_initial_runs() {
         // The queue is not even full once. Pop everything, we then have a single in-memory run.
         while (!queue.isEmpty()) {
             log_trace("pop run_idx=%lu", queue.top_run_idx());
-            Row *row1 = queue.pop(MERGE_RUN_IDX);
+            Row *row1 = queue.pop_safe(MERGE_RUN_IDX);
             if (!DISTINCT || row1->key != 0) {
                 run.add(row1);
             }
@@ -181,7 +184,7 @@ bool SortBase<DISTINCT>::generate_initial_runs() {
                     run.add(row1);
                 }
             } else {
-                Row *row1 = queue.pop(MERGE_RUN_IDX);
+                Row *row1 = queue.pop_safe(MERGE_RUN_IDX);
                 if (!DISTINCT || row1->key != 0) {
                     run.add(row1);
                 }
@@ -195,18 +198,24 @@ bool SortBase<DISTINCT>::generate_initial_runs() {
             run = {};
         }
 
+        queue.flush_sentinel(true);
+
         // we do not have enough memory_runs to replace the rows with, pop the rest
-        for (; i < QUEUE_CAPACITY; i++) {
+        for (int must_flush = false; i < QUEUE_CAPACITY; i++) {
             if (j < memory_runs.size()) {
                 Row *row1 = queue.pop_push_memory(&memory_runs[j++]);
                 if (!DISTINCT || row1->key != 0) {
                     run.add(row1);
                 }
             } else {
+                if (must_flush) {
+                    queue.flush_sentinel();
+                }
                 Row *row1 = queue.pop(MERGE_RUN_IDX);
                 if (!DISTINCT || row1->key != 0) {
                     run.add(row1);
                 }
+                must_flush = true;
             }
         }
     }
@@ -256,7 +265,9 @@ void SortBase<DISTINCT>::merge_in_memory() {
     prev = {0};
 #endif
 
+    int i = 0;
     while (!queue.isEmpty()) {
+        i++;
 #ifndef NDEBUG
         {
             Row *row = queue.top();
@@ -290,6 +301,8 @@ std::vector<ExternalRunR> SortBase<DISTINCT>::insert_external(size_t fan_in) {
     assert(queue.isEmpty());
     assert(external_run_paths.size() >= fan_in);
 
+    queue.reset();
+
     std::vector<ExternalRunR> external_runs;
     external_runs.reserve(external_run_paths.size());
 
@@ -300,6 +313,7 @@ std::vector<ExternalRunR> SortBase<DISTINCT>::insert_external(size_t fan_in) {
         external_run_paths.pop();
         queue.push_external(external_runs.back());
     }
+    queue.flush_sentinels();
     return external_runs;
 }
 

@@ -45,8 +45,7 @@ void example_dedup() {
 
     log_info("nlogn:                   %lu", (size_t) (num_rows * log((double) num_rows)));
     log_info("comparisons:             %lu", stats.comparisons);
-    log_info("full_comparisons:        %lu", stats.full_comparisons);
-    log_info("actual_full_comparisons: %lu", stats.actual_full_comparisons);
+    log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
 }
 
 void example_comparison() {
@@ -76,8 +75,7 @@ void example_comparison() {
     log_info("sorting:");
     log_info("nlogn:                   %lu", num_rows * (size_t) log((double) num_rows));
     log_info("comparisons:             %lu", stats.comparisons);
-    log_info("full_comparisons:        %lu", stats.full_comparisons);
-    log_info("actual_full_comparisons: %lu", stats.actual_full_comparisons);
+    log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
     log_info("column_comparisons:      %lu", plan_sort->getInput<Sort>()->getColumnComparisons());
     log_info("duration:                %lums", duration_sort);
 
@@ -103,8 +101,7 @@ void example_sort() {
     log_info("%d", plan->count());
     log_info("nlogn:                   %lu", (size_t) (num_rows * log((double) num_rows)));
     log_info("comparisons:             %lu", stats.comparisons);
-    log_info("full_comparisons:        %lu", stats.full_comparisons);
-    log_info("actual_full_comparisons: %lu", stats.actual_full_comparisons);
+    log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
     delete plan;
 }
 
@@ -137,9 +134,8 @@ void example_truncation() {
 
     log_info("nlogn:                   %lu", (size_t) (num_rows * log((double) num_rows)));
     log_info("comparisons:             %lu", stats.comparisons);
-    log_info("full_comparisons:        %lu", stats.full_comparisons);
-    log_info("full_comparisons_eq_key: %lu", stats.full_comparisons_equal_key);
-    log_info("actual_full_comparisons: %lu", stats.actual_full_comparisons);
+    log_info("full_comparisons_eq_key: %lu", stats.comparisons_equal_key);
+    log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
 
     log_info("column comparisons in sort:               %lu", sort->getColumnComparisons());
     log_info("column comparisons for prefix truncation: %lu", plan->getColumnComparisons());
@@ -159,7 +155,6 @@ void example_count_column_comparisons() {
 
         log_info("nlogn:                   %lu", (size_t) (num_rows * log((double) num_rows)));
         log_info("comparisons:             %lu", stats.comparisons);
-        log_info("full_comparisons:        %lu", stats.full_comparisons);
         delete plan;
     }
 }

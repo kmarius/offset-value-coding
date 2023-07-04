@@ -19,14 +19,14 @@ typedef unsigned long Key;
 
 struct priority_queue_stats {
     size_t comparisons;
-    size_t full_comparisons;
-    size_t full_comparisons_equal_key;
-    size_t actual_full_comparisons;
+    size_t comparisons_equal_key;
+    size_t comparisons_of_actual_rows;
 };
 
 extern struct priority_queue_stats stats;
 
 void priority_queue_stats_reset();
+
 class PriorityQueue {
 private:
     struct Node;
@@ -36,7 +36,6 @@ private:
     size_t capacity_;
     Node *heap;
     WorkspaceItem *workspace;
-    std::stack<uint16_t, std::vector<uint16_t>> empty_slots;
     struct ovc_stats ovc_stats;
 
 public:
@@ -95,6 +94,7 @@ public:
      */
     Row *pop(Index run_index);
 
+    Row *pop_safe(Index run_index);
 
     /**
      * Pop the lowest row during run generation and replace it with a new one.
@@ -138,22 +138,15 @@ public:
         return ovc_stats.column_comparisons;
     }
 
-private:
+    void flush_sentinels();
+
+    void flush_sentinel(bool safe = false);
 
     /**
      * Reset the nodes in the heap, so that run_idx can start at 1 again.
      */
     void reset();
 
-    /**
-     *
-     * @param index
-     * @param key
-     * @param full_comp
-     */
-    void pass(Index index, Key key, bool full_comp);
-
-
-
-    void passSimple(Index index, Key key, bool full_comp);
+private:
+    void pass(Index index, Key key);
 };
