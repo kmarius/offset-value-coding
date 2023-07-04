@@ -23,7 +23,7 @@ typedef uint32_t ovc_type_t;
 
 #define ROW_VALUE_MASK (BITMASK(ROW_VALUE_BITS))
 
-#define MAKE_OVC(arity, offset, value) (((arity - offset) << ROW_OFFSET_BITS) & ROW_VALUE_MASK | (value & ROW_VALUE_MASK))
+#define MAKE_OVC(arity, offset, value) (((arity - offset) << ROW_VALUE_BITS) & ROW_OFFSET_MASK | (value & ROW_VALUE_MASK))
 
 struct ovc_stats {
     unsigned long column_comparisons;
@@ -87,6 +87,13 @@ typedef struct Row {
      */
     inline bool less(const Row &row, OVC &ovc, unsigned int offset = 0, struct ovc_stats *stats = nullptr) {
         long cmp;
+
+#ifndef NDEBUG
+        for (int i = 0; i < offset && i < ROW_ARITY; i++) {
+            assert(columns[i] == row.columns[i]);
+        }
+#endif
+
         for (; offset < ROW_ARITY && (cmp = columns[offset] - row.columns[offset]) == 0; offset++) {
             if (stats) {
                 stats->column_comparisons++;

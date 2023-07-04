@@ -30,7 +30,7 @@
 #define NODE_VALUE(key) ((key) & NODE_VALUE_MASK)
 
 #define NODE_OFFSET_MASK (((((node_key_t) 1) << NODE_OFFSET_BITS) - 1) << NODE_VALUE_BITS)
-#define NODE_OFFSET(key) ((key) & NODE_OFFSET_MASK)
+#define NODE_OFFSET(key) (ROW_ARITY - (((key) & NODE_OFFSET_MASK) >> NODE_VALUE_BITS))
 
 #define NODE_OVC_MASK (NODE_OFFSET_MASK|NODE_VALUE_MASK)
 #define NODE_OVC(key) ((key) & (NODE_OVC_MASK))
@@ -81,7 +81,7 @@ struct PriorityQueue::Node {
     Node(Index index, Key key) : key(key), index(index) {}
 
     friend std::ostream &operator<<(std::ostream &stream, const Node &node) {
-        stream << "[key=" << node.key;
+        stream << "[key=" << node.key_s();
         if (IS_LOW_SENTINEL(node.key)) {
             stream << ", run=" << node.value() << ", LO" << ":" << node.index << "]";
         } else if (IS_HIGH_SENTINEL(node.key)) {
@@ -123,8 +123,14 @@ struct PriorityQueue::Node {
     }
 
     inline void setOvc(OVC ovc) {
-        key &= ~NODE_VALUE_MASK;
-        key |= NODE_VALUE_MASK & ovc;
+        key &= ~NODE_OVC_MASK;
+        key |= NODE_OVC_MASK & ovc;
+    }
+
+    char *key_s() const {
+        static char buf[128] = {0};
+        sprintf(buf, "(off=%lu, val=%lu)", NODE_OFFSET(key), NODE_VALUE(key));
+        return buf;
     }
 
     // sets ovc of the loser w.r.t. the winner
@@ -151,9 +157,15 @@ struct PriorityQueue::Node {
             OVC ovc;
             if (ws[index].row->less(*ws[node.index].row, ovc, NODE_OFFSET(key) + 1, ovc_stats)) {
                 node.setOvc(ovc);
+                assert(node.ovc() == ovc);
+                assert(NODE_OFFSET(node.key) <= 8);
+                assert(ws[index].row->less(*ws[node.index].row, ovc, 0, nullptr));
                 return true;
             } else {
                 setOvc(ovc);
+                assert(this->ovc() == ovc);
+                assert(NODE_OFFSET(key) <= 8);
+                assert(!ws[index].row->less(*ws[node.index].row, ovc, 0, nullptr));
                 return false;
             }
         }
@@ -165,7 +177,7 @@ struct PriorityQueue::Node {
 
 PriorityQueue::PriorityQueue(size_t capacity) : capacity_(capacity), size_(0) {
     assert(std::__popcount(capacity) == 1);
-
+    assert(PRIORITYQUEUE_CAPACITY >= (1 << RUN_IDX_BITS) - 3);
     workspace = new WorkspaceItem[capacity];
     heap = new Node[capacity];
     log_info("PriorityQueue capacity=%lu", capacity);

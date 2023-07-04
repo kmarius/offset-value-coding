@@ -17,7 +17,7 @@ template<bool DISTINCT>
 SortBase<DISTINCT>::SortBase(Iterator *input) : UnaryIterator(input),
                                                 queue(QUEUE_CAPACITY),
                                                 buffer_manager(1024),
-                                                workspace(new Row[QUEUE_CAPACITY * (QUEUE_CAPACITY - 3)]),
+                                                workspace(new Row[QUEUE_CAPACITY * (1 << RUN_IDX_BITS) - 3]),
                                                 workspace_size(0) {
 };
 
@@ -165,7 +165,6 @@ bool SortBase<DISTINCT>::generate_initial_runs() {
     if (queue.size() < queue.capacity()) {
         // The queue is not even full once. Pop everything, we then have a single in-memory run.
         while (!queue.isEmpty()) {
-            log_trace("pop run_idx=%lu", queue.top_run_idx());
             Row *row1 = queue.pop_safe(MERGE_RUN_IDX);
             if (!DISTINCT || row1->key != 0) {
                 run.add(row1);
@@ -177,7 +176,6 @@ bool SortBase<DISTINCT>::generate_initial_runs() {
         size_t i = 0;
         size_t j = 0;
         for (; i < QUEUE_CAPACITY - inserted; i++) {
-            log_trace("run_idx=%lu", queue.top_run_idx());
             if (j < memory_runs.size()) {
                 Row *row1 = queue.pop_push_memory(&memory_runs[j++]);
                 if (!DISTINCT || row1->key != 0) {
@@ -198,24 +196,30 @@ bool SortBase<DISTINCT>::generate_initial_runs() {
             run = {};
         }
 
-        queue.flush_sentinel(true);
+        assert(queue.isCorrect());
+
+        if (queue.size() == queue.capacity()) {
+            Row *row1 = queue.pop(MERGE_RUN_IDX);
+            if (!DISTINCT || row1->key != 0) {
+                run.add(row1);
+            }
+            i++;
+        }
 
         // we do not have enough memory_runs to replace the rows with, pop the rest
-        for (int must_flush = false; i < QUEUE_CAPACITY; i++) {
+        for (; i < QUEUE_CAPACITY; i++) {
             if (j < memory_runs.size()) {
-                Row *row1 = queue.pop_push_memory(&memory_runs[j++]);
+                queue.push_memory(memory_runs[j++]);
+                Row *row1 = queue.pop_safe(MERGE_RUN_IDX);
                 if (!DISTINCT || row1->key != 0) {
                     run.add(row1);
                 }
             } else {
-                if (must_flush) {
-                    queue.flush_sentinel();
-                }
-                Row *row1 = queue.pop(MERGE_RUN_IDX);
+                assert(queue.isCorrect());
+                Row *row1 = queue.pop_safe(MERGE_RUN_IDX);
                 if (!DISTINCT || row1->key != 0) {
                     run.add(row1);
                 }
-                must_flush = true;
             }
         }
     }

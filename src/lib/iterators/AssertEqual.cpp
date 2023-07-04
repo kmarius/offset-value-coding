@@ -37,8 +37,8 @@ Row *AssertEqual::next() {
     if (!left->equals(*right)) {
         equal = false;
         log_error("AssertEqual at row %lu:", count);
-        log_error("%s", left->c_str());
-        log_error("%s", right->c_str());
+        log_error("left: %s", left->c_str());
+        log_error("right: %s", right->c_str());
         return nullptr;
     }
 

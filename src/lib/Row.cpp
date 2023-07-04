@@ -31,7 +31,7 @@ bool Row::equals(const Row &row) const {
 
 const char *Row::c_str() const {
     static char buf[128];
-    int pos = sprintf(buf, "[%lu: ", key);
+    int pos = sprintf(buf, "[%lu:%lu ", key, tid);
     for (int i = 0; i < ROW_ARITY; i++) {
         pos += sprintf(buf + pos, "%lu", columns[i]);
         if (i < ROW_ARITY - 1) {
