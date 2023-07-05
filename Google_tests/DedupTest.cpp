@@ -26,7 +26,7 @@ protected:
 
     void testDedup(size_t num_rows) {
         auto *plan = new AssertSortedUnique(
-                new DedupBase(
+                new Dedup(
                         new Sort(
                                 new Generator(num_rows, 100, SEED, true))));
         plan->run();

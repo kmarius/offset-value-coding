@@ -88,6 +88,18 @@ TEST_F(SortTest, SortSmallish) {
     testSorted(QUEUE_SIZE * 3);
 }
 
+TEST_F(SortTest, SortSmallish2) {
+    testSorted(QUEUE_SIZE * 4);
+}
+
+TEST_F(SortTest, SortSmallish3) {
+    testSorted(QUEUE_SIZE * 5);
+}
+
+TEST_F(SortTest, SortSmallish4) {
+    testSorted(QUEUE_SIZE * 6);
+}
+
 TEST_F(SortTest, SortMedium) {
     testSorted(INITIAL_RUNS * QUEUE_SIZE);
 }
