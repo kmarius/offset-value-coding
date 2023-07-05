@@ -24,8 +24,6 @@
 
 #define PRIORITYQUEUE_CAPACITY (1 << 10)
 
-//#define PRIORITYQUEUE_NO_USE_OVC
-
 #define LOGPATH "/tmp/ovc.log"
 
 #define likely(x) __builtin_expect(x, 1)

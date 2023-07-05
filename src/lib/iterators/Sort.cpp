@@ -13,24 +13,24 @@ static std::string new_run_path() {
     return std::string(BASEDIR "/run_" + std::to_string(i++) + ".dat");
 }
 
-template<bool DISTINCT>
-SortBase<DISTINCT>::SortBase(Iterator *input) : UnaryIterator(input),
-                                                queue(QUEUE_CAPACITY),
-                                                buffer_manager(1024),
-                                                workspace(new Row[QUEUE_CAPACITY * (1 << RUN_IDX_BITS) - 3]),
-                                                workspace_size(0) {
+template<bool DISTINCT, bool USE_OVC>
+SortBase<DISTINCT, USE_OVC>::SortBase(Iterator *input) : UnaryIterator(input),
+                                                         queue(QUEUE_CAPACITY),
+                                                         buffer_manager(1024),
+                                                         workspace(new Row[QUEUE_CAPACITY * (1 << RUN_IDX_BITS) - 3]),
+                                                         workspace_size(0) {
 };
 
-template<bool DISTINCT>
-SortBase<DISTINCT>::~SortBase() {
+template<bool DISTINCT, bool USE_OVC>
+SortBase<DISTINCT, USE_OVC>::~SortBase() {
     delete[] workspace;
 };
 
 // assume the priority queue is isEmpty and we are creating generate_initial_runs memory_runs
 // output memory_runs are in-memory
 // ends with queue filled with in-memory memory_runs
-template<bool DISTINCT>
-bool SortBase<DISTINCT>::generate_initial_runs_q() {
+template<bool DISTINCT, bool USE_OVC>
+bool SortBase<DISTINCT, USE_OVC>::generate_initial_runs_q() {
     log_trace("SortBase::generate_initial_runs()");
 
     memory_runs = {};
@@ -61,8 +61,8 @@ bool SortBase<DISTINCT>::generate_initial_runs_q() {
 // assume the priority queue is isEmpty and we are creating generate_initial_runs memory_runs
 // output memory_runs are in-memory
 // ends with queue filled with in-memory memory_runs
-template<bool DISTINCT>
-bool SortBase<DISTINCT>::generate_initial_runs() {
+template<bool DISTINCT, bool USE_OVC>
+bool SortBase<DISTINCT, USE_OVC>::generate_initial_runs() {
     log_trace("SortBase::generate_initial_runs()");
 
     size_t runs_generated = 0;
@@ -255,8 +255,8 @@ bool SortBase<DISTINCT>::generate_initial_runs() {
 // assume: priority queue is filled with in-memory memory_runs
 // output memory_runs are external
 // ends with isEmpty priority queue
-template<bool DISTINCT>
-void SortBase<DISTINCT>::merge_in_memory() {
+template<bool DISTINCT, bool USE_OVC>
+void SortBase<DISTINCT, USE_OVC>::merge_in_memory() {
     log_trace("SortBase::merge_in_memory()");
     if (queue.isEmpty()) {
         return;
@@ -299,8 +299,8 @@ void SortBase<DISTINCT>::merge_in_memory() {
     memory_runs.clear();
 }
 
-template<bool DISTINCT>
-std::vector<ExternalRunR> SortBase<DISTINCT>::insert_external(size_t fan_in) {
+template<bool DISTINCT, bool USE_OVC>
+std::vector<ExternalRunR> SortBase<DISTINCT, USE_OVC>::insert_external(size_t fan_in) {
     assert(fan_in <= QUEUE_CAPACITY);
     assert(queue.isEmpty());
     assert(external_run_paths.size() >= fan_in);
@@ -324,8 +324,8 @@ std::vector<ExternalRunR> SortBase<DISTINCT>::insert_external(size_t fan_in) {
 // priority queue is isEmpty
 // output is an external run
 // ends with isEmpty priority queue
-template<bool DISTINCT>
-std::string SortBase<DISTINCT>::merge_external(size_t fan_in) {
+template<bool DISTINCT, bool USE_OVC>
+std::string SortBase<DISTINCT, USE_OVC>::merge_external(size_t fan_in) {
     log_trace("SortBase::merge_external()");
     external_runs = insert_external(fan_in);
 
@@ -368,8 +368,8 @@ std::string SortBase<DISTINCT>::merge_external(size_t fan_in) {
     return path;
 }
 
-template<bool DISTINCT>
-void SortBase<DISTINCT>::open() {
+template<bool DISTINCT, bool USE_OVC>
+void SortBase<DISTINCT, USE_OVC>::open() {
     UnaryIterator::open();
 
     for (bool has_more_input = true; has_more_input;) {
@@ -400,8 +400,8 @@ void SortBase<DISTINCT>::open() {
     log_trace("SortBase::open() fan-in for the last merge step is %lu", external_runs.size());
 }
 
-template<bool DISTINCT>
-Row *SortBase<DISTINCT>::next() {
+template<bool DISTINCT, bool USE_OVC>
+Row *SortBase<DISTINCT, USE_OVC>::next() {
     if (queue.isEmpty()) {
         return nullptr;
     }
@@ -439,8 +439,8 @@ Row *SortBase<DISTINCT>::next() {
 #endif
 }
 
-template<bool DISTINCT>
-void SortBase<DISTINCT>::close() {
+template<bool DISTINCT, bool USE_OVC>
+void SortBase<DISTINCT, USE_OVC>::close() {
     UnaryIterator::close();
     for (auto &run: external_runs) {
         run.remove();
@@ -448,7 +448,13 @@ void SortBase<DISTINCT>::close() {
 }
 
 template
-class SortBase<false>;
+class SortBase<false, false>;
 
 template
-class SortBase<true>;
+class SortBase<false, true>;
+
+template
+class SortBase<true, false>;
+
+template
+class SortBase<true, true>;

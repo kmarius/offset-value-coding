@@ -9,7 +9,7 @@
 #include <vector>
 #include <queue>
 
-template<bool DISTINCT>
+template<bool DISTINCT, bool USE_OVC>
 class SortBase : public UnaryIterator {
 public:
     explicit SortBase(Iterator *input);
@@ -27,10 +27,7 @@ public:
     }
 
     bool outputHasOVC() override {
-#ifdef PRIORITYQUEUE_NO_USE_OVC
-        return false;
-#endif
-        return true;
+        return USE_OVC;
     }
 
     bool outputIsHashed() override {
@@ -47,7 +44,7 @@ private:
     std::vector<MemoryRun> memory_runs;
     std::queue<std::string> external_run_paths;
     std::vector<ExternalRunR> external_runs;
-    PriorityQueue queue;
+    PriorityQueue<USE_OVC> queue;
     BufferManager buffer_manager;
 #ifndef NDEBUG
     Row prev = {0};
@@ -82,5 +79,7 @@ private:
     std::vector<ExternalRunR> insert_external(size_t fan_in);
 };
 
-typedef SortBase<false> Sort;
-typedef SortBase<true> SortDistinct;
+typedef SortBase<false, true> Sort;
+typedef SortBase<true, true> SortDistinct;
+typedef SortBase<false, false> SortNoOvc;
+typedef SortBase<true, false> SortDistinctNoOvc;

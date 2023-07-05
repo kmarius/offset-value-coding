@@ -27,6 +27,7 @@ extern struct priority_queue_stats stats;
 
 void priority_queue_stats_reset();
 
+template<bool USE_OVC>
 class PriorityQueue {
 private:
     struct Node;
@@ -124,7 +125,7 @@ public:
      */
     Row *pop_external();
 
-    friend std::ostream &operator<<(std::ostream &stream, const PriorityQueue &pq);
+    friend std::ostream &operator<<(std::ostream &stream, const PriorityQueue<USE_OVC> &pq);
 
     std::string to_string() const;
 

@@ -1,10 +1,10 @@
 #pragma once
 
 #include "UnaryIterator.h"
-
-class Dedup : public UnaryIterator {
+template<bool USE_OVC>
+class DedupBase : public UnaryIterator {
 public:
-    explicit Dedup(Iterator *input);
+    explicit DedupBase(Iterator *input);
 
     Row *next() override;
 
@@ -18,3 +18,6 @@ private:
     Row prev;
     bool has_prev;
 };
+
+typedef DedupBase<true> Dedup;
+typedef DedupBase<true> DedupNoOvc;

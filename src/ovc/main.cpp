@@ -145,17 +145,21 @@ void example_truncation() {
 
 void example_count_column_comparisons() {
     log_set_level(LOG_ERROR);
-    printf("n,nxk,trunc_comp,sort_comp\n");
-    for (size_t num_rows: {100000, 500000, 2000000}) {
+    printf("n,nxk,trunc_comp,sort_comp,sort_no_ovc_comp\n");
+    for (size_t i = 1; i < 3; i ++) {
+        size_t num_rows = i * 100000;
         auto sort = new Sort(new Generator(num_rows, 100, 1337));
-        auto plan = new PrefixTruncationCounter(sort);
-        plan->run();
+        auto trunc = new PrefixTruncationCounter(sort);
 
-        printf("%lu,%zu,%lu,%lu\n", num_rows, num_rows * ROW_ARITY, plan->getColumnComparisons(), sort->getColumnComparisons());
+        auto sort2 = new SortNoOvc(new Generator(num_rows, 100, 1337));
 
-        log_info("nlogn:                   %lu", (size_t) (num_rows * log((double) num_rows)));
-        log_info("comparisons:             %lu", stats.comparisons);
-        delete plan;
+        trunc->run();
+        sort2->run();
+
+        printf("%lu,%zu,%lu,%lu,%lu\n", num_rows, num_rows * ROW_ARITY, trunc->getColumnComparisons(), sort->getColumnComparisons() + num_rows, sort2->getColumnComparisons());
+
+        delete sort2;
+        delete trunc;
     }
 }
 
@@ -171,7 +175,7 @@ int main(int argc, char *argv[]) {
     //example_sort();
     //example_dedup();
     //example_comparison();
-    example_hashing();
+    //example_hashing();
     //example_truncation();
 
     example_count_column_comparisons();

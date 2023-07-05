@@ -47,7 +47,8 @@
 
 struct priority_queue_stats stats;
 
-struct PriorityQueue::WorkspaceItem {
+template<bool USE_OVC>
+struct PriorityQueue<USE_OVC>::WorkspaceItem {
     Row *row;
     union {
         MemoryRun *memory_run;
@@ -69,7 +70,8 @@ struct PriorityQueue::WorkspaceItem {
     }
 };
 
-struct PriorityQueue::Node {
+template<bool USE_OVC>
+struct PriorityQueue<USE_OVC>::Node {
     /* Sort key in this priority queue. */
     node_key_t key;
 
@@ -125,6 +127,7 @@ struct PriorityQueue::Node {
     inline void setOvc(OVC ovc) {
         key &= ~NODE_OVC_MASK;
         key |= NODE_OVC_MASK & ovc;
+        assert(this->ovc() == ovc);
     }
 
     char *key_s() const {
@@ -137,45 +140,39 @@ struct PriorityQueue::Node {
     inline bool less(Node &node, WorkspaceItem *ws, struct ovc_stats *ovc_stats = nullptr) {
         stats.comparisons++;
 
-#ifdef PRIORITYQUEUE_NO_USE_OVC
-        stats.comparisons_equal_key++;
-        if (!isValid() || !node.isValid() || run_index() != node.run_index()) {
-            return key < node.key;
-        }
-        stats.comparisons_of_actual_rows++;
-
-        OVC ovc;
-        return ws[index].row->less(*ws[node.index].row, ovc, ovc_stats);
-#else
-        if (key == node.key) {
+        if (!USE_OVC) {
             stats.comparisons_equal_key++;
-            if (!isValid() || !node.isValid()) {
-                return false;
+            if (!isValid() || !node.isValid() || run_index() != node.run_index()) {
+                return key < node.key;
             }
             stats.comparisons_of_actual_rows++;
-
             OVC ovc;
-            if (ws[index].row->less(*ws[node.index].row, ovc, NODE_OFFSET(key) + 1, ovc_stats)) {
-                node.setOvc(ovc);
-                assert(node.ovc() == ovc);
-                assert(NODE_OFFSET(node.key) <= 8);
-                assert(ws[index].row->less(*ws[node.index].row, ovc, 0, nullptr));
-                return true;
-            } else {
-                setOvc(ovc);
-                assert(this->ovc() == ovc);
-                assert(NODE_OFFSET(key) <= 8);
-                assert(!ws[index].row->less(*ws[node.index].row, ovc, 0, nullptr));
-                return false;
-            }
-        }
+            return ws[index].row->less(*ws[node.index].row, ovc, 0, ovc_stats);
+        } else {
+            if (key == node.key) {
+                stats.comparisons_equal_key++;
+                if (!isValid() || !node.isValid()) {
+                    return false;
+                }
+                stats.comparisons_of_actual_rows++;
 
-        return key < node.key;
-#endif
+                OVC ovc;
+                if (ws[index].row->less(*ws[node.index].row, ovc, NODE_OFFSET(key) + 1, ovc_stats)) {
+                    node.setOvc(ovc);
+                    return true;
+                } else {
+                    setOvc(ovc);
+                    return false;
+                }
+            }
+
+            return key < node.key;
+        }
     }
 };
 
-PriorityQueue::PriorityQueue(size_t capacity) : capacity_(capacity), size_(0) {
+template<bool USE_OVC>
+PriorityQueue<USE_OVC>::PriorityQueue(size_t capacity) : capacity_(capacity), size_(0) {
     assert(std::__popcount(capacity) == 1);
     assert(PRIORITYQUEUE_CAPACITY >= (1 << RUN_IDX_BITS) - 3);
     workspace = new WorkspaceItem[capacity];
@@ -184,24 +181,29 @@ PriorityQueue::PriorityQueue(size_t capacity) : capacity_(capacity), size_(0) {
     reset();
 }
 
-PriorityQueue::~PriorityQueue() {
+template<bool USE_OVC>
+PriorityQueue<USE_OVC>::~PriorityQueue() {
     delete[] workspace;
     delete[] heap;
 }
 
-size_t PriorityQueue::size() const {
+template<bool USE_OVC>
+size_t PriorityQueue<USE_OVC>::size() const {
     return size_;
 }
 
-bool PriorityQueue::isEmpty() const {
+template<bool USE_OVC>
+bool PriorityQueue<USE_OVC>::isEmpty() const {
     return size_ == 0;
 }
 
-size_t PriorityQueue::capacity() const {
+template<bool USE_OVC>
+size_t PriorityQueue<USE_OVC>::capacity() const {
     return capacity_;
 }
 
-bool PriorityQueue::isCorrect() const {
+template<bool USE_OVC>
+bool PriorityQueue<USE_OVC>::isCorrect() const {
     for (Index i = 0; i < capacity() / 2; i++) {
         for (Index j = capacity() / 2 + heap[i].index / 2; j > i; j = parent(j)) {
             if (!heap[j].isValid()) {
@@ -221,7 +223,8 @@ bool PriorityQueue::isCorrect() const {
     return true;
 }
 
-void PriorityQueue::reset() {
+template<bool USE_OVC>
+void PriorityQueue<USE_OVC>::reset() {
     assert(isEmpty());
     heap[0].index = 0;
     heap[0].key = LOW_SENTINEL(0);
@@ -241,7 +244,8 @@ static inline void setMax(Key &x, Key const y) {
     }
 }
 
-void PriorityQueue::pass(Index index, Key key) {
+template<bool USE_OVC>
+void PriorityQueue<USE_OVC>::pass(Index index, Key key) {
     Node candidate(index, key);
     for (Index slot = capacity_ / 2 + index / 2; slot != 0; slot /= 2) {
         if (heap[slot].less(candidate, workspace, &ovc_stats)) {
@@ -251,7 +255,8 @@ void PriorityQueue::pass(Index index, Key key) {
     heap[0] = candidate;
 }
 
-void PriorityQueue::push(Row *row, Index run_index) {
+template<bool USE_OVC>
+void PriorityQueue<USE_OVC>::push(Row *row, Index run_index) {
     assert(size_ < capacity_);
     assert(heap[0].isLowSentinel());
 
@@ -262,7 +267,8 @@ void PriorityQueue::push(Row *row, Index run_index) {
     size_++;
 }
 
-void PriorityQueue::push_memory(MemoryRun &run) {
+template<bool USE_OVC>
+void PriorityQueue<USE_OVC>::push_memory(MemoryRun &run) {
     assert(size_ < capacity_);
     assert(heap[0].isLowSentinel());
 
@@ -277,7 +283,8 @@ void PriorityQueue::push_memory(MemoryRun &run) {
     size_++;
 }
 
-void PriorityQueue::push_external(ExternalRunR &run) {
+template<bool USE_OVC>
+void PriorityQueue<USE_OVC>::push_external(ExternalRunR &run) {
     assert(size_ < capacity_);
     assert(heap[0].isLowSentinel());
 
@@ -295,7 +302,8 @@ void PriorityQueue::push_external(ExternalRunR &run) {
     size_++;
 }
 
-Row *PriorityQueue::pop(Index run_index) {
+template<bool USE_OVC>
+Row *PriorityQueue<USE_OVC>::pop(Index run_index) {
     assert(!isEmpty());
     assert(!heap[0].isLowSentinel());
 
@@ -312,7 +320,8 @@ Row *PriorityQueue::pop(Index run_index) {
     return res;
 }
 
-Row *PriorityQueue::pop_push(Row *row, Index run_index) {
+template<bool USE_OVC>
+Row *PriorityQueue<USE_OVC>::pop_push(Row *row, Index run_index) {
     assert(!isEmpty());
     Index workspace_index = heap[0].index;
 
@@ -328,7 +337,8 @@ Row *PriorityQueue::pop_push(Row *row, Index run_index) {
     return res;
 }
 
-Row *PriorityQueue::pop_push_memory(MemoryRun *run) {
+template<bool USE_OVC>
+Row *PriorityQueue<USE_OVC>::pop_push_memory(MemoryRun *run) {
     assert(!isEmpty());
     Index workspace_index = heap[0].index;
 
@@ -345,7 +355,8 @@ Row *PriorityQueue::pop_push_memory(MemoryRun *run) {
     return res;
 }
 
-Row *PriorityQueue::pop_memory() {
+template<bool USE_OVC>
+Row *PriorityQueue<USE_OVC>::pop_memory() {
     assert(!isEmpty());
     Index workspace_index = heap[0].index;
     assert(workspace[workspace_index].memory_run->size() > 0);
@@ -369,7 +380,8 @@ Row *PriorityQueue::pop_memory() {
     return res;
 }
 
-Row *PriorityQueue::pop_external() {
+template<bool USE_OVC>
+Row *PriorityQueue<USE_OVC>::pop_external() {
     assert(!isEmpty());
     Index workspace_index = heap[0].index;
 
@@ -392,7 +404,8 @@ Row *PriorityQueue::pop_external() {
     return res;
 }
 
-std::ostream &operator<<(std::ostream &stream, const PriorityQueue &pq) {
+template<bool USE_OVC>
+std::ostream &operator<<(std::ostream &stream, const PriorityQueue<USE_OVC> &pq) {
     for (size_t i = 0; i < pq.capacity_; i++) {
         if (i > 0) {
             stream << std::endl;
@@ -409,34 +422,40 @@ void priority_queue_stats_reset() {
     memset(&stats, 0, sizeof stats);
 }
 
-Row *PriorityQueue::top() {
+template<bool USE_OVC>
+Row *PriorityQueue<USE_OVC>::top() {
     assert(!isEmpty());
     return workspace[heap[0].index].row;
 }
 
-std::string PriorityQueue::to_string() const {
+template<bool USE_OVC>
+std::string PriorityQueue<USE_OVC>::to_string() const {
     std::stringstream stream;
     stream << *this << std::endl << "";
     return stream.str();
 }
 
-const std::string &PriorityQueue::top_path() {
+template<bool USE_OVC>
+const std::string &PriorityQueue<USE_OVC>::top_path() {
     assert(!isEmpty());
     return workspace[heap[0].index].external_run->path();
 }
 
-size_t PriorityQueue::top_run_idx() {
+template<bool USE_OVC>
+size_t PriorityQueue<USE_OVC>::top_run_idx() {
     return heap[0].run_index();
 }
 
-void PriorityQueue::flush_sentinels() {
+template<bool USE_OVC>
+void PriorityQueue<USE_OVC>::flush_sentinels() {
     for (int i = size_; i < capacity_; i++) {
         Index workspace_index = heap[0].index;
         pass(workspace_index, HIGH_SENTINEL(MERGE_RUN_IDX));
     }
 }
 
-void PriorityQueue::flush_sentinel(bool safe) {
+template<bool USE_OVC>
+void PriorityQueue<USE_OVC>::flush_sentinel(bool safe) {
     if (safe) {
         if (heap[0].isLowSentinel()) {
             pass(heap[0].index, HIGH_SENTINEL(MERGE_RUN_IDX));
@@ -447,9 +466,16 @@ void PriorityQueue::flush_sentinel(bool safe) {
     }
 }
 
-Row *PriorityQueue::pop_safe(Index run_index) {
+template<bool USE_OVC>
+Row *PriorityQueue<USE_OVC>::pop_safe(Index run_index) {
     if (heap[0].isLowSentinel()) {
         flush_sentinel();
     }
     return pop(run_index);
 }
+
+template
+class PriorityQueue<false>;
+
+template
+class PriorityQueue<true>;
