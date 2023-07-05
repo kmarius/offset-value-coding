@@ -1,5 +1,7 @@
 #pragma once
 
+#define NO_LOGGING
+
 // Use O_DIRECT to add through operating system caches
 #define USE_O_DIRECT
 
