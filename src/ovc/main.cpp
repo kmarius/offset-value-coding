@@ -11,6 +11,8 @@
 #include "lib/iterators/Dedup.h"
 #include "lib/iterators/AssertSorted.h"
 #include "lib/iterators/GeneratorZeroPrefix.h"
+#include "lib/iterators/GroupBy.h"
+#include "lib/iterators/GeneratorZeroSuffix.h"
 
 #include <vector>
 
@@ -227,6 +229,14 @@ void example_count_column_comparisons() {
     }
 }
 
+void example_group_by() {
+    auto plan = new GroupBy(
+            new Sort(new GeneratorZeroSuffix(100000, 128, 6, 1337)),
+                            1);
+    plan->run(true);
+    delete plan;
+}
+
 int main(int argc, char *argv[]) {
     log_open(LOG_TRACE);
     log_set_quiet(false);
@@ -245,7 +255,7 @@ int main(int argc, char *argv[]) {
     //example_count_column_comparisons();
 
     //comparison_sort();
-    comparison_dedup();
+    example_group_by();
 
     log_info("elapsed=%lums", since(start));
 

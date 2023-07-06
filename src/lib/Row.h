@@ -40,10 +40,26 @@ extern unsigned long row_num_calls_to_hash;
 // statistics: number of times == was called
 extern unsigned long row_num_calls_to_equal;
 
+
+struct OVC_s {
+    ovc_type_t ovc;
+    OVC_s(ovc_type_t ovc) : ovc(ovc) {};
+    unsigned getOffset() const {
+        return ROW_ARITY - ((ovc&ROW_OFFSET_MASK) >> ROW_VALUE_BITS);
+    };
+    int getValue() const {
+        return ovc&ROW_VALUE_MASK;
+    };
+};
+
 typedef struct Row {
     OVC key;
     unsigned long tid;
     unsigned long columns[ROW_ARITY];
+
+    OVC_s getOVC() const {
+        return key;
+    }
 
     unsigned long setHash();
 
