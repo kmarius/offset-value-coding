@@ -24,13 +24,15 @@ Row *AssertEqual::next() {
     }
     if (left == nullptr) {
         equal = false;
-        right_->free();
         log_error("AssertEqual: right input is longer");
+        log_error("right: %s", right->c_str());
+        right_->free();
         return nullptr;
     }
     if (right == nullptr) {
         equal = false;
         log_error("AssertEqual: left input is longer");
+        log_error("left: %s", left->c_str());
         left_->free();
         return nullptr;
     }
