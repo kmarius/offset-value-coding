@@ -1,11 +1,12 @@
 #pragma once
 
-#include "Iterator.h"
+#include "IGenerator.h"
+#include "../defs.h"
 
 #include <vector>
 #include <random>
 
-class Generator : public Iterator {
+class Generator : public IGenerator {
 public :
     explicit Generator(Count rows, unsigned long upper, unsigned long seed = -1, bool store = false);
 
@@ -13,7 +14,7 @@ public :
 
     std::vector<Row> rows;
 
-    Generator *clone() const {
+    IGenerator *clone() const override {
         return new Generator(num_rows, upper_, seed_, store);
     }
 

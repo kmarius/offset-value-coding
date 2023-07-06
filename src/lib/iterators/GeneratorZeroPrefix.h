@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Iterator.h"
+#include "IGenerator.h"
 
 #include <vector>
 #include <random>
 
-class GeneratorZeroPrefix : public Iterator {
+class GeneratorZeroPrefix : public IGenerator {
 public :
     explicit GeneratorZeroPrefix(unsigned long num_rows, int upper, int prefix = 0, unsigned long seed = -1);
 

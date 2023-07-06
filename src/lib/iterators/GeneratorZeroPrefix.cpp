@@ -1,7 +1,7 @@
 #include "GeneratorZeroPrefix.h"
 
 GeneratorZeroPrefix::GeneratorZeroPrefix(unsigned long num_rows, int upper, int prefix, unsigned long seed)
-: Iterator(), num_rows(num_rows), upper(upper), prefix(prefix), buf({0}), seed_(0) {
+: IGenerator(), num_rows(num_rows), upper(upper), prefix(prefix), buf({0}), seed_(0) {
     std::random_device dev;
     seed = seed == (unsigned long) -1 ? dev() : seed;
     seed_ = seed;
