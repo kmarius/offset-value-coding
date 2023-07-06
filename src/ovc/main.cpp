@@ -143,22 +143,86 @@ void example_truncation() {
     delete plan;
 }
 
+void comparison_sort() {
+    for (int prefix = 0; prefix < 8; prefix += 2) {
+        FILE *file = fopen(("comparison_" + std::to_string(prefix) + ".csv").c_str(), "w");
+        fprintf(file, "n,nxk,trunc,sort,sort_no_ovc\n");
+        for (size_t i = 1; i <= 10; i++) {
+            size_t num_rows = i * 100000;
+            auto *gen = new GeneratorZeroPrefix(num_rows, 100, prefix, 1337);
+            auto sort = new Sort(gen->clone());
+            auto trunc = new PrefixTruncationCounter(sort);
+
+            auto sort2 = new SortNoOvc(gen);
+
+            trunc->run();
+            sort2->run();
+
+            fprintf(file, "%lu,%zu,%lu,%lu,%lu\n",
+                    num_rows,
+                    num_rows * ROW_ARITY,
+                    trunc->getColumnComparisons(),
+                    sort->getColumnComparisons() + num_rows,
+                    sort2->getColumnComparisons());
+
+            delete sort2;
+            delete trunc;
+        }
+        fclose(file);
+    }
+}
+
+void comparison_dedup() {
+    for (int prefix = 0; prefix < 8; prefix += 2) {
+        FILE *file = fopen(("column_comparisons_distinct_prefix_" + std::to_string(prefix) + ".csv").c_str(), "w");
+        fprintf(file, "n,sort,sort_no_ovc,hash\n");
+        for (size_t i = 1; i <= 10; i++) {
+            size_t num_rows = i * 100000;
+
+            auto gen = new GeneratorZeroPrefix(num_rows, 100, prefix, 1337);
+            auto sort = new SortDistinct(gen->clone());
+            auto sort_no_ovc = new SortDistinctNoOvc(gen->clone());
+            auto hash = new HashDedup(gen);
+
+            // reset static counter^
+            row_equality_column_comparisons = 0;
+            sort->run();
+            sort_no_ovc->run();
+            hash->run();
+
+            //fprintf(file, "%lu,%zu,%lu,%lu,%lu\n",
+            fprintf(file, "%lu,%lu,%lu,%lu\n",
+                    num_rows,
+                    // num_rows -hash->duplicates,
+                    sort->getColumnComparisons() + num_rows,
+                    sort_no_ovc->getColumnComparisons(),
+                    row_equality_column_comparisons);
+
+            delete sort;
+            delete sort_no_ovc;
+            delete hash;
+        }
+        fclose(file);
+    }
+}
+
 void example_count_column_comparisons() {
     log_set_level(LOG_ERROR);
     printf("n,nxk,trunc_comp,sort_comp,sort_no_ovc_comp\n");
-    for (size_t i = 1; i < 3; i ++) {
+    for (size_t i = 1; i < 2; i++) {
         size_t num_rows = i * 100000;
         auto sort = new Sort(new Generator(num_rows, 100, 1337));
         auto trunc = new PrefixTruncationCounter(sort);
 
-        auto sort2 = new SortNoOvc(new Generator(num_rows, 100, 1337));
+        auto sort_no_ovc = new SortNoOvc(new Generator(num_rows, 100, 1337));
 
         trunc->run();
-        sort2->run();
+        sort_no_ovc->run();
 
-        printf("%lu,%zu,%lu,%lu,%lu\n", num_rows, num_rows * ROW_ARITY, trunc->getColumnComparisons(), sort->getColumnComparisons() + num_rows, sort2->getColumnComparisons());
+        printf("%lu,%zu,%lu,%lu,%lu\n", num_rows, num_rows * ROW_ARITY, trunc->getColumnComparisons(),
+               sort->getColumnComparisons() + num_rows, sort_no_ovc->getColumnComparisons());
 
-        delete sort2;
+        delete sort_no_ovc;
         delete trunc;
     }
 }
@@ -178,7 +242,10 @@ int main(int argc, char *argv[]) {
     //example_hashing();
     //example_truncation();
 
-    example_count_column_comparisons();
+    //example_count_column_comparisons();
+
+    //comparison_sort();
+    comparison_dedup();
 
     log_info("elapsed=%lums", since(start));
 

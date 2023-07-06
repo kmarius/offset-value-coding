@@ -431,7 +431,7 @@ Row *PriorityQueue<USE_OVC>::top() {
 template<bool USE_OVC>
 std::string PriorityQueue<USE_OVC>::to_string() const {
     std::stringstream stream;
-    stream << *this << std::endl << "";
+//    stream << *this << std::endl << "";
     return stream.str();
 }
 
