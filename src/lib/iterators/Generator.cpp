@@ -4,9 +4,10 @@
 #include <random>
 
 Generator::Generator(Count num_rows, unsigned long upper, unsigned long seed, bool store)
-        : num_rows(num_rows), tid(0), store(store) {
+        : num_rows(num_rows), tid(0), store(store), upper_(upper), seed_(seed) {
     std::random_device dev;
     seed = seed == (unsigned long) -1 ? dev() : seed;
+    seed_ = seed;
     rng = std::mt19937(seed);
     dist = std::uniform_int_distribution<std::mt19937::result_type>(0, upper - 1);
     log_info("using seed %lu", seed);
