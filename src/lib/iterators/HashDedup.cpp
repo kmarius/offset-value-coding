@@ -2,7 +2,7 @@
 #include "HashDedup.h"
 #include "lib/log.h"
 
-HashDedup::HashDedup(Iterator *input) : UnaryIterator(input), partition(nullptr), bufferManager(4) {
+HashDedup::HashDedup(Iterator *input) : UnaryIterator(input), partition(nullptr), bufferManager(4), duplicates(0) {
 }
 
 void HashDedup::open() {
@@ -28,6 +28,7 @@ Row *HashDedup::next() {
             // maye return a pointer to the element in the set?
             return row;
         }
+        duplicates++;
     }
     return nullptr;
 }

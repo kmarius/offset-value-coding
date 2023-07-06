@@ -17,6 +17,8 @@ public :
         return true;
     };
 
+    unsigned duplicates;
+
 private:
     std::vector<std::string> partitions;
     ExternalRunR *partition;
