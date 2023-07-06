@@ -4,7 +4,7 @@
 template<bool USE_OVC>
 GroupByBase<USE_OVC>::GroupByBase(Iterator *input, int group_columns) :
         UnaryIterator(input), input_buf(), output_buf(),
-        group_columns(group_columns), empty(false) {
+        group_columns(group_columns), empty(true) {
     assert(input->outputIsSorted());
     assert(!USE_OVC || input->outputHasOVC());
 }
