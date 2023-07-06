@@ -409,7 +409,12 @@ Row *SortBase<DISTINCT, USE_OVC>::next() {
 #ifndef NDEBUG
     Row *row;
     if (DISTINCT) {
-        while ((row = queue.pop_external()) && row->key == 0) {}
+        while ((row = queue.pop_external()) && row->key == 0) {
+            if (queue.isEmpty()) {
+                row = nullptr;
+                break;
+            }
+        }
     } else {
         row = queue.pop_external();
     }
@@ -431,7 +436,12 @@ Row *SortBase<DISTINCT, USE_OVC>::next() {
 #else
     if (DISTINCT) {
         Row *row;
-        while ((row = queue.pop_external()) && row->key == 0) {}
+        while ((row = queue.pop_external()) && row->key == 0) {
+            if (queue.isEmpty()) {
+                row = nullptr;
+                break;
+            }
+            }
         return row;
     } else {
         return queue.pop_external();
