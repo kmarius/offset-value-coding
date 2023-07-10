@@ -40,15 +40,19 @@ extern unsigned long row_num_calls_to_hash;
 // statistics: number of times == was called
 extern unsigned long row_num_calls_to_equal;
 
+extern unsigned long row_equal_prefix;
 
 struct OVC_s {
     ovc_type_t ovc;
+
     OVC_s(ovc_type_t ovc) : ovc(ovc) {};
+
     unsigned getOffset() const {
-        return ROW_ARITY - ((ovc&ROW_OFFSET_MASK) >> ROW_VALUE_BITS);
+        return ROW_ARITY - ((ovc & ROW_OFFSET_MASK) >> ROW_VALUE_BITS);
     };
+
     int getValue() const {
-        return ovc&ROW_VALUE_MASK;
+        return ovc & ROW_VALUE_MASK;
     };
 };
 
@@ -61,7 +65,7 @@ typedef struct Row {
         return key;
     }
 
-    unsigned long setHash();
+    unsigned long setHash(int hash_columns = ROW_ARITY);
 
     /**
      * Check if two rows are equal.
@@ -69,6 +73,17 @@ typedef struct Row {
      * @return
      */
     bool equals(const Row &row) const;
+
+    bool equal_prefix(const Row &row) const {
+        row_num_calls_to_equal++;
+        for (int i = 0; i < row_equal_prefix; i++) {
+            row_equality_column_comparisons++;
+            if (columns[i] != row.columns[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     bool operator==(const Row &other) const {
         row_num_calls_to_equal++;

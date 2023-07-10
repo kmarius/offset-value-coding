@@ -34,7 +34,6 @@ public:
 private:
     int num_partitions;
     std::vector<std::string> paths;
-    //ExternalRunW *partitions;
     std::vector<ExternalRunW> partitions;
     BufferManager bufferManager;
 };

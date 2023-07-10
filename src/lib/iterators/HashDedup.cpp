@@ -17,7 +17,7 @@ void HashDedup::open() {
     }
     partitioner.finalize();
     partitions = partitioner.getPartitions();
-    partition = new ExternalRunR(partitions.back(), bufferManager);
+    partition = new ExternalRunR(partitions.back(), bufferManager, true);
 }
 
 Row *HashDedup::next() {
