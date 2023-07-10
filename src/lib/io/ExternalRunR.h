@@ -20,7 +20,7 @@ private:
     BufferManager *buffer_manager;
 
 public:
-    ExternalRunR(const std::string &path, BufferManager &buffer_manager);
+    ExternalRunR(const std::string &path, BufferManager &buffer_manager, bool no_throw = false);
 
     ExternalRunR();
 

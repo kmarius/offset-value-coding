@@ -4,7 +4,7 @@
 struct hash_set_stats hs_stats = {0};
 
 static std::string gen_path(int i) {
-    return  BASEDIR "/part" + std::to_string(i) + ".dat";
+    return BASEDIR "/part" + std::to_string(i) + ".dat";
 }
 
 Partitioner::Partitioner(int num_partitions)

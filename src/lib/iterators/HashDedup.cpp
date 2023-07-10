@@ -47,7 +47,7 @@ Row *HashDedup::next_from_part() {
             partition = nullptr;
             return nullptr;
         }
-        partition = new ExternalRunR(partitions.back(), bufferManager);
+        partition = new ExternalRunR(partitions.back(), bufferManager, true);
     }
     return row;
 }

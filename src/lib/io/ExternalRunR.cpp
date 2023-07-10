@@ -9,10 +9,11 @@ ExternalRunR::ExternalRunR() : fd(-1) {
 }
 
 ExternalRunR::ExternalRunR(const std::string &path,
-                           BufferManager &buffer_manager) : path_(path), offset(0),
-                                                            buffer(nullptr),
-                                                            buffer_manager(&buffer_manager), rows(0), cur(0),
-                                                            prev(nullptr) {
+                           BufferManager &buffer_manager, bool no_throw) : path_(path), offset(0),
+                                                                           buffer(nullptr),
+                                                                           buffer_manager(&buffer_manager), rows(0),
+                                                                           cur(0),
+                                                                           prev(nullptr) {
     fd = open(path.c_str(), O_RDONLY
                             #ifdef USE_O_DIRECT
                             | O_DIRECT
@@ -28,9 +29,14 @@ ExternalRunR::ExternalRunR(const std::string &path,
 #endif
 
     if (fd < 0) {
-        throw std::runtime_error(std::string("open: ") + strerror(errno));
+        if (no_throw) {
+            rows = RUN_EMPTY;
+        } else {
+            throw std::runtime_error(std::string("open: ") + strerror(errno));
+        }
+    } else {
+        buffer_manager.read(fd, nullptr, offset);
     }
-    buffer_manager.read(fd, nullptr, offset);
 }
 
 ExternalRunR::~ExternalRunR() {
