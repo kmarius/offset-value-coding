@@ -11,11 +11,22 @@ public :
 
     Row *next() override;
 
-    bool outputIsSorted() override;
+    bool outputIsHashed() override {
+        return input_->outputIsHashed();
+    }
 
-    bool outputIsHashed() override;
+    bool outputIsSorted() override {
+        return input_->outputIsSorted();
+    }
 
-    bool outputHasOVC() override;
+    bool outputHasOVC() override {
+        // TODO: OVCs can be repaired in next
+        return false;
+    }
+
+    bool outputIsUnique() override {
+        return input_->outputIsUnique();
+    }
 
 private :
     Predicate *const predicate_;

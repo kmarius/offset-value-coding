@@ -81,6 +81,14 @@ public:
     }
 
     /**
+     * Check if the output of this iterator is unique.
+     * @return true, if the output is unique.
+     */
+    virtual bool outputIsUnique() {
+        return false;
+    }
+
+    /**
      * Run the iterator and optionally print all rows.
      * @param print true if output should be printed
      */

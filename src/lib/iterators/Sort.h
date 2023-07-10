@@ -30,8 +30,8 @@ public:
         return USE_OVC;
     }
 
-    bool outputIsHashed() override {
-        return false;
+    bool outputIsUnique() override {
+        return DISTINCT;
     }
 
     unsigned long getColumnComparisons() const {

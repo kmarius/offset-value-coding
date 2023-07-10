@@ -1,6 +1,8 @@
 #include "OVCApplier.h"
 
-OVCApplier::OVCApplier(Iterator *input) : UnaryIterator(input), prev_({0}) {}
+OVCApplier::OVCApplier(Iterator *input) : UnaryIterator(input), prev_({0}) {
+    assert(input->outputIsSorted());
+}
 
 Row *OVCApplier::next() {
     Row *row = UnaryIterator::next();

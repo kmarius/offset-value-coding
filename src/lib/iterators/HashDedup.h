@@ -17,6 +17,10 @@ public :
         return true;
     };
 
+    bool outputIsUnique() override {
+        return true;
+    };
+
     unsigned duplicates;
 
 private:

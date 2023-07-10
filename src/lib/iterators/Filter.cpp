@@ -13,15 +13,3 @@ Row *Filter::next() {
     }
     return nullptr;
 }
-
-bool Filter::outputIsHashed() {
-    return input_->outputIsHashed();
-}
-
-bool Filter::outputIsSorted() {
-    return input_->outputIsSorted();
-}
-
-bool Filter::outputHasOVC() {
-    return input_->outputHasOVC();
-}

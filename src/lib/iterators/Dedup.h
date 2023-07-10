@@ -12,6 +12,10 @@ public:
         return true;
     }
 
+    bool outputIsUnique() override {
+        return true;
+    }
+
     size_t num_dupes;
 
 private:
