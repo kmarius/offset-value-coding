@@ -22,18 +22,6 @@ public:
 
     void close() override;
 
-    bool outputIsSorted() override {
-        return true;
-    }
-
-    bool outputHasOVC() override {
-        return USE_OVC;
-    }
-
-    bool outputIsUnique() override {
-        return DISTINCT;
-    }
-
     unsigned long getColumnComparisons() const {
         return queue.getColumnComparisons();
     }

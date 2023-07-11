@@ -8,14 +8,6 @@ public:
 
     Row *next() override;
 
-    bool outputIsSorted() override {
-        return true;
-    }
-
-    bool outputIsUnique() override {
-        return true;
-    }
-
     size_t num_dupes;
 
 private:

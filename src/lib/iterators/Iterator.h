@@ -13,7 +13,8 @@ typedef enum IteratorStatus {
 
 class Iterator {
 public:
-    Iterator() : status(Unopened) {};
+    Iterator() : status(Unopened),
+                 output_has_ovc(false), output_is_hashed(false), output_is_sorted(false), output_is_unique(false) {};
 
     virtual ~Iterator() {
         assert(status == Closed);
@@ -60,32 +61,32 @@ public:
      * Check if the output of this iterator is sorted.
      * @return true, if the output is sorted.
      */
-    virtual bool outputIsSorted() {
-        return false;
+    bool outputIsSorted() {
+        return output_is_sorted;
     }
 
     /**
      * Check if the output of this iterator has OVCs
      * @return true, if the output has OVCs
      */
-    virtual bool outputHasOVC() {
-        return false;
+     bool outputHasOVC() {
+        return output_has_ovc;
     }
 
     /**
      * Check if the output of this iterator is hashed.
      * @return true, if the output is hashed.
      */
-    virtual bool outputIsHashed() {
-        return false;
+     bool outputIsHashed() {
+        return output_is_hashed;
     }
 
     /**
      * Check if the output of this iterator is unique.
      * @return true, if the output is unique.
      */
-    virtual bool outputIsUnique() {
-        return false;
+     bool outputIsUnique() {
+        return output_is_unique;
     }
 
     /**
@@ -109,5 +110,8 @@ public:
 
 protected:
     IteratorStatus status = Unopened;
-    bool should_free = false;
+    bool output_is_sorted;
+    bool output_has_ovc;
+    bool output_is_hashed;
+    bool output_is_unique;
 };

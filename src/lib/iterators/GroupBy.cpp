@@ -7,6 +7,7 @@ GroupByBase<USE_OVC>::GroupByBase(Iterator *input, int group_columns) :
         group_columns(group_columns), empty(true) {
     assert(input->outputIsSorted());
     assert(!USE_OVC || input->outputHasOVC());
+    output_is_unique = true;
 }
 
 template<bool USE_OVC>

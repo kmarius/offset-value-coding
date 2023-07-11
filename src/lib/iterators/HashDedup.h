@@ -13,14 +13,6 @@ public :
 
     Row *next() override;
 
-    bool outputIsHashed() override {
-        return true;
-    };
-
-    bool outputIsUnique() override {
-        return true;
-    };
-
     unsigned duplicates;
 
 private:

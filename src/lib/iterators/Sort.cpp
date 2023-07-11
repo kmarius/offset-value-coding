@@ -19,6 +19,9 @@ SortBase<DISTINCT, USE_OVC>::SortBase(Iterator *input) : UnaryIterator(input),
                                                          buffer_manager(1024),
                                                          workspace(new Row[QUEUE_CAPACITY * (1 << RUN_IDX_BITS) - 3]),
                                                          workspace_size(0) {
+    output_has_ovc = USE_OVC;
+    output_is_sorted = true;
+    output_is_unique = DISTINCT;
 };
 
 template<bool DISTINCT, bool USE_OVC>
@@ -441,7 +444,7 @@ Row *SortBase<DISTINCT, USE_OVC>::next() {
                 row = nullptr;
                 break;
             }
-            }
+        }
         return row;
     } else {
         return queue.pop_external();

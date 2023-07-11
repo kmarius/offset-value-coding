@@ -14,10 +14,6 @@ public:
     // overwritten, because we own the rows returned by next and the base method calls free on the input
     void free() override {};
 
-    bool outputIsUnique() override {
-        return true;
-    }
-
 private:
     Row input_buf;   // holds the first row of the next group
     Row output_buf;  // holds the Row we return in next

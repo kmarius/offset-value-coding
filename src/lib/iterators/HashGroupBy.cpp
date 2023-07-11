@@ -4,6 +4,7 @@
 
 HashGroupBy::HashGroupBy(Iterator *input, int group_columns)
         : UnaryIterator(input), group_columns(group_columns), ind(0) {
+    output_is_unique = true;
     // global in Row.h
     row_equal_prefix = group_columns;
 }

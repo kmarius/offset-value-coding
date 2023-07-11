@@ -6,6 +6,8 @@ DedupBase<USE_OVC>::DedupBase(Iterator *const input)
         : UnaryIterator(input), num_dupes(0), has_prev(false), prev({0}) {
     assert(input->outputIsSorted());
     assert(!USE_OVC || input->outputHasOVC());
+    output_is_unique = true;
+    output_is_sorted = true;
 }
 
 template<bool USE_OVC>

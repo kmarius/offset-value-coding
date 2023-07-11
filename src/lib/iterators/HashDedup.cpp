@@ -3,6 +3,8 @@
 #include "lib/log.h"
 
 HashDedup::HashDedup(Iterator *input) : UnaryIterator(input), partition(nullptr), bufferManager(4), duplicates(0) {
+    output_is_unique = true;
+    output_is_hashed = true;
 }
 
 void HashDedup::open() {

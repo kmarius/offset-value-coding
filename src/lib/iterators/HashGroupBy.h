@@ -16,10 +16,6 @@ public:
 
     void close() override;
 
-    bool outputIsUnique() override {
-        return true;
-    }
-
 private:
     int group_columns;
     std::vector<std::string> partitions;

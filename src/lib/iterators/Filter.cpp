@@ -2,6 +2,9 @@
 
 Filter::Filter(Iterator *input, Predicate *predicate)
         : UnaryIterator(input), predicate_(predicate) {
+    output_is_sorted = input->outputIsSorted();
+    output_is_hashed = input->outputIsHashed();
+    output_is_unique = input->outputIsUnique();
 }
 
 Row *Filter::next() {
