@@ -4,10 +4,13 @@
 
 // Generator interface
 
-class IGenerator : public Iterator {
+namespace ovc::iterators {
 
-public:
-    virtual ~IGenerator() {};
+    class IGenerator : public Iterator {
 
-    virtual IGenerator *clone() const = 0;
-};
+    public:
+        virtual ~IGenerator() {};
+
+        virtual IGenerator *clone() const = 0;
+    };
+}

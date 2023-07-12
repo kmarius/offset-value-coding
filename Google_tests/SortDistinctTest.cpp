@@ -6,6 +6,9 @@
 
 #include <gtest/gtest.h>
 
+using namespace ovc;
+using namespace iterators;
+
 class SortDistinctTest : public ::testing::Test {
 protected:
 

@@ -1,18 +1,21 @@
 #include "Filter.h"
 
-Filter::Filter(Iterator *input, Predicate *predicate)
-        : UnaryIterator(input), predicate_(predicate) {
-    output_is_sorted = input->outputIsSorted();
-    output_is_hashed = input->outputIsHashed();
-    output_is_unique = input->outputIsUnique();
-}
+namespace ovc::iterators {
 
-Row *Filter::next() {
-    for (Row *row; (row = UnaryIterator::next());) {
-        if (predicate_(row)) {
-            return row;
-        };
-        UnaryIterator::free();
+    Filter::Filter(Iterator *input, Predicate *predicate)
+            : UnaryIterator(input), predicate_(predicate) {
+        output_is_sorted = input->outputIsSorted();
+        output_is_hashed = input->outputIsHashed();
+        output_is_unique = input->outputIsUnique();
     }
-    return nullptr;
+
+    Row *Filter::next() {
+        for (Row *row; (row = UnaryIterator::next());) {
+            if (predicate_(row)) {
+                return row;
+            };
+            UnaryIterator::free();
+        }
+        return nullptr;
+    }
 }

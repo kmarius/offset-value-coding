@@ -2,13 +2,16 @@
 
 #include <utility>
 
-VectorScan::VectorScan(std::vector<Row> rows) : rows(std::move(rows)), index(0) {
-}
+namespace ovc::iterators {
 
-Row *VectorScan::next() {
-    Iterator::next();
-    if (index >= rows.size()) {
-        return nullptr;
+    VectorScan::VectorScan(std::vector<Row> rows) : rows(std::move(rows)), index(0) {
     }
-    return &rows[index++];
+
+    Row *VectorScan::next() {
+        Iterator::next();
+        if (index >= rows.size()) {
+            return nullptr;
+        }
+        return &rows[index++];
+    }
 }

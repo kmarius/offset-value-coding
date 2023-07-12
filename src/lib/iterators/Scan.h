@@ -4,13 +4,17 @@
 #include "lib/io/BufferManager.h"
 #include "lib/io/ExternalRunR.h"
 
-class Scan : public Iterator {
-public :
-    explicit Scan(const std::string &path);
+namespace ovc::iterators {
+    using namespace ovc::io;
 
-    Row *next() override;
+    class Scan : public Iterator {
+    public :
+        explicit Scan(const std::string &path);
 
-private :
-    BufferManager buffer_manager;
-    ExternalRunR run;
-};
+        Row *next() override;
+
+    private :
+        BufferManager buffer_manager;
+        ExternalRunR run;
+    };
+}

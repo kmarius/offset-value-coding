@@ -5,21 +5,24 @@
 #include "lib/io/ExternalRunR.h"
 #include "UnaryIterator.h"
 
-class HashDedup : public UnaryIterator {
-public :
-    explicit HashDedup(Iterator *input);
+namespace ovc::iterators {
 
-    void open() override;
+    class HashDedup : public UnaryIterator {
+    public :
+        explicit HashDedup(Iterator *input);
 
-    Row *next() override;
+        void open() override;
 
-    unsigned duplicates;
+        Row *next() override;
 
-private:
-    std::vector<std::string> partitions;
-    ExternalRunR *partition;
-    BufferManager bufferManager;
-    std::unordered_set<Row> set;
+        unsigned duplicates;
 
-    Row *next_from_part();
-};
+    private:
+        std::vector<std::string> partitions;
+        ExternalRunR *partition;
+        BufferManager bufferManager;
+        std::unordered_set<Row> set;
+
+        Row *next_from_part();
+    };
+}

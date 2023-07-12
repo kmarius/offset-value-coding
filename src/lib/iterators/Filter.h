@@ -3,14 +3,17 @@
 #include "Iterator.h"
 #include "UnaryIterator.h"
 
-class Filter : public UnaryIterator {
-public :
-    typedef bool (Predicate)(const Row *row);
+namespace ovc::iterators {
 
-    Filter(Iterator *input, Predicate *predicate);
+    class Filter : public UnaryIterator {
+    public :
+        typedef bool (Predicate)(const Row *row);
 
-    Row *next() override;
+        Filter(Iterator *input, Predicate *predicate);
 
-private :
-    Predicate *const predicate_;
-};
+        Row *next() override;
+
+    private :
+        Predicate *const predicate_;
+    };
+}

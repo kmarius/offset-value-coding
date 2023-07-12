@@ -2,12 +2,15 @@
 
 #include "UnaryIterator.h"
 
-class OVCApplier : public UnaryIterator {
-public:
-    explicit OVCApplier(Iterator *input);
+namespace ovc::iterators {
 
-    Row *next() override;
+    class OVCApplier : public UnaryIterator {
+    public:
+        explicit OVCApplier(Iterator *input);
 
-private:
-    Row prev_;
-};
+        Row *next() override;
+
+    private:
+        Row prev_;
+    };
+}

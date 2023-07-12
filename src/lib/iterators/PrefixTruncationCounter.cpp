@@ -1,29 +1,32 @@
 #include "PrefixTruncationCounter.h"
 
-PrefixTruncationCounter::PrefixTruncationCounter(Iterator *input) : UnaryIterator(input),
-                                                                    count(0), prev({0}), has_prev(false) {
-    assert(input->outputIsSorted());
-}
+namespace ovc::iterators {
 
-Row *PrefixTruncationCounter::next() {
-    Row *row = UnaryIterator::next();
-    if (row == nullptr) {
-        return nullptr;
+    PrefixTruncationCounter::PrefixTruncationCounter(Iterator *input) : UnaryIterator(input),
+                                                                        count(0), prev({0}), has_prev(false) {
+        assert(input->outputIsSorted());
     }
-    if (has_prev) {
-        for (int i = 0; i < ROW_ARITY; i++) {
-            count++;
-            if (row->columns[i] != prev.columns[i]) {
-                break;
-            }
+
+    Row *PrefixTruncationCounter::next() {
+        Row *row = UnaryIterator::next();
+        if (row == nullptr) {
+            return nullptr;
         }
-    } else {
-        has_prev = true;
+        if (has_prev) {
+            for (int i = 0; i < ROW_ARITY; i++) {
+                count++;
+                if (row->columns[i] != prev.columns[i]) {
+                    break;
+                }
+            }
+        } else {
+            has_prev = true;
+        }
+        prev = *row;
+        return row;
     }
-    prev = *row;
-    return row;
-}
 
-unsigned long PrefixTruncationCounter::getColumnComparisons() const {
-    return count;
+    unsigned long PrefixTruncationCounter::getColumnComparisons() const {
+        return count;
+    }
 }

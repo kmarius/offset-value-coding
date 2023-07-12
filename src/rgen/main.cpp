@@ -7,7 +7,7 @@
 // TODO: once we support different schemas, allow specification via arguments
 
 int main(int argc, char *argv[]) {
-    log_set_quiet(true);
+    ovc::log_set_quiet(true);
     if (argc < 3) {
         fprintf(stderr, "usage: %s <path_sync> <n>\n", argv[0]);
         return 1;
@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    Generator gen(num_rows, 1000);
+    ovc::iterators::Generator gen(num_rows, 1000);
     gen.write(path);
 
     return 0;

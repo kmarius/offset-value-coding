@@ -8,38 +8,40 @@
 #include "BufferManager.h"
 #include "lib/Row.h"
 
-class ExternalRunRS {
+namespace ovc::io {
+    class ExternalRunRS {
 
-    std::string path_;
-    int fd;
-    uint8_t buffer[BUFFER_SIZE];
-    size_t rows;
-    size_t cur;
+        std::string path_;
+        int fd;
+        uint8_t buffer[BUFFER_SIZE];
+        size_t rows;
+        size_t cur;
 
-public:
-    explicit ExternalRunRS(const std::string &path);
+    public:
+        explicit ExternalRunRS(const std::string &path);
 
-    ~ExternalRunRS();
+        ~ExternalRunRS();
 
-    /**
-     * Get the path_sync to the run on disk.
-     * @return The path_sync to the run.
-     */
-    const std::string &path() const;
+        /**
+         * Get the path_sync to the run on disk.
+         * @return The path_sync to the run.
+         */
+        const std::string &path() const;
 
-    /**
-     * Read the next row from the run. Only isValid until the second-next call of next()
-     * @return A pointer to the row, or nullptr if the run is isEmpty.
-     */
-    Row *read();
+        /**
+         * Read the next row from the run. Only isValid until the second-next call of next()
+         * @return A pointer to the row, or nullptr if the run is isEmpty.
+         */
+        Row *read();
 
-    /**
-    * Flush all buffers and close the file. This function is automatically called on destruction.
-    */
-    void finalize();
+        /**
+        * Flush all buffers and close the file. This function is automatically called on destruction.
+        */
+        void finalize();
 
-    /**
-     * Finalizes the run and removes the file.
-     */
-    void remove();
-};
+        /**
+         * Finalizes the run and removes the file.
+         */
+        void remove();
+    };
+}

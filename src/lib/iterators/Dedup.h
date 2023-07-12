@@ -1,19 +1,23 @@
 #pragma once
 
 #include "UnaryIterator.h"
-template<bool USE_OVC>
-class DedupBase : public UnaryIterator {
-public:
-    explicit DedupBase(Iterator *input);
 
-    Row *next() override;
+namespace ovc::iterators {
 
-    size_t num_dupes;
+    template<bool USE_OVC>
+    class DedupBase : public UnaryIterator {
+    public:
+        explicit DedupBase(Iterator *input);
 
-private:
-    Row prev;
-    bool has_prev;
-};
+        Row *next() override;
 
-typedef DedupBase<true> Dedup;
-typedef DedupBase<true> DedupNoOvc;
+        size_t num_dupes;
+
+    private:
+        Row prev;
+        bool has_prev;
+    };
+
+    typedef DedupBase<true> Dedup;
+    typedef DedupBase<true> DedupNoOvc;
+}

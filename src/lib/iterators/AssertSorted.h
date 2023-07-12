@@ -2,21 +2,24 @@
 
 #include "UnaryIterator.h"
 
+namespace ovc::iterators {
+
 /**
  * Checks if the input_ is ascending and therefore sorted.
  */
-class AssertSorted : public UnaryIterator {
-public:
-    explicit AssertSorted(Iterator *iterator);
+    class AssertSorted : public UnaryIterator {
+    public:
+        explicit AssertSorted(Iterator *iterator);
 
-    bool isSorted() const;
+        bool isSorted() const;
 
-    size_t count() const;
+        size_t count() const;
 
-    Row *next() override;
+        Row *next() override;
 
-private:
-    Row prev;
-    bool is_sorted;
-    size_t num_rows;
-};
+    private:
+        Row prev;
+        bool is_sorted;
+        size_t num_rows;
+    };
+}

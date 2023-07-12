@@ -1,61 +1,64 @@
 #include "AssertEqual.h"
 #include "lib/log.h"
 
-AssertEqual::AssertEqual(Iterator *left, Iterator *right) : left_(left), right_(right), equal(true), count(0) {
-}
+namespace ovc::iterators {
 
-AssertEqual::~AssertEqual() {
-    delete left_;
-    delete right_;
-}
-
-void AssertEqual::open() {
-    Iterator::open();
-    left_->open();
-    right_->open();
-}
-
-Row *AssertEqual::next() {
-    Iterator::next();
-    Row *left = left_->next();
-    Row *right = right_->next();
-    if (left == nullptr && right == nullptr) {
-        return nullptr;
+    AssertEqual::AssertEqual(Iterator *left, Iterator *right) : left_(left), right_(right), equal(true), count(0) {
     }
-    if (left == nullptr) {
-        equal = false;
-        log_error("AssertEqual: right input is longer");
-        log_error("right: %s", right->c_str());
-        right_->free();
-        return nullptr;
+
+    AssertEqual::~AssertEqual() {
+        delete left_;
+        delete right_;
     }
-    if (right == nullptr) {
-        equal = false;
-        log_error("AssertEqual: left input is longer");
-        log_error("left: %s", left->c_str());
+
+    void AssertEqual::open() {
+        Iterator::open();
+        left_->open();
+        right_->open();
+    }
+
+    Row *AssertEqual::next() {
+        Iterator::next();
+        Row *left = left_->next();
+        Row *right = right_->next();
+        if (left == nullptr && right == nullptr) {
+            return nullptr;
+        }
+        if (left == nullptr) {
+            equal = false;
+            log_error("AssertEqual: right input is longer");
+            log_error("right: %s", right->c_str());
+            right_->free();
+            return nullptr;
+        }
+        if (right == nullptr) {
+            equal = false;
+            log_error("AssertEqual: left input is longer");
+            log_error("left: %s", left->c_str());
+            left_->free();
+            return nullptr;
+        }
+        if (!left->equals(*right)) {
+            equal = false;
+            log_error("AssertEqual at row %lu:", count);
+            log_error("left: %s", left->c_str());
+            log_error("right: %s", right->c_str());
+            return nullptr;
+        }
+
+        count++;
+        return left;
+    }
+
+    void AssertEqual::free() {
+        Iterator::free();
         left_->free();
-        return nullptr;
-    }
-    if (!left->equals(*right)) {
-        equal = false;
-        log_error("AssertEqual at row %lu:", count);
-        log_error("left: %s", left->c_str());
-        log_error("right: %s", right->c_str());
-        return nullptr;
+        right_->free();
     }
 
-    count++;
-    return left;
-}
-
-void AssertEqual::free() {
-    Iterator::free();
-    left_->free();
-    right_->free();
-}
-
-void AssertEqual::close() {
-    Iterator::close();
-    left_->close();
-    right_->close();
+    void AssertEqual::close() {
+        Iterator::close();
+        left_->close();
+        right_->close();
+    }
 }

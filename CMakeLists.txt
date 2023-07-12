@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.26)
 project(ovc)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 # The following are needed for profiling
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
@@ -47,7 +47,6 @@ add_library(libovc
         src/lib/PriorityQueue.h
         src/lib/Row.cpp
         src/lib/Row.h
-        src/lib/Run.cpp
         src/lib/Run.h
         src/lib/utils.h
         src/lib/iterators/VectorScan.cpp

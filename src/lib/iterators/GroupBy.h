@@ -2,24 +2,27 @@
 
 #include "UnaryIterator.h"
 
-template<bool USE_OVC>
-class GroupByBase : public UnaryIterator {
-public:
-    explicit GroupByBase(Iterator *input, int group_columns);
+namespace ovc::iterators {
 
-    void open() override;
+    template<bool USE_OVC>
+    class GroupByBase : public UnaryIterator {
+    public:
+        explicit GroupByBase(Iterator *input, int group_columns);
 
-    Row *next() override;
+        void open() override;
 
-    // overwritten, because we own the rows returned by next and the base method calls free on the input
-    void free() override {};
+        Row *next() override;
 
-private:
-    Row input_buf;   // holds the first row of the next group
-    Row output_buf;  // holds the Row we return in next
-    bool empty;
-    int group_columns;
-};
+        // overwritten, because we own the rows returned by next and the base method calls free on the input
+        void free() override {};
 
-typedef GroupByBase<true> GroupBy;
-typedef GroupByBase<true> GroupByNoOVC;
+    private:
+        Row input_buf;   // holds the first row of the next group
+        Row output_buf;  // holds the Row we return in next
+        bool empty;
+        int group_columns;
+    };
+
+    typedef GroupByBase<true> GroupBy;
+    typedef GroupByBase<true> GroupByNoOVC;
+}

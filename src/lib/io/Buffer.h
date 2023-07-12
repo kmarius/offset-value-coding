@@ -9,6 +9,10 @@
 #define BUFFER_SIZE 4096
 #define BUFFER_ALIGNMENT 512
 
-struct alignas(BUFFER_ALIGNMENT) Buffer {
-    uint8_t data[BUFFER_SIZE];
-};
+namespace ovc::io {
+
+    struct alignas(BUFFER_ALIGNMENT) Buffer {
+        uint8_t data[BUFFER_SIZE];
+    };
+
+}

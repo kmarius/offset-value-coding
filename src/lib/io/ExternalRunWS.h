@@ -5,38 +5,42 @@
 #include "lib/Row.h"
 #include "Buffer.h"
 
-class ExternalRunWS {
-private:
-    uint8_t buffer[BUFFER_SIZE];
+namespace ovc::io {
 
-    std::string path_;
-    int fd;
+    class ExternalRunWS {
+    private:
+        uint8_t buffer[BUFFER_SIZE];
 
-    size_t offset;
+        std::string path_;
+        int fd;
 
-    // Number of rows in the current buffer
-    size_t rows;
+        size_t offset;
 
-    void flush();
-public:
-    explicit ExternalRunWS(const std::string &path);
+        // Number of rows in the current buffer
+        size_t rows;
 
-    ~ExternalRunWS();
+        void flush();
 
-    /**
-     * Write a row to this run.
-     * @param row
-     */
-    void add(Row &row);
+    public:
+        explicit ExternalRunWS(const std::string &path);
 
-    /**
-     * Get the path_sync of the file.
-     * @return The path_sync of the file.
-     */
-    const std::string &path() const;
+        ~ExternalRunWS();
 
-    /**
-     * Flush all buffer and close the file. This function is automatically called on destruction.
-     */
-    void finalize();
-};
+        /**
+         * Write a row to this run.
+         * @param row
+         */
+        void add(Row &row);
+
+        /**
+         * Get the path_sync of the file.
+         * @return The path_sync of the file.
+         */
+        const std::string &path() const;
+
+        /**
+         * Flush all buffer and close the file. This function is automatically called on destruction.
+         */
+        void finalize();
+    };
+}

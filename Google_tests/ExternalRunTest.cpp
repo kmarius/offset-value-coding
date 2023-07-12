@@ -7,6 +7,9 @@
 
 #include <gtest/gtest.h>
 
+using namespace ovc;
+using namespace io;
+
 class ExternalRunTest : public ::testing::Test {
 protected:
     std::string path_sync = "/tmp/ExternalRunTest-sync.dat";

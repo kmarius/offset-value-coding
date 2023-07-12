@@ -15,6 +15,10 @@
 #include "lib/iterators/GeneratorZeroSuffix.h"
 
 #include <vector>
+#include <iostream>
+
+using namespace ovc;
+using namespace ovc::iterators;
 
 bool pred(const Row *row) {
     return row->columns[0] & 1;
@@ -32,7 +36,7 @@ void example_simple_tree() {
 void example_dedup() {
     size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3);
 
-    log_info("num_rows=%lu", num_rows);
+    ovc::log_info("num_rows=%lu", num_rows);
 
     auto dedup = new Dedup(
             new Sort(
@@ -41,13 +45,13 @@ void example_dedup() {
     Iterator *plan = new AssertSortedUnique(dedup);
     plan->run();
 
-    log_info("num_dupex: %d", dedup->num_dupes);
+    ovc::log_info("num_dupex: %d", dedup->num_dupes);
 
     delete plan;
 
-    log_info("nlogn:                   %lu", (size_t) (num_rows * log((double) num_rows)));
-    log_info("comparisons:             %lu", stats.comparisons);
-    log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
+    ovc::log_info("nlogn:                   %lu", (size_t) (num_rows * ::log((double) num_rows)));
+    ovc::log_info("comparisons:             %lu", stats.comparisons);
+    ovc::log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
 }
 
 void example_comparison() {
@@ -67,19 +71,19 @@ void example_comparison() {
     plan_sort->run();
     auto duration_sort = since(start_sort);
 
-    log_info("hashing:");
-    log_info("hashes calculated:       %lu", num_rows);
-    log_info("hash_comparisons:        %lu", hs_stats.hash_comparisons);
-    log_info("row_comparisons:         %lu", hs_stats.row_comparisons);
-    log_info("column_comparisons:      %lu", row_equality_column_comparisons);
-    log_info("duration:                %lums", duration);
+    ovc::log_info("hashing:");
+    ovc::log_info("hashes calculated:       %lu", num_rows);
+    ovc::log_info("hash_comparisons:        %lu", hs_stats.hash_comparisons);
+    ovc::log_info("row_comparisons:         %lu", hs_stats.row_comparisons);
+    ovc::log_info("column_comparisons:      %lu", row_equality_column_comparisons);
+    ovc::log_info("duration:                %lums", duration);
 
-    log_info("sorting:");
-    log_info("nlogn:                   %lu", num_rows * (size_t) log((double) num_rows));
-    log_info("comparisons:             %lu", stats.comparisons);
-    log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
-    log_info("column_comparisons:      %lu", plan_sort->getInput<Sort>()->getColumnComparisons());
-    log_info("duration:                %lums", duration_sort);
+    ovc::log_info("sorting:");
+    ovc::log_info("nlogn:                   %lu", num_rows * (size_t) ::log((double) num_rows));
+    ovc::log_info("comparisons:             %lu", stats.comparisons);
+    ovc::log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
+    ovc::log_info("column_comparisons:      %lu", plan_sort->getInput<Sort>()->getColumnComparisons());
+    ovc::log_info("duration:                %lums", duration_sort);
 
     delete plan_hash;
     delete plan_sort;
@@ -91,7 +95,7 @@ void example_sort() {
     //size_t num_rows = ((1 << RUN_IDX_BITS )- 3) * ((1 << RUN_IDX_BITS) - 3) * QUEUE_CAPACITY;
     size_t num_rows = 2 * ((1 << RUN_IDX_BITS) - 3) * QUEUE_CAPACITY;
 
-    log_info("num_rows=%lu", num_rows);
+    ovc::log_info("num_rows=%lu", num_rows);
 
     auto plan = new AssertSorted(
             new Sort(
@@ -100,10 +104,10 @@ void example_sort() {
 
     plan->run();
 
-    log_info("%d", plan->count());
-    log_info("nlogn:                   %lu", (size_t) (num_rows * log((double) num_rows)));
-    log_info("comparisons:             %lu", stats.comparisons);
-    log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
+    ovc::log_info("%d", plan->count());
+    ovc::log_info("nlogn:                   %lu", (size_t) (num_rows * ::log((double) num_rows)));
+    ovc::log_info("comparisons:             %lu", stats.comparisons);
+    ovc::log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
     delete plan;
 }
 
@@ -118,12 +122,12 @@ void example_hashing() {
     plan->run();
     auto duration = since(start);
 
-    log_info("hashing:");
-    log_info("hashes calculated:       %lu", num_rows);
-    log_info("duration:                %lums", duration);
-    log_info("row_comparisons:         %lu", row_num_calls_to_equal);
-    log_info("column_comparisons:      %lu", row_equality_column_comparisons);
-    log_info("calls_to_hash:           %lu", row_num_calls_to_hash);
+    ovc::log_info("hashing:");
+    ovc::log_info("hashes calculated:       %lu", num_rows);
+    ovc::log_info("duration:                %lums", duration);
+    ovc::log_info("row_comparisons:         %lu", row_num_calls_to_equal);
+    ovc::log_info("column_comparisons:      %lu", row_equality_column_comparisons);
+    ovc::log_info("calls_to_hash:           %lu", row_num_calls_to_hash);
 
     delete plan;
 }
@@ -134,13 +138,13 @@ void example_truncation() {
     auto plan = new PrefixTruncationCounter(sort);
     plan->run();
 
-    log_info("nlogn:                   %lu", (size_t) (num_rows * log((double) num_rows)));
-    log_info("comparisons:             %lu", stats.comparisons);
-    log_info("full_comparisons_eq_key: %lu", stats.comparisons_equal_key);
-    log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
+    ovc::log_info("nlogn:                   %lu", (size_t) (num_rows * ::log((double) num_rows)));
+    ovc::log_info("comparisons:             %lu", stats.comparisons);
+    ovc::log_info("full_comparisons_eq_key: %lu", stats.comparisons_equal_key);
+    ovc::log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
 
-    log_info("column comparisons in sort:               %lu", sort->getColumnComparisons());
-    log_info("column comparisons for prefix truncation: %lu", plan->getColumnComparisons());
+    ovc::log_info("column comparisons in sort:               %lu", sort->getColumnComparisons());
+    ovc::log_info("column comparisons for prefix truncation: %lu", plan->getColumnComparisons());
 
     delete plan;
 }
@@ -240,7 +244,7 @@ void example_group_by() {
 int main(int argc, char *argv[]) {
     log_open(LOG_TRACE);
     log_set_quiet(false);
-    log_set_level(LOG_INFO);
+    log_set_level(ovc::LOG_INFO);
     log_info("start", "");
 
     auto start = now();
@@ -255,7 +259,7 @@ int main(int argc, char *argv[]) {
     //example_count_column_comparisons();
 
     //comparison_sort();
-    example_group_by();
+    //example_group_by();
 
     log_info("elapsed=%lums", since(start));
 

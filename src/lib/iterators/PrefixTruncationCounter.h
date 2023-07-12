@@ -2,16 +2,19 @@
 
 #include "UnaryIterator.h"
 
-class PrefixTruncationCounter : public UnaryIterator {
-public:
-    explicit PrefixTruncationCounter(Iterator *input);
+namespace ovc::iterators {
 
-    Row *next() override;
+    class PrefixTruncationCounter : public UnaryIterator {
+    public:
+        explicit PrefixTruncationCounter(Iterator *input);
 
-    unsigned long getColumnComparisons() const;
+        Row *next() override;
 
-private:
-    unsigned long count;
-    Row prev;
-    bool has_prev;
-};
+        unsigned long getColumnComparisons() const;
+
+    private:
+        unsigned long count;
+        Row prev;
+        bool has_prev;
+    };
+}

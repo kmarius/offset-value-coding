@@ -5,6 +5,9 @@
 #include "lib/iterators/VectorScan.h"
 #include "lib/iterators/AssertEqual.h"
 
+using namespace ovc;
+using namespace iterators;
+
 class FilterTest : public ::testing::Test {
 protected:
 

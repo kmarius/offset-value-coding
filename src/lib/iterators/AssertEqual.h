@@ -2,23 +2,26 @@
 
 #include "Iterator.h"
 
-class AssertEqual : public Iterator {
-public:
-    AssertEqual(Iterator *left, Iterator *right);
+namespace ovc::iterators {
 
-    ~AssertEqual() override;
+    class AssertEqual : public Iterator {
+    public:
+        AssertEqual(Iterator *left, Iterator *right);
 
-    void open() override;
+        ~AssertEqual() override;
 
-    Row *next() override;
+        void open() override;
 
-    void free() override;
+        Row *next() override;
 
-    void close() override;
+        void free() override;
 
-    bool equal;
-private:
-    Iterator *left_;
-    Iterator *right_;
-    unsigned long count;
-};
+        void close() override;
+
+        bool equal;
+    private:
+        Iterator *left_;
+        Iterator *right_;
+        unsigned long count;
+    };
+}

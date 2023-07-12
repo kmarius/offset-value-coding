@@ -8,6 +8,9 @@
 
 #include <gtest/gtest.h>
 
+using namespace ovc;
+using namespace iterators;
+
 class HashDedupTest : public ::testing::Test {
 protected:
 

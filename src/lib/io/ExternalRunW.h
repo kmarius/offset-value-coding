@@ -11,66 +11,69 @@
 #include <liburing.h>
 #include <stdexcept>
 
-class ExternalRunW {
-private:
-    BufferManager *buffer_manager;
-    Buffer *buffers[2];
+namespace ovc::io {
 
-    std::string path_;
-    int fd;
+    class ExternalRunW {
+    private:
+        BufferManager *buffer_manager;
+        Buffer *buffers[2];
 
-    size_t sizes[2];
-    bool ready[2];
+        std::string path_;
+        int fd;
 
-    io_uring ring;
+        size_t sizes[2];
+        bool ready[2];
 
-    // the buffer currently being written to
-    int current;
+        io_uring ring;
 
-    // Number of rows in the current buffer
-    size_t rows;
+        // the buffer currently being written to
+        int current;
 
-    // Total number of rows written
-    size_t rows_total;
+        // Number of rows in the current buffer
+        size_t rows;
 
-    // add offset in the file
-    size_t offset;
+        // Total number of rows written
+        size_t rows_total;
 
-    void flush(int index);
+        // add offset in the file
+        size_t offset;
 
-    void submit_write(int index);
+        void flush(int index);
 
-    void wait_for_write_completion(int index);
+        void submit_write(int index);
 
-    void write_to_buffer(void *data, size_t size);
+        void wait_for_write_completion(int index);
 
-public:
-    explicit ExternalRunW(const std::string &path, BufferManager &buffer_manager);
+        void write_to_buffer(void *data, size_t size);
 
-    explicit ExternalRunW();
+    public:
+        explicit ExternalRunW(const std::string &path, BufferManager &buffer_manager);
 
-    ~ExternalRunW();
+        explicit ExternalRunW();
 
-    /**
-     * Add a row to this run.
-     * @param row
-     */
-    void add(Row &row);
+        ~ExternalRunW();
 
-    /**
-     * Get the number of rows that have already been written to this run.
-     * @return The number of rows.
-     */
-    size_t size() const;
+        /**
+         * Add a row to this run.
+         * @param row
+         */
+        void add(Row &row);
 
-    /**
-     * Get the path_sync of the file.
-     * @return The path_sync of the file.
-     */
-    const std::string &path() const;
+        /**
+         * Get the number of rows that have already been written to this run.
+         * @return The number of rows.
+         */
+        size_t size() const;
 
-    /**
-     * Flush all buffer and close the file. This function is automatically called on destruction.
-     */
-    void finalize();
-};
+        /**
+         * Get the path_sync of the file.
+         * @return The path_sync of the file.
+         */
+        const std::string &path() const;
+
+        /**
+         * Flush all buffer and close the file. This function is automatically called on destruction.
+         */
+        void finalize();
+    };
+}

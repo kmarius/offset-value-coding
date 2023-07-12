@@ -4,12 +4,12 @@
 #include <cstdio>
 
 int main(int argc, char **argv) {
-    log_set_quiet(true);
+    ovc::log_set_quiet(true);
     int fail = 0;
     for (int i = 1; i < argc; i++) {
-        ExternalRunRS run(argv[i]);
+        ovc::io::ExternalRunRS run(argv[i]);
 
-        Row *row, prev;
+        ovc::Row *row, prev;
         if ((row = run.read()) == nullptr) {
             continue;
         }

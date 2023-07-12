@@ -4,24 +4,27 @@
 #include "UnaryIterator.h"
 #include "lib/io/ExternalRunR.h"
 
-class HashGroupBy : public UnaryIterator {
-public:
-    HashGroupBy(Iterator *input, int group_columns);
+namespace ovc::iterators {
 
-    void open() override;
+    class HashGroupBy : public UnaryIterator {
+    public:
+        HashGroupBy(Iterator *input, int group_columns);
 
-    Row *next() override;
+        void open() override;
 
-    void free() override {};
+        Row *next() override;
 
-    void close() override;
+        void free() override {};
 
-private:
-    int group_columns;
-    std::vector<std::string> partitions;
-    BufferManager bufferManager;
-    std::vector<Row> rows;
-    unsigned long ind;
+        void close() override;
 
-    std::vector<Row> process_partition(const std::string &path);
-};
+    private:
+        int group_columns;
+        std::vector<std::string> partitions;
+        io::BufferManager bufferManager;
+        std::vector<Row> rows;
+        unsigned long ind;
+
+        std::vector<Row> process_partition(const std::string &path);
+    };
+}

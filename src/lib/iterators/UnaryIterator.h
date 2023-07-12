@@ -2,40 +2,43 @@
 
 #include "Iterator.h"
 
-class UnaryIterator : public Iterator {
-public:
+namespace ovc::iterators {
 
-    explicit UnaryIterator(Iterator *input) : input_(input) {}
+    class UnaryIterator : public Iterator {
+    public:
 
-    ~UnaryIterator() override {
-        delete input_;
-    }
+        explicit UnaryIterator(Iterator *input) : input_(input) {}
 
-    void open() override {
-        Iterator::open();
-        input_->open();
-    }
+        ~UnaryIterator() override {
+            delete input_;
+        }
 
-    void close() override {
-        Iterator::close();
-        input_->close();
-    }
+        void open() override {
+            Iterator::open();
+            input_->open();
+        }
 
-    Row *next() override {
-        Iterator::next();
-        return input_->next();
-    }
+        void close() override {
+            Iterator::close();
+            input_->close();
+        }
 
-    void free() override {
-        Iterator::free();
-        input_->free();
-    }
+        Row *next() override {
+            Iterator::next();
+            return input_->next();
+        }
 
-    template<class T>
-    T *getInput() {
-        return reinterpret_cast<T*>(input_);
-    }
+        void free() override {
+            Iterator::free();
+            input_->free();
+        }
 
-protected:
-    Iterator *input_;
-};
+        template<class T>
+        T *getInput() {
+            return reinterpret_cast<T *>(input_);
+        }
+
+    protected:
+        Iterator *input_;
+    };
+}

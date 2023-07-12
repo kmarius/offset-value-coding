@@ -2,22 +2,25 @@
 
 #include "UnaryIterator.h"
 
+namespace ovc::iterators {
+
 /**
  * Checks if the input_ is strictly ascending and therefore sorted and uniqe.
  */
-class AssertSortedUnique : public UnaryIterator {
-public:
-    explicit AssertSortedUnique(Iterator *input);
+    class AssertSortedUnique : public UnaryIterator {
+    public:
+        explicit AssertSortedUnique(Iterator *input);
 
-    bool isSortedAndUnique() const;
+        bool isSortedAndUnique() const;
 
-    size_t count() const;
+        size_t count() const;
 
-    Row *next() override;
+        Row *next() override;
 
-private:
-    Row prev;
-    bool has_prev;
-    bool is_sorted;
-    size_t num_rows;
-};
+    private:
+        Row prev;
+        bool has_prev;
+        bool is_sorted;
+        size_t num_rows;
+    };
+}
