@@ -14,6 +14,8 @@
 #include <time.h>
 #include <fstream>
 
+#include "defs.h"
+
 #define LOG_VERSION "0.1.0"
 
 #define log_trace(...) log_log(LOG_TRACE, __FILE__, __LINE__, __VA_ARGS__)

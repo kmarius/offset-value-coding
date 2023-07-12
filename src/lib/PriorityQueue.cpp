@@ -142,7 +142,7 @@ namespace ovc {
         inline bool less(Node &node, WorkspaceItem *ws, struct ovc_stats *ovc_stats = nullptr) {
             stats.comparisons++;
 
-            if (!USE_OVC) {
+            if constexpr (!USE_OVC) {
                 stats.comparisons_equal_key++;
                 if (!isValid() || !node.isValid() || run_index() != node.run_index()) {
                     return key < node.key;
@@ -237,12 +237,6 @@ namespace ovc {
                 heap[offset + i].index = l + i * step;
                 heap[offset + i].key = LOW_SENTINEL(0);
             }
-        }
-    }
-
-    static inline void setMax(Key &x, Key const y) {
-        if (x < y) {
-            x = y;
         }
     }
 

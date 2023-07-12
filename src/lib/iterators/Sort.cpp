@@ -138,7 +138,12 @@ namespace ovc::iterators {
 
             rows_processed++;
             Row *row1 = queue.pop_push(row, insert_run_index);
-            if (!DISTINCT || row1->key != 0) {
+            if constexpr (DISTINCT) {
+                // TODO: what if we don't use OVCs
+                if (row1->key != 0) {
+                    run.add(row1);
+                }
+            } else {
                 run.add(row1);
             }
 
@@ -172,10 +177,15 @@ namespace ovc::iterators {
             // The queue is not even full once. Pop everything, we then have a single in-memory run.
             while (!queue.isEmpty()) {
                 Row *row1 = queue.pop_safe(MERGE_RUN_IDX);
-                if (!DISTINCT || row1->key != 0) {
+                if constexpr (DISTINCT) {
+                    if (row1->key != 0) {
+                        run.add(row1);
+                    }
+                } else {
                     run.add(row1);
                 }
             }
+
         } else {
             // We filled the queue at least once. We must pop (QUEUE_CAPACITY - inserted) to fill the current run,
             // and then (inserted) to fill the remaining run
@@ -184,12 +194,20 @@ namespace ovc::iterators {
             for (; i < QUEUE_CAPACITY - inserted; i++) {
                 if (j < memory_runs.size()) {
                     Row *row1 = queue.pop_push_memory(&memory_runs[j++]);
-                    if (!DISTINCT || row1->key != 0) {
+                    if constexpr (DISTINCT) {
+                        if (row1->key != 0) {
+                            run.add(row1);
+                        }
+                    } else {
                         run.add(row1);
                     }
                 } else {
                     Row *row1 = queue.pop_safe(MERGE_RUN_IDX);
-                    if (!DISTINCT || row1->key != 0) {
+                    if constexpr (DISTINCT) {
+                        if (row1->key != 0) {
+                            run.add(row1);
+                        }
+                    } else {
                         run.add(row1);
                     }
                 }
@@ -206,7 +224,11 @@ namespace ovc::iterators {
 
             if (queue.size() == queue.capacity()) {
                 Row *row1 = queue.pop(MERGE_RUN_IDX);
-                if (!DISTINCT || row1->key != 0) {
+                if constexpr (DISTINCT) {
+                    if (row1->key != 0) {
+                        run.add(row1);
+                    }
+                } else {
                     run.add(row1);
                 }
                 i++;
@@ -217,13 +239,21 @@ namespace ovc::iterators {
                 if (j < memory_runs.size()) {
                     queue.push_memory(memory_runs[j++]);
                     Row *row1 = queue.pop_safe(MERGE_RUN_IDX);
-                    if (!DISTINCT || row1->key != 0) {
+                    if constexpr (DISTINCT) {
+                        if (row1->key != 0) {
+                            run.add(row1);
+                        }
+                    } else {
                         run.add(row1);
                     }
                 } else {
                     assert(queue.isCorrect());
                     Row *row1 = queue.pop_safe(MERGE_RUN_IDX);
-                    if (!DISTINCT || row1->key != 0) {
+                    if constexpr (DISTINCT) {
+                        if (row1->key != 0) {
+                            run.add(row1);
+                        }
+                    } else {
                         run.add(row1);
                     }
                 }
@@ -291,7 +321,11 @@ namespace ovc::iterators {
             }
 #endif
             Row *row = queue.pop_memory();
-            if (!DISTINCT || row->key != 0) {
+            if constexpr (DISTINCT) {
+                if (row->key != 0) {
+                    run.add(*row);
+                }
+            } else {
                 run.add(*row);
             }
             assert(queue.isCorrect());
@@ -357,7 +391,11 @@ namespace ovc::iterators {
             }
 #endif
             Row *row = queue.pop_external();
-            if (!DISTINCT || row->key != 0) {
+            if constexpr (DISTINCT) {
+                if (row->key != 0) {
+                    run.add(*row);
+                }
+            } else {
                 run.add(*row);
             }
         }
@@ -414,7 +452,7 @@ namespace ovc::iterators {
 
 #ifndef NDEBUG
         Row *row;
-        if (DISTINCT) {
+        if constexpr (DISTINCT) {
             while ((row = queue.pop_external()) && row->key == 0) {
                 if (queue.isEmpty()) {
                     row = nullptr;
@@ -440,7 +478,7 @@ namespace ovc::iterators {
         prev = *row;
         return row;
 #else
-        if (DISTINCT) {
+        if constexpr (DISTINCT) {
             Row *row;
             while ((row = queue.pop_external()) && row->key == 0) {
                 if (queue.isEmpty()) {

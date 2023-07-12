@@ -15,7 +15,7 @@ namespace ovc::iterators {
     template<bool USE_OVC>
     Row *DedupBase<USE_OVC>::next() {
         for (Row *row; (row = UnaryIterator::next()); UnaryIterator::free()) {
-            if (USE_OVC) {
+            if constexpr (USE_OVC) {
                 // TODO: we can repair OVCs here
                 if (row->key != 0) {
                     return row;

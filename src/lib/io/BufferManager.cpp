@@ -1,5 +1,6 @@
 #include "BufferManager.h"
 #include "lib/log.h"
+#include "lib/utils.h"
 
 #include <cstring>
 #include <memory>

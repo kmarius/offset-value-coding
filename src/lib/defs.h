@@ -26,7 +26,7 @@
 #define PRIORITYQUEUE_CAPACITY (1 << 10)
 
 #define LOGPATH "/tmp/ovc.log"
-//#define NO_LOGGING
+#define NO_LOGGING
 
 #define likely(x) __builtin_expect(x, 1)
 #define unlikely(x) __builtin_expect(x, 0)
