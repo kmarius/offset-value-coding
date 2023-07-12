@@ -179,8 +179,11 @@ namespace ovc {
         assert(PRIORITYQUEUE_CAPACITY >= (1 << RUN_IDX_BITS) - 3);
         workspace = new WorkspaceItem[capacity];
         heap = new Node[capacity];
+        for (int i = 0; i < capacity_; i++) {
+            heap[i].index = i;
+            heap[i].key = LOW_SENTINEL(0);
+        }
         log_info("PriorityQueue capacity=%lu", capacity);
-        reset();
     }
 
     template<bool USE_OVC>
@@ -228,15 +231,8 @@ namespace ovc {
     template<bool USE_OVC>
     void PriorityQueue<USE_OVC>::reset() {
         assert(isEmpty());
-        heap[0].index = 0;
-        heap[0].key = LOW_SENTINEL(0);
-        for (int l = 1; l < capacity_; l <<= 1) {
-            size_t step = l << 1;
-            size_t offset = capacity_ / step;
-            for (int i = 0; i < capacity_ / step; i++) {
-                heap[offset + i].index = l + i * step;
-                heap[offset + i].key = LOW_SENTINEL(0);
-            }
+        for (int i = 0; i < capacity(); i++) {
+            heap[i].key = LOW_SENTINEL(0);
         }
     }
 
