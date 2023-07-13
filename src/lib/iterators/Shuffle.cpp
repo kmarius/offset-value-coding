@@ -4,7 +4,7 @@
 #include <algorithm>
 
 #define SHUFFLE_RUN_SIZE (PRIORITYQUEUE_CAPACITY * ((1 << RUN_IDX_BITS) - 3))
-#define SHUFFLE_BUFFER_PAGES (1 << RUN_IDX_BITS)
+#define SHUFFLE_BUFFER_PAGES (1 << (RUN_IDX_BITS + 1))
 
 namespace ovc::iterators {
 
