@@ -24,8 +24,8 @@ namespace ovc::iterators {
 
         void close() override;
 
-        unsigned long getColumnComparisons() const {
-            return queue.getColumnComparisons();
+        struct ovc_stats &getStats() {
+            return queue.getStats();
         }
 
     private:

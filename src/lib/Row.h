@@ -28,9 +28,12 @@ namespace ovc {
 #define MAKE_OVC(arity, offset, value) (((arity - offset) << ROW_VALUE_BITS) & ROW_OFFSET_MASK | (value & ROW_VALUE_MASK))
 
     struct ovc_stats {
-        unsigned long column_comparisons;
+        size_t comparisons;
+        size_t comparisons_equal_key;
+        size_t comparisons_of_actual_rows;
+        size_t column_comparisons;
 
-        explicit ovc_stats() : column_comparisons(0) {}
+        ovc_stats() = default;
     };
 
 // statistics: column comparisons done in the == operator

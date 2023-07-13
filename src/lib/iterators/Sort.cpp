@@ -92,7 +92,7 @@ namespace ovc::iterators {
             workspace[workspace_size] = *row;
             UnaryIterator::free();
             row = &workspace[workspace_size++];
-
+            row->key = MAKE_OVC(ROW_ARITY, 0, row->columns[0]);
             queue.push(row, insert_run_index);
             inserted++;
             rows_processed++;
@@ -120,7 +120,7 @@ namespace ovc::iterators {
             workspace[workspace_size] = *row;
             UnaryIterator::free();
             row = &workspace[workspace_size++];
-
+            row->key = MAKE_OVC(ROW_ARITY, 0, row->columns[0]);
 #ifndef NDEBUG
             {
                 if (run.isEmpty()) {

@@ -44,14 +44,16 @@ void example_dedup() {
             ));
     Iterator *plan = new AssertSortedUnique(dedup);
     plan->run();
+    ovc_stats &stats = dedup->getInput<Sort>()->getStats();
 
     ovc::log_info("num_dupex: %d", dedup->num_dupes);
 
-    delete plan;
 
     ovc::log_info("nlogn:                   %lu", (size_t) (num_rows * ::log((double) num_rows)));
     ovc::log_info("comparisons:             %lu", stats.comparisons);
     ovc::log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
+
+    delete plan;
 }
 
 void example_comparison() {
@@ -66,7 +68,6 @@ void example_comparison() {
     plan_hash->run();
     auto duration = since(start);
 
-    priority_queue_stats_reset();
     auto start_sort = now();
     plan_sort->run();
     auto duration_sort = since(start_sort);
@@ -78,11 +79,13 @@ void example_comparison() {
     ovc::log_info("column_comparisons:      %lu", row_equality_column_comparisons);
     ovc::log_info("duration:                %lums", duration);
 
+    ovc_stats &stats = plan_sort->getInput<Sort>()->getStats();
+
     ovc::log_info("sorting:");
     ovc::log_info("nlogn:                   %lu", num_rows * (size_t) ::log((double) num_rows));
     ovc::log_info("comparisons:             %lu", stats.comparisons);
     ovc::log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
-    ovc::log_info("column_comparisons:      %lu", plan_sort->getInput<Sort>()->getColumnComparisons());
+    ovc::log_info("column_comparisons:      %lu", stats.column_comparisons);
     ovc::log_info("duration:                %lums", duration_sort);
 
     delete plan_hash;
@@ -103,6 +106,7 @@ void example_sort() {
             ));
 
     plan->run();
+    ovc_stats &stats = plan->getInput<Sort>()->getStats();
 
     ovc::log_info("%d", plan->count());
     ovc::log_info("nlogn:                   %lu", (size_t) (num_rows * ::log((double) num_rows)));
@@ -138,12 +142,13 @@ void example_truncation() {
     auto plan = new PrefixTruncationCounter(sort);
     plan->run();
 
+    ovc_stats &stats = sort->getStats();
     ovc::log_info("nlogn:                   %lu", (size_t) (num_rows * ::log((double) num_rows)));
     ovc::log_info("comparisons:             %lu", stats.comparisons);
     ovc::log_info("full_comparisons_eq_key: %lu", stats.comparisons_equal_key);
     ovc::log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
 
-    ovc::log_info("column comparisons in sort:               %lu", sort->getColumnComparisons());
+    ovc::log_info("column comparisons in sort:               %lu", stats.column_comparisons);
     ovc::log_info("column comparisons for prefix truncation: %lu", plan->getColumnComparisons());
 
     delete plan;
@@ -168,8 +173,8 @@ void comparison_sort() {
                     num_rows,
                     num_rows * ROW_ARITY,
                     trunc->getColumnComparisons(),
-                    sort->getColumnComparisons() + num_rows,
-                    sort2->getColumnComparisons());
+                    sort->getStats().column_comparisons + num_rows,
+                    sort2->getStats().column_comparisons);
 
             delete sort2;
             delete trunc;
@@ -200,8 +205,8 @@ void comparison_dedup() {
             fprintf(file, "%lu,%lu,%lu,%lu\n",
                     num_rows,
                     // num_rows -hash->duplicates,
-                    sort->getColumnComparisons() + num_rows,
-                    sort_no_ovc->getColumnComparisons(),
+                    sort->getStats().column_comparisons + num_rows,
+                    sort_no_ovc->getStats().column_comparisons,
                     row_equality_column_comparisons);
 
             delete sort;
@@ -226,7 +231,7 @@ void example_count_column_comparisons() {
         sort_no_ovc->run();
 
         printf("%lu,%zu,%lu,%lu,%lu\n", num_rows, num_rows * ROW_ARITY, trunc->getColumnComparisons(),
-               sort->getColumnComparisons() + num_rows, sort_no_ovc->getColumnComparisons());
+               sort->getStats().column_comparisons + num_rows, sort_no_ovc->getStats().column_comparisons);
 
         delete sort_no_ovc;
         delete trunc;

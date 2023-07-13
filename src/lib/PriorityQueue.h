@@ -11,46 +11,27 @@
 #include <bit>
 #include <stack>
 
+#define QUEUE_CAPACITY PRIORITYQUEUE_CAPACITY
+#define MERGE_RUN_IDX ((1ul << RUN_IDX_BITS) - 2)
+#define INITIAL_RUN_IDX 1
+
 namespace ovc {
 
     typedef unsigned long Key;
 
     template<bool T>
-    class PriorityQueue;
+    class PriorityQueueBase;
 
     template<bool T>
-    std::ostream &operator<<(std::ostream &, const PriorityQueue<T> &);
-
-#define QUEUE_CAPACITY PRIORITYQUEUE_CAPACITY
-#define MERGE_RUN_IDX ((1ul << RUN_IDX_BITS) - 2)
-#define INITIAL_RUN_IDX 1
-
-    struct priority_queue_stats {
-        size_t comparisons;
-        size_t comparisons_equal_key;
-        size_t comparisons_of_actual_rows;
-    };
-
-    extern struct priority_queue_stats stats;
-
-    void priority_queue_stats_reset();
+    std::ostream &operator<<(std::ostream &, const PriorityQueueBase<T> &);
 
     template<bool USE_OVC>
-    class PriorityQueue {
-    private:
-        struct Node;
-        struct WorkspaceItem;
-
-        size_t size_;
-        size_t capacity_;
-        Node *heap;
-        WorkspaceItem *workspace;
-        struct ovc_stats ovc_stats;
-
+    class PriorityQueueBase {
     public:
-        explicit PriorityQueue(size_t capacity);
 
-        ~PriorityQueue();
+        explicit PriorityQueueBase(size_t capacity);
+
+        ~PriorityQueueBase();
 
         /**
          * Currently (possibly) doesn't check correctness with many fences also doesn't check ovc, only compares rows
@@ -81,20 +62,7 @@ namespace ovc {
          * @param row The row.
          * @param run_index The run index of the row.
          */
-        void push(Row *row, Index run_index);
-
-        /**
-         * Push an in-memory run into the queue.
-         * @param row The first row of the run
-         * @param size The offset of the run.
-         */
-        void push_memory(MemoryRun &run);
-
-        /**
-         * Push an external run into the queue.
-         * @param run The external run.
-         */
-        void push_external(io::ExternalRunR &run);
+        void push(Row *row, Index run_index, void *udata = nullptr);
 
         /**
          * Pop the lowest row during run generation.
@@ -105,6 +73,66 @@ namespace ovc {
 
         Row *pop_safe(Index run_index);
 
+        Row *top();
+
+        void *top_udata();
+
+        size_t top_run_idx();
+
+        void flush_sentinels();
+
+        void flush_sentinel(bool safe = false);
+
+        /**
+         * Reset the nodes in the heap, so that run_idx can start at 1 again. The queue must be empty.
+         */
+        void reset();
+
+        struct ovc_stats &getStats() {
+            return stats;
+        }
+
+        std::string to_string() const;
+
+        friend std::ostream &operator<<<USE_OVC>(std::ostream &o, const PriorityQueueBase<USE_OVC> &pq);
+
+    private:
+        struct Node;
+        struct WorkspaceItem;
+
+        size_t size_;
+        size_t capacity_;
+        Node *heap;
+        WorkspaceItem *workspace;
+        struct ovc_stats stats;
+
+        void pass(Index index, Key key);
+    };
+
+    template<bool USE_OVC>
+    class PriorityQueue : public PriorityQueueBase<USE_OVC> {
+
+    public:
+        explicit PriorityQueue(size_t capacity) : PriorityQueueBase<USE_OVC>(capacity) {};
+
+        template<class T = void>
+        inline void push(Row *row, Index run_index, T *udata = nullptr) {
+            PriorityQueueBase<USE_OVC>::push(row, run_index, reinterpret_cast<void *>(udata));
+        }
+
+        template<class T = void>
+        T *top_udata2() {
+            return reinterpret_cast<T *>(PriorityQueueBase<USE_OVC>::top_udata());
+        }
+
+        inline void push_memory(MemoryRun &run) {
+            push(run.front(), MERGE_RUN_IDX, &run);
+        }
+
+        inline void push_external(io::ExternalRunR &run) {
+            push(run.read(), MERGE_RUN_IDX, &run);
+        }
+
         /**
          * Pop the lowest row during run generation and replace it with a new one.
          * @param row The new row.
@@ -112,51 +140,61 @@ namespace ovc {
          * @param size 0 if inserting a single row, the offset of the in-memory run otherwise
          * @return The row at the head of the queue.
          */
-        Row *pop_push(Row *row, Index run_index);
+        Row *pop_push(Row *row, Index run_index) {
+            Row *res = this->pop(run_index);
+            push(row, run_index);
+            return res;
+        }
 
         /**
          * Pop the lowest row during run generation and replace it with an in-memory run.
          * @param run The run.
          * @return The lowest row.
          */
-        Row *pop_push_memory(MemoryRun *run);
+        Row *pop_push_memory(MemoryRun *run) {
+            Row *res = this->pop(MERGE_RUN_IDX);
+            push(run->front(), MERGE_RUN_IDX, run);
+            return res;
+        }
 
         /**
          * Pop the lowest row in a merge step of in-memory memory_runs.
          * @return The row.
          */
-        Row *pop_memory();
+        Row *pop_memory() {
+            auto *run = this->template top_udata2<MemoryRun>();
+            Row *res = this->pop(MERGE_RUN_IDX);
+            run->next();
+
+            if (likely(run->size() > 0)) {
+                push(run->front(), MERGE_RUN_IDX, run);
+            } else {
+                this->flush_sentinel();
+            }
+
+            return res;
+        }
 
         /**
          * Pop the lowest row in a merge step of external memory_runs.
          * @return
          */
-        Row *pop_external();
+        Row *pop_external() {
+            auto *run = this->template top_udata2<io::ExternalRunR>();
+            Row *res = this->pop(MERGE_RUN_IDX);
+            Row *next = run->read();
 
-        friend std::ostream &operator<< <USE_OVC>(std::ostream &stream, const PriorityQueue<USE_OVC> &pq);
-
-        std::string to_string() const;
-
-        Row *top();
-
-        size_t top_run_idx();
-
-        const std::string &top_path();
-
-        unsigned long getColumnComparisons() const {
-            return ovc_stats.column_comparisons;
+            if (likely(next != nullptr)) {
+                push(next, MERGE_RUN_IDX, run);
+            } else {
+                this->flush_sentinel();
+            }
+            return res;
         }
 
-        void flush_sentinels();
-
-        void flush_sentinel(bool safe = false);
-
-        /**
-         * Reset the nodes in the heap, so that run_idx can start at 1 again.
-         */
-        void reset();
-
-    private:
-        void pass(Index index, Key key);
+        const std::string &top_path() {
+            assert(!isEmpty());
+            return top_udata2<io::ExternalRunR>()->path();
+        };
     };
 }
