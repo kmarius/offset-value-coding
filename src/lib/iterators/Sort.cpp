@@ -20,7 +20,7 @@ namespace ovc::iterators {
                                                              queue(QUEUE_CAPACITY),
                                                              buffer_manager(1024),
                                                              workspace(
-                                                                     new Row[QUEUE_CAPACITY * (1 << RUN_IDX_BITS) - 3]),
+                                                                     new Row[QUEUE_CAPACITY * ((1 << RUN_IDX_BITS) - 3)]),
                                                              workspace_size(0) {
         output_has_ovc = USE_OVC;
         output_is_sorted = true;

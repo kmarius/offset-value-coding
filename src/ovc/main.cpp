@@ -13,6 +13,7 @@
 #include "lib/iterators/GeneratorZeroPrefix.h"
 #include "lib/iterators/GroupBy.h"
 #include "lib/iterators/GeneratorZeroSuffix.h"
+#include "lib/iterators/Shuffle.h"
 
 #include <vector>
 #include <iostream>
@@ -246,10 +247,16 @@ void example_group_by() {
     delete plan;
 }
 
+void external_shuffle() {
+    auto plan = new Shuffle(new Sort(new GeneratorZeroPrefix(4000000, 128)));
+    plan->run();
+    delete plan;
+}
+
 int main(int argc, char *argv[]) {
     log_open(LOG_TRACE);
     log_set_quiet(false);
-    log_set_level(ovc::LOG_INFO);
+    log_set_level(LOG_INFO);
     log_info("start", "");
 
     auto start = now();
@@ -265,6 +272,8 @@ int main(int argc, char *argv[]) {
 
     //comparison_sort();
     //example_group_by();
+
+    external_shuffle();
 
     log_info("elapsed=%lums", since(start));
 
