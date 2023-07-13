@@ -2,7 +2,6 @@
 
 #include <chrono>
 
-
 namespace ovc {
     template<
             class result_t   = std::chrono::milliseconds,

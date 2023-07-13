@@ -7,12 +7,8 @@
 
 #include "defs.h"
 
-namespace ovc {
-
 #define ROW_ARITY 8
 #define DOMAIN 100
-
-    typedef uint32_t ovc_type_t;
 
 #define BITMASK(bits) ((1ul << (bits)) - 1)
 
@@ -26,6 +22,10 @@ namespace ovc {
 #define ROW_VALUE_MASK (BITMASK(ROW_VALUE_BITS))
 
 #define MAKE_OVC(arity, offset, value) (((arity - offset) << ROW_VALUE_BITS) & ROW_OFFSET_MASK | (value & ROW_VALUE_MASK))
+
+namespace ovc {
+
+    typedef uint32_t ovc_type_t;
 
     struct ovc_stats {
         size_t comparisons;
