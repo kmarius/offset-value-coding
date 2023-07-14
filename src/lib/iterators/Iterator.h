@@ -64,7 +64,7 @@ namespace ovc::iterators {
          * Check if the output of this iterator is sorted.
          * @return true, if the output is sorted.
          */
-        bool outputIsSorted() {
+        bool outputIsSorted() const {
             return output_is_sorted;
         }
 
@@ -72,7 +72,7 @@ namespace ovc::iterators {
          * Check if the output of this iterator has OVCs
          * @return true, if the output has OVCs
          */
-        bool outputHasOVC() {
+        bool outputHasOVC() const {
             return output_has_ovc;
         }
 
@@ -80,7 +80,7 @@ namespace ovc::iterators {
          * Check if the output of this iterator is hashed.
          * @return true, if the output is hashed.
          */
-        bool outputIsHashed() {
+        bool outputIsHashed() const {
             return output_is_hashed;
         }
 
@@ -88,7 +88,7 @@ namespace ovc::iterators {
          * Check if the output of this iterator is unique.
          * @return true, if the output is unique.
          */
-        bool outputIsUnique() {
+        bool outputIsUnique() const {
             return output_is_unique;
         }
 
