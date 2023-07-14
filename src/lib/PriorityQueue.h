@@ -193,7 +193,7 @@ namespace ovc {
         }
 
         const std::string &top_path() {
-            assert(!isEmpty());
+            assert(!this->isEmpty());
             return top_udata2<io::ExternalRunR>()->path();
         };
     };
