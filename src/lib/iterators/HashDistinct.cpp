@@ -1,15 +1,15 @@
 
-#include "HashDedup.h"
+#include "HashDistinct.h"
 #include "lib/log.h"
 
 namespace ovc::iterators {
 
-    HashDedup::HashDedup(Iterator *input) : UnaryIterator(input), partition(nullptr), bufferManager(4), duplicates(0) {
+    HashDistinct::HashDistinct(Iterator *input) : UnaryIterator(input), partition(nullptr), bufferManager(4), duplicates(0) {
         output_is_unique = true;
         output_is_hashed = true;
     }
 
-    void HashDedup::open() {
+    void HashDistinct::open() {
         UnaryIterator::open();
 
         Partitioner partitioner(1 << RUN_IDX_BITS);
@@ -24,11 +24,11 @@ namespace ovc::iterators {
         partition = new ExternalRunR(partitions.back(), bufferManager, true);
     }
 
-    Row *HashDedup::next() {
+    Row *HashDistinct::next() {
         for (Row *row; (row = next_from_part());) {
             auto pair = set.insert(*row);
             if (pair.second) {
-                // element was actually inserted
+                // element was actually i<1nserted
                 // maye return a pointer to the element in the set?
                 return row;
             }
@@ -37,7 +37,7 @@ namespace ovc::iterators {
         return nullptr;
     }
 
-    Row *HashDedup::next_from_part() {
+    Row *HashDistinct::next_from_part() {
         if (partition == nullptr) {
             return nullptr;
         }

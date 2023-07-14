@@ -7,9 +7,9 @@
 
 namespace ovc::iterators {
 
-    class HashDedup : public UnaryIterator {
+    class HashDistinct : public UnaryIterator {
     public :
-        explicit HashDedup(Iterator *input);
+        explicit HashDistinct(Iterator *input);
 
         void open() override;
 

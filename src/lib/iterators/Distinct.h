@@ -5,9 +5,9 @@
 namespace ovc::iterators {
 
     template<bool USE_OVC>
-    class DedupBase : public UnaryIterator {
+    class DistinctBase : public UnaryIterator {
     public:
-        explicit DedupBase(Iterator *input);
+        explicit DistinctBase(Iterator *input);
 
         Row *next() override;
 
@@ -18,6 +18,6 @@ namespace ovc::iterators {
         bool has_prev;
     };
 
-    typedef DedupBase<true> Dedup;
-    typedef DedupBase<true> DedupNoOvc;
+    typedef DistinctBase<true> Distinct;
+    typedef DistinctBase<true> DistinctNoOvc;
 }

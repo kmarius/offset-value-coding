@@ -1,10 +1,10 @@
-#include "Dedup.h"
+#include "Distinct.h"
 #include "lib/log.h"
 
 namespace ovc::iterators {
 
     template<bool USE_OVC>
-    DedupBase<USE_OVC>::DedupBase(Iterator *const input)
+    DistinctBase<USE_OVC>::DistinctBase(Iterator *const input)
             : UnaryIterator(input), num_dupes(0), has_prev(false), prev({0}) {
         assert(input->outputIsSorted());
         assert(!USE_OVC || input->outputHasOVC());
@@ -13,7 +13,7 @@ namespace ovc::iterators {
     }
 
     template<bool USE_OVC>
-    Row *DedupBase<USE_OVC>::next() {
+    Row *DistinctBase<USE_OVC>::next() {
         for (Row *row; (row = UnaryIterator::next()); UnaryIterator::free()) {
             if constexpr (USE_OVC) {
                 // TODO: we can repair OVCs here
@@ -33,8 +33,8 @@ namespace ovc::iterators {
     }
 
     template
-    class DedupBase<true>;
+    class DistinctBase<true>;
 
     template
-    class DedupBase<false>;
+    class DistinctBase<false>;
 }
