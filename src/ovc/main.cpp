@@ -5,15 +5,16 @@
 #include "lib/log.h"
 #include "lib/utils.h"
 #include "lib/iterators/AssertSortedUnique.h"
-#include "lib/iterators/HashDedup.h"
+#include "lib/iterators/HashDistinct.h"
 #include "lib/iterators/AssertEqual.h"
 #include "lib/iterators/PrefixTruncationCounter.h"
-#include "lib/iterators/Dedup.h"
+#include "lib/iterators/Distinct.h"
 #include "lib/iterators/AssertSorted.h"
 #include "lib/iterators/GeneratorZeroPrefix.h"
 #include "lib/iterators/GroupBy.h"
 #include "lib/iterators/GeneratorZeroSuffix.h"
 #include "lib/iterators/Shuffle.h"
+#include "lib/iterators/Scan.h"
 
 #include <vector>
 #include <iostream>
@@ -39,7 +40,7 @@ void example_dedup() {
 
     ovc::log_info("num_rows=%lu", num_rows);
 
-    auto dedup = new Dedup(
+    auto dedup = new Distinct(
             new Sort(
                     new Generator(num_rows, DOMAIN, 1337)
             ));
@@ -61,8 +62,8 @@ void example_comparison() {
     size_t num_rows = 1000000;
     size_t seed = 1337;
 
-    auto plan_hash = new HashDedup(new Generator(num_rows, 100, seed));
-    auto plan_sort = new Dedup(new Sort(new Generator(num_rows, 100, seed)));
+    auto plan_hash = new HashDistinct(new Generator(num_rows, 100, seed));
+    auto plan_sort = new Distinct(new Sort(new Generator(num_rows, 100, seed)));
 
     hash_set_stats_reset();
     auto start = now();
@@ -120,7 +121,7 @@ void example_hashing() {
     size_t num_rows = 1000000;
     size_t seed = 1337;
 
-    auto plan = new HashDedup(new Generator(num_rows, 100, seed));
+    auto plan = new HashDistinct(new Generator(num_rows, 100, seed));
 
     hash_set_stats_reset();
     auto start = now();
@@ -194,7 +195,7 @@ void comparison_dedup() {
             auto gen = new GeneratorZeroPrefix(num_rows, 100, prefix, 1337);
             auto sort = new SortDistinct(gen->clone());
             auto sort_no_ovc = new SortDistinctNoOvc(gen->clone());
-            auto hash = new HashDedup(gen);
+            auto hash = new HashDistinct(gen);
 
             // reset static counter^
             row_equality_column_comparisons = 0;
@@ -242,7 +243,7 @@ void example_count_column_comparisons() {
 void example_group_by() {
     auto plan = new GroupBy(
             new Sort(new GeneratorZeroSuffix(100000, 128, 6, 1337)),
-                            1);
+            1);
     plan->run(true);
     delete plan;
 }
@@ -251,6 +252,28 @@ void external_shuffle() {
     auto plan = new Shuffle(new Sort(new GeneratorZeroPrefix(4000000, 128)));
     plan->run();
     delete plan;
+}
+
+void compare_generate_vs_scan() {
+    size_t num_rows = 17000000;
+    auto gen = GeneratorZeroPrefix(num_rows, 128, 0, 1337);
+
+    auto *plan_generate = new Sort(gen.clone());
+    gen.write("generated.dat");
+    auto *plan_scan = new Sort(new Scan("generated.dat"));
+
+    auto start = now();
+    plan_generate->run();
+    auto d1 = since(start);
+
+    start = now();
+    plan_scan->run();
+    auto d2 = since(start);
+
+    delete plan_generate;
+    delete plan_scan;
+
+    log_info("gen: %lums, scan: %lums", d1, d2);
 }
 
 int main(int argc, char *argv[]) {
@@ -273,7 +296,9 @@ int main(int argc, char *argv[]) {
     //comparison_sort();
     //example_group_by();
 
-    external_shuffle();
+    //external_shuffle();
+
+    compare_generate_vs_scan();
 
     log_info("elapsed=%lums", since(start));
 

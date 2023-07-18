@@ -8,6 +8,9 @@
 #include <vector>
 #include <sstream>
 
+#define INITIAL_RUNS ((1 << RUN_IDX_BITS) - 3)
+#define SORTER_WORKSPACE_CAPACITY (QUEUE_CAPACITY * INITIAL_RUNS)
+
 namespace ovc::iterators {
 
     static std::string new_run_path() {
@@ -16,59 +19,33 @@ namespace ovc::iterators {
     }
 
     template<bool DISTINCT, bool USE_OVC>
-    SortBase<DISTINCT, USE_OVC>::SortBase(Iterator *input) : UnaryIterator(input),
-                                                             queue(QUEUE_CAPACITY),
-                                                             buffer_manager(1024),
-                                                             workspace(
-                                                                     new Row[QUEUE_CAPACITY * ((1 << RUN_IDX_BITS) - 3)]),
-                                                             workspace_size(0) {
-        output_has_ovc = USE_OVC;
-        output_is_sorted = true;
-        output_is_unique = DISTINCT;
-    };
-
-    template<bool DISTINCT, bool USE_OVC>
-    SortBase<DISTINCT, USE_OVC>::~SortBase() {
-        delete[] workspace;
-    };
-
-// assume the priority queue is isEmpty and we are creating generate_initial_runs memory_runs
-// output memory_runs are in-memory
-// ends with queue filled with in-memory memory_runs
-    template<bool DISTINCT, bool USE_OVC>
-    bool SortBase<DISTINCT, USE_OVC>::generate_initial_runs_q() {
-        log_trace("SortBase::generate_initial_runs()");
-
-        memory_runs = {};
-        memory_runs.reserve(QUEUE_CAPACITY);
-
-        Row *row;
-        for (size_t k = 0; k < QUEUE_CAPACITY - 3 && (row != nullptr); k++) {
-            MemoryRun run;
-            run.reserve(QUEUE_CAPACITY);
-
-            for (; run.size() < QUEUE_CAPACITY && (row = UnaryIterator::next());) {
-                run.add(row);
-                UnaryIterator::free();
-            }
-            run.sort();
-            run.setOvcs();
-            memory_runs.push_back(run);
-        }
-
-        // fill up queue
-        for (auto &run: memory_runs) {
-            queue.push_memory(run);
-        }
-
-        return row != nullptr;
+    Sorter<DISTINCT, USE_OVC>::Sorter(Iterator *input) :
+            queue(QUEUE_CAPACITY),
+            buffer_manager(1024),
+            workspace(new Row[SORTER_WORKSPACE_CAPACITY]),
+            workspace_size(0) {
     }
 
-// assume the priority queue is isEmpty and we are creating generate_initial_runs memory_runs
-// output memory_runs are in-memory
-// ends with queue filled with in-memory memory_runs
     template<bool DISTINCT, bool USE_OVC>
-    bool SortBase<DISTINCT, USE_OVC>::generate_initial_runs() {
+    Sorter<DISTINCT, USE_OVC>::~Sorter() {
+        cleanup();
+    };
+
+    template<bool DISTINCT, bool USE_OVC>
+    void Sorter<DISTINCT, USE_OVC>::cleanup() {
+        delete[] workspace;
+        workspace = nullptr;
+        for (auto &run: external_runs) {
+            run.remove();
+        }
+        external_runs.clear();
+        while (!external_run_paths.empty()) {
+            external_run_paths.pop();
+        };
+    }
+
+    template<bool DISTINCT, bool USE_OVC>
+    bool Sorter<DISTINCT, USE_OVC>::generate_initial_runs(Iterator *input) {
         log_trace("SortBase::generate_initial_runs()");
 
         size_t runs_generated = 0;
@@ -88,9 +65,9 @@ namespace ovc::iterators {
 
         Row *row;
 
-        for (; queue.size() < queue.capacity() && (row = UnaryIterator::next());) {
+        for (; queue.size() < queue.capacity() && (row = input->next());) {
             workspace[workspace_size] = *row;
-            UnaryIterator::free();
+            input->free();
             row = &workspace[workspace_size++];
             row->key = MAKE_OVC(ROW_ARITY, 0, row->columns[0]);
             queue.push(row, insert_run_index);
@@ -116,9 +93,9 @@ namespace ovc::iterators {
         prev = {0};
 #endif
 
-        for (; (row = UnaryIterator::next());) {
+        for (; (row = input->next());) {
             workspace[workspace_size] = *row;
-            UnaryIterator::free();
+            input->free();
             row = &workspace[workspace_size++];
             row->key = MAKE_OVC(ROW_ARITY, 0, row->columns[0]);
 #ifndef NDEBUG
@@ -292,7 +269,7 @@ namespace ovc::iterators {
 // output memory_runs are external
 // ends with isEmpty priority queue
     template<bool DISTINCT, bool USE_OVC>
-    void SortBase<DISTINCT, USE_OVC>::merge_in_memory() {
+    void Sorter<DISTINCT, USE_OVC>::merge_in_memory() {
         log_trace("SortBase::merge_in_memory()");
         if (queue.isEmpty()) {
             return;
@@ -340,14 +317,14 @@ namespace ovc::iterators {
     }
 
     template<bool DISTINCT, bool USE_OVC>
-    std::vector<io::ExternalRunR> SortBase<DISTINCT, USE_OVC>::insert_external(size_t fan_in) {
+    void Sorter<DISTINCT, USE_OVC>::insert_external_runs(size_t fan_in) {
         assert(fan_in <= QUEUE_CAPACITY);
         assert(queue.isEmpty());
         assert(external_run_paths.size() >= fan_in);
 
         queue.reset();
 
-        std::vector<io::ExternalRunR> external_runs;
+        external_runs.clear();
         external_runs.reserve(external_run_paths.size());
 
         for (size_t i = 0; i < fan_in; i++) {
@@ -358,16 +335,12 @@ namespace ovc::iterators {
             queue.push_external(external_runs.back());
         }
         queue.flush_sentinels();
-        return external_runs;
     }
 
-// priority queue is isEmpty
-// output is an external run
-// ends with isEmpty priority queue
     template<bool DISTINCT, bool USE_OVC>
-    std::string SortBase<DISTINCT, USE_OVC>::merge_external(size_t fan_in) {
-        log_trace("SortBase::merge_external()");
-        external_runs = insert_external(fan_in);
+    std::string Sorter<DISTINCT, USE_OVC>::merge_external_runs(size_t fan_in) {
+        log_trace("merging %lu external runs", QUEUE_CAPACITY);
+        insert_external_runs(fan_in);
 
         std::string path = new_run_path();
         io::ExternalRunW run(path, buffer_manager);
@@ -407,17 +380,13 @@ namespace ovc::iterators {
 
         external_run_paths.push(path);
 
-        log_trace("SortBase::merge_external(): size=%lu", run.size());
-
         return path;
     }
 
     template<bool DISTINCT, bool USE_OVC>
-    void SortBase<DISTINCT, USE_OVC>::open() {
-        UnaryIterator::open();
-
+    void Sorter<DISTINCT, USE_OVC>::consume(Iterator *input_) {
         for (bool has_more_input = true; has_more_input;) {
-            has_more_input = generate_initial_runs();
+            has_more_input = generate_initial_runs(input_);
             merge_in_memory();
             assert(memory_runs.empty());
         }
@@ -426,27 +395,40 @@ namespace ovc::iterators {
         if (num_runs > QUEUE_CAPACITY) {
             // this guarantees maximal fan-in for the later merges
             size_t initial_merge_fan_in = num_runs % (QUEUE_CAPACITY - 1);
-            assert(initial_merge_fan_in);
-            log_trace("merging %lu external runs", initial_merge_fan_in);
-            merge_external(initial_merge_fan_in);
+            assert(initial_merge_fan_in > 0);
+            merge_external_runs(initial_merge_fan_in);
         }
 
         while (external_run_paths.size() > QUEUE_CAPACITY) {
-            log_trace("merging %lu external runs", QUEUE_CAPACITY);
-            merge_external(QUEUE_CAPACITY);
+            merge_external_runs(QUEUE_CAPACITY);
         }
 
-        external_runs = insert_external(external_run_paths.size());
+        insert_external_runs(external_run_paths.size());
 
 #ifndef NDEBUG
         prev = {0};
 #endif
-        log_trace("SortBase::open() fan-in for the last merge step is %lu", external_runs.size());
+        log_trace("Sorter::consume() fan-in for the last merge step is %lu", external_runs.size());
+    }
+
+    template<bool DISTINCT, bool USE_OVC>
+    SortBase<DISTINCT, USE_OVC>::SortBase(Iterator *input) : UnaryIterator(input), sorter(input) {
+        output_has_ovc = USE_OVC;
+        output_is_sorted = true;
+        output_is_unique = DISTINCT;
+    };
+
+    template<bool DISTINCT, bool USE_OVC>
+    void SortBase<DISTINCT, USE_OVC>::open() {
+        Iterator::open();
+        input_->open();
+        sorter.consume(input_);
+        input_->close();
     }
 
     template<bool DISTINCT, bool USE_OVC>
     Row *SortBase<DISTINCT, USE_OVC>::next() {
-        if (queue.isEmpty()) {
+        if (sorter.queue.isEmpty()) {
             return nullptr;
         }
 
@@ -480,25 +462,23 @@ namespace ovc::iterators {
 #else
         if constexpr (DISTINCT) {
             Row *row;
-            while ((row = queue.pop_external()) && row->key == 0) {
-                if (queue.isEmpty()) {
+            while ((row = sorter.queue.pop_external()) && row->key == 0) {
+                if (sorter.queue.isEmpty()) {
                     row = nullptr;
                     break;
                 }
             }
             return row;
         } else {
-            return queue.pop_external();
+            return sorter.queue.pop_external();
         }
 #endif
     }
 
     template<bool DISTINCT, bool USE_OVC>
     void SortBase<DISTINCT, USE_OVC>::close() {
-        UnaryIterator::close();
-        for (auto &run: external_runs) {
-            run.remove();
-        }
+        Iterator::close();
+        sorter.cleanup();
     }
 
     template
