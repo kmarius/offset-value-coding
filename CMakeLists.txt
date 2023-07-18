@@ -43,7 +43,6 @@ add_library(libovc
         src/lib/iterators/Sort.h
         src/lib/log.cpp
         src/lib/log.h
-        src/lib/PriorityQueue.cpp
         src/lib/PriorityQueue.h
         src/lib/Row.cpp
         src/lib/Row.h

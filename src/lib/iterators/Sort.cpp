@@ -4,6 +4,7 @@
 #include "lib/log.h"
 #include "lib/io/ExternalRunW.h"
 #include "lib/io/ExternalRunR.h"
+#include "lib/PriorityQueue.h"
 
 #include <vector>
 #include <sstream>
@@ -435,29 +436,29 @@ namespace ovc::iterators {
 #ifndef NDEBUG
         Row *row;
         if constexpr (DISTINCT) {
-            while ((row = queue.pop_external()) && row->key == 0) {
-                if (queue.isEmpty()) {
+            while ((row = sorter.queue.pop_external()) && row->key == 0) {
+                if (sorter.queue.isEmpty()) {
                     row = nullptr;
                     break;
                 }
             }
         } else {
-            row = queue.pop_external();
+            row = sorter.queue.pop_external();
         }
 
         if (row == nullptr) {
             return nullptr;
         }
 
-        if (row->less(prev)) {
-            const std::string &run_path = queue.top_path();
+        if (row->less(sorter.prev)) {
+            const std::string &run_path = sorter.queue.top_path();
             log_error("SortBase::merge_external(): not ascending in run %s", run_path.c_str());
-            log_error("SortBase::merge_external(): prev %s", prev.c_str());
+            log_error("SortBase::merge_external(): prev %s", sorter.prev.c_str());
             log_error("SortBase::merge_external(): cur  %s", row->c_str());
         }
-        assert(!row->less(prev));
+        assert(!row->less(sorter.prev));
 
-        prev = *row;
+        sorter.prev = *row;
         return row;
 #else
         if constexpr (DISTINCT) {
