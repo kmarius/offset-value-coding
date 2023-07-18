@@ -276,6 +276,13 @@ void compare_generate_vs_scan() {
     log_info("gen: %lums, scan: %lums", d1, d2);
 }
 
+void test_generic_priorityqueue() {
+    auto *plan = new SortBase<true, true, RowLessPrefix>(new GeneratorZeroPrefix(100, 10));
+    row_less_prefix = 2;
+    plan->run(true);
+    delete plan;
+}
+
 int main(int argc, char *argv[]) {
     log_open(LOG_TRACE);
     log_set_quiet(false);
@@ -298,7 +305,9 @@ int main(int argc, char *argv[]) {
 
     //external_shuffle();
 
-    compare_generate_vs_scan();
+    //compare_generate_vs_scan();
+
+    test_generic_priorityqueue();
 
     log_info("elapsed=%lums", since(start));
 

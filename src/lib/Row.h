@@ -47,6 +47,8 @@ namespace ovc {
 
     extern unsigned long row_equal_prefix;
 
+    extern unsigned long row_less_prefix;
+
     struct OVC_s {
         ovc_type_t ovc;
 
@@ -115,13 +117,17 @@ namespace ovc {
             return false;
         }
 
+        static bool cmp(const Row &lhs, const Row &rhs, OVC &ovc, unsigned int offset = 0, struct ovc_stats *stats = nullptr) {
+            return lhs.less(rhs, ovc, offset, stats);
+        }
+
         /**
          * less-than semantics, writes the OVC of the loser w.r.t the winner to the provided address
          * @param row
          * @param ovc
          * @return
          */
-        inline bool less(const Row &row, OVC &ovc, unsigned int offset = 0, struct ovc_stats *stats = nullptr) {
+        inline bool less(const Row &row, OVC &ovc, unsigned int offset = 0, struct ovc_stats *stats = nullptr) const {
             long cmp;
 
 #ifndef NDEBUG
@@ -157,6 +163,42 @@ namespace ovc {
             }
         }
 
+        inline bool less_prefix(const Row &row, OVC &ovc, unsigned int offset, unsigned cmp_columns, struct ovc_stats *stats) const {
+            long cmp;
+
+#ifndef NDEBUG
+            for (int i = 0; i < offset && i < cmp_columns; i++) {
+                assert(columns[i] == row.columns[i]);
+            }
+#endif
+
+            for (; offset < cmp_columns && (cmp = columns[offset] - row.columns[offset]) == 0; offset++) {
+                if (stats) {
+                    stats->column_comparisons++;
+                }
+            }
+
+            if (offset >= cmp_columns) {
+                // rows are equal
+                ovc = 0;
+                return false;
+            }
+
+            if (stats) {
+                stats->column_comparisons++;
+            }
+
+            if (cmp < 0) {
+                // we are smaller
+                ovc = MAKE_OVC(ROW_ARITY, offset, row.columns[offset]);
+                return true;
+            } else {
+                // we are larger
+                ovc = MAKE_OVC(ROW_ARITY, offset, columns[offset]);
+                return false;
+            }
+        }
+
         /**
          * Get a string representation (in a statically allocated buffer).
          * @return The string.
@@ -165,6 +207,20 @@ namespace ovc {
 
         friend std::ostream &operator<<(std::ostream &stream, const Row &row);
     } Row;
+
+    class RowLess {
+    public:
+        bool operator() (const Row &lhs, const Row &rhs, OVC &ovc, unsigned int offset = 0, struct ovc_stats *stats = nullptr) {
+            return lhs.less(rhs, ovc, offset, stats);
+        }
+    };
+
+    class RowLessPrefix {
+    public:
+        bool operator() (const Row &lhs, const Row &rhs, OVC &ovc, unsigned int offset = 0, struct ovc_stats *stats = nullptr) {
+            return lhs.less_prefix(rhs, ovc, offset, row_less_prefix, stats);
+        }
+    };
 }
 
 namespace std {

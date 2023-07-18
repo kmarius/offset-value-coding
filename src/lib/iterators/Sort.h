@@ -10,7 +10,7 @@
 #include <queue>
 
 namespace ovc::iterators {
-    template<bool DISTINCT, bool USE_OVC>
+    template<bool DISTINCT, bool USE_OVC, class Less = RowLess>
     struct Sorter {
         Row *workspace;
         size_t workspace_size;
@@ -18,7 +18,7 @@ namespace ovc::iterators {
         std::queue<std::string> external_run_paths;
         std::vector<io::ExternalRunR> external_runs;
         io::BufferManager buffer_manager;
-        PriorityQueue <USE_OVC> queue;
+        PriorityQueue <USE_OVC, Less> queue;
 #ifndef NDEBUG
         Row prev = {0};
 #endif
@@ -59,7 +59,7 @@ namespace ovc::iterators {
         void insert_external_runs(size_t fan_in);
     };
 
-    template<bool DISTINCT, bool USE_OVC>
+    template<bool DISTINCT, bool USE_OVC, class Less = RowLess>
     class SortBase : public UnaryIterator {
     public:
         explicit SortBase(Iterator *input);
@@ -79,7 +79,7 @@ namespace ovc::iterators {
         }
 
     private:
-        Sorter<DISTINCT, USE_OVC> sorter;
+        Sorter<DISTINCT, USE_OVC, Less> sorter;
     };
 
     typedef SortBase<false, true> Sort;
