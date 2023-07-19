@@ -19,5 +19,5 @@ namespace ovc::iterators {
     };
 
     typedef DistinctBase<true> Distinct;
-    typedef DistinctBase<true> DistinctNoOvc;
+    typedef DistinctBase<false> DistinctNoOvc;
 }
