@@ -185,11 +185,11 @@ TEST_F(SortTest, SortMediumNoOvc) {
 }
 
 //TEST_F(SortTest, SortMediumButSmallerNoOvc) {
-//    testSorted(INITIAL_RUNS * QUEUE_SIZE - QUEUE_SIZE / 2);
+//    testSortDistinct(INITIAL_RUNS * QUEUE_SIZE - QUEUE_SIZE / 2);
 //}
 //
 //TEST_F(SortTest, SortMediumButABitLargerNoOvc) {
-//    testSorted(INITIAL_RUNS * QUEUE_SIZE + QUEUE_SIZE / 2);
+//    testSortDistinct(INITIAL_RUNS * QUEUE_SIZE + QUEUE_SIZE / 2);
 //}
 //
 TEST_F(SortTest, SortMediumButABitLargerNoOvc2) {
@@ -197,5 +197,5 @@ TEST_F(SortTest, SortMediumButABitLargerNoOvc2) {
 }
 //
 //TEST_F(SortTest, SortLargeNoOvc) {
-//    testSorted(INITIAL_RUNS * QUEUE_SIZE * 8);
+//    testSortDistinct(INITIAL_RUNS * QUEUE_SIZE * 8);
 //}
