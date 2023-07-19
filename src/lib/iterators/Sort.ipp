@@ -22,7 +22,7 @@ namespace ovc::iterators {
     }
 
     template<bool DISTINCT, bool USE_OVC, class Less>
-     Sorter<DISTINCT, USE_OVC, Less>::Sorter() :
+    Sorter<DISTINCT, USE_OVC, Less>::Sorter() :
             queue(QUEUE_CAPACITY),
             buffer_manager(1024),
             workspace(new Row[SORTER_WORKSPACE_CAPACITY]),
@@ -436,16 +436,29 @@ namespace ovc::iterators {
         }
 
 #ifndef NDEBUG
-        Row *row;
+        Row *row = nullptr;
         if constexpr (DISTINCT) {
-            while ((row = sorter.queue.pop_external()) && row->key == 0) {
-                if (sorter.queue.isEmpty()) {
-                    row = nullptr;
+            if constexpr (USE_OVC) {
+                while ((row = sorter.queue.pop_external()) && row->key == 0) {
+                    if (sorter.queue.isEmpty()) {
+                        row = nullptr;
+                        break;
+                    }
+                }
+            } else {
+                while ((row = sorter.queue.pop_external())) {
+                    if (sorter.has_prev && row->equals(sorter.prev)) {
+                        if (sorter.queue.isEmpty()) {
+                            row = nullptr;
+                            break;
+                        }
+                        continue;
+                    }
                     break;
                 }
             }
         } else {
-            row = sorter.queue.pop_external();
+            return sorter.queue.pop_external();
         }
 
         if (row == nullptr) {
@@ -460,14 +473,30 @@ namespace ovc::iterators {
         }
         assert(!row->less(sorter.prev));
 
+        sorter.has_prev = true;
         sorter.prev = *row;
         return row;
 #else
         if constexpr (DISTINCT) {
-            Row *row;
-            while ((row = sorter.queue.pop_external()) && row->key == 0) {
-                if (sorter.queue.isEmpty()) {
-                    row = nullptr;
+            Row *row = nullptr;
+            if constexpr (USE_OVC) {
+                while ((row = sorter.queue.pop_external()) && row->key == 0) {
+                    if (sorter.queue.isEmpty()) {
+                        row = nullptr;
+                        break;
+                    }
+                }
+            } else {
+                while ((row = sorter.queue.pop_external())) {
+                    if (sorter.has_prev && row->equals(sorter.prev)) {
+                        if (sorter.queue.isEmpty()) {
+                            row = nullptr;
+                            break;
+                        }
+                        continue;
+                    }
+                    sorter.has_prev = true;
+                    sorter.prev = *row;
                     break;
                 }
             }

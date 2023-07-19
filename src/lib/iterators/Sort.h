@@ -26,9 +26,8 @@ namespace ovc::iterators {
         std::vector<io::ExternalRunR> external_runs;
         io::BufferManager buffer_manager;
         PriorityQueue<USE_OVC, Less> queue;
-#ifndef NDEBUG
-        Row prev = {0};
-#endif
+        Row prev;
+        bool has_prev;
 
         explicit Sorter();
 
