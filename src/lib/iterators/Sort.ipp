@@ -1,3 +1,5 @@
+#pragma once
+
 #include "lib/Row.h"
 #include "Sort.h"
 #include "lib/PriorityQueue.h"
@@ -9,8 +11,8 @@
 #include <vector>
 #include <sstream>
 
-#define INITIAL_RUNS ((1 << RUN_IDX_BITS) - 3)
-#define SORTER_WORKSPACE_CAPACITY (QUEUE_CAPACITY * INITIAL_RUNS)
+#define SORT_INITIAL_RUNS ((1 << RUN_IDX_BITS) - 3)
+#define SORTER_WORKSPACE_CAPACITY (QUEUE_CAPACITY * SORT_INITIAL_RUNS)
 
 namespace ovc::iterators {
 
@@ -20,7 +22,7 @@ namespace ovc::iterators {
     }
 
     template<bool DISTINCT, bool USE_OVC, class Less>
-     Sorter<DISTINCT, USE_OVC, Less>::Sorter(Iterator *input) :
+     Sorter<DISTINCT, USE_OVC, Less>::Sorter() :
             queue(QUEUE_CAPACITY),
             buffer_manager(1024),
             workspace(new Row[SORTER_WORKSPACE_CAPACITY]),
@@ -413,7 +415,7 @@ namespace ovc::iterators {
     }
 
     template<bool DISTINCT, bool USE_OVC, class Less>
-    SortBase<DISTINCT, USE_OVC, Less>::SortBase(Iterator *input) : UnaryIterator(input), sorter(input) {
+    SortBase<DISTINCT, USE_OVC, Less>::SortBase(Iterator *input) : UnaryIterator(input) {
         output_has_ovc = USE_OVC;
         output_is_sorted = true;
         output_is_unique = DISTINCT;
@@ -481,22 +483,4 @@ namespace ovc::iterators {
         Iterator::close();
         sorter.cleanup();
     }
-
-    template
-    class SortBase<false, false, RowLess>;
-
-    template
-    class SortBase<false, true, RowLessPrefix>;
-
-    template
-    class SortBase<true, true, RowLessPrefix>;
-
-    template
-    class SortBase<false, true>;
-
-    template
-    class SortBase<true, false>;
-
-    template
-    class SortBase<true, true>;
 }

@@ -210,14 +210,14 @@ namespace ovc {
 
     class RowLess {
     public:
-        bool operator() (const Row &lhs, const Row &rhs, OVC &ovc, unsigned int offset = 0, struct ovc_stats *stats = nullptr) {
+        bool operator() (const Row &lhs, const Row &rhs, OVC &ovc, unsigned int offset, struct ovc_stats *stats = nullptr) {
             return lhs.less(rhs, ovc, offset, stats);
         }
     };
 
     class RowLessPrefix {
     public:
-        bool operator() (const Row &lhs, const Row &rhs, OVC &ovc, unsigned int offset = 0, struct ovc_stats *stats = nullptr) {
+        bool operator() (const Row &lhs, const Row &rhs, OVC &ovc, unsigned offset, struct ovc_stats *stats) {
             return lhs.less_prefix(rhs, ovc, offset, row_less_prefix, stats);
         }
     };

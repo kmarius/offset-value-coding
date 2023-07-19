@@ -125,7 +125,6 @@ namespace ovc {
                     stats->comparisons_of_actual_rows++;
 
                     OVC ovc;
-                    //if (ws[index].row->less(*ws[node.index].row, ovc, NODE_OFFSET(key) + 1, stats)) {
                     if (Less{}(*ws[index].row, *ws[node.index].row, ovc, NODE_OFFSET(key) + 1, stats)) {
                         node.setOvc(ovc);
                         return true;

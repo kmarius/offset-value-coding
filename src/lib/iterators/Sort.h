@@ -1,15 +1,22 @@
 #pragma once
 
 #include "lib/defs.h"
-#include "Iterator.h"
 #include "lib/PriorityQueue.h"
 #include "lib/Run.h"
+#include "Iterator.h"
 #include "UnaryIterator.h"
 
 #include <vector>
 #include <queue>
 
 namespace ovc::iterators {
+
+    const bool DistinctOff = false;
+    const bool DistinctOn = true;
+
+    const bool OvcOff = false;
+    const bool OvcOn = true;
+
     template<bool DISTINCT, bool USE_OVC, class Less = RowLess>
     struct Sorter {
         Row *workspace;
@@ -18,12 +25,12 @@ namespace ovc::iterators {
         std::queue<std::string> external_run_paths;
         std::vector<io::ExternalRunR> external_runs;
         io::BufferManager buffer_manager;
-        PriorityQueue <USE_OVC, Less> queue;
+        PriorityQueue<USE_OVC, Less> queue;
 #ifndef NDEBUG
         Row prev = {0};
 #endif
 
-        explicit Sorter(Iterator *input);
+        explicit Sorter();
 
         ~Sorter();
 
@@ -82,8 +89,10 @@ namespace ovc::iterators {
         Sorter<DISTINCT, USE_OVC, Less> sorter;
     };
 
-    typedef SortBase<false, true> Sort;
-    typedef SortBase<true, true> SortDistinct;
-    typedef SortBase<false, false> SortNoOvc;
-    typedef SortBase<true, false> SortDistinctNoOvc;
+    typedef SortBase<DistinctOff, OvcOn> Sort;
+    typedef SortBase<DistinctOn, OvcOn> SortDistinct;
+    typedef SortBase<DistinctOff, OvcOff> SortNoOvc;
+    typedef SortBase<DistinctOn, OvcOff> SortDistinctNoOvc;
 }
+
+#include "Sort.ipp"
