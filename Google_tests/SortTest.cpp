@@ -41,6 +41,22 @@ protected:
         ASSERT_TRUE(plan->equal);
         delete plan;
     }
+
+    void testSortedNoOvc(size_t num_rows) {
+        auto gen = new Generator(num_rows, 100, SEED, true);
+        auto rows = Generator(num_rows, 100, SEED, true).collect();
+        auto sorted = new AssertSorted(new SortNoOvc(gen));
+        std::sort(rows.begin(), rows.end(),
+                  [](const Row &a, const Row &b) -> bool {
+                      return a.less(b);
+                  });
+        auto *plan = new AssertEqual(sorted, new VectorScan(rows));
+        plan->run();
+        ASSERT_TRUE(sorted->isSorted());
+        ASSERT_EQ(sorted->count(), num_rows);
+        ASSERT_TRUE(plan->equal);
+        delete plan;
+    }
 };
 
 TEST_F(SortTest, EmptyTest) {
@@ -122,3 +138,64 @@ TEST_F(SortTest, SortMediumButABitLarger2) {
 TEST_F(SortTest, SortLarge) {
     testSorted(INITIAL_RUNS * QUEUE_SIZE * 8);
 }
+
+
+TEST_F(SortTest, SortEmptyNoOvc) {
+    testSortedNoOvc(0);
+}
+
+TEST_F(SortTest, SortOneNoOvc) {
+    testSortedNoOvc(1);
+}
+
+TEST_F(SortTest, SortTwoNoOvc) {
+    testSortedNoOvc(2);
+}
+
+TEST_F(SortTest, SortTinyNoOvc) {
+    testSortedNoOvc(5);
+}
+
+TEST_F(SortTest, SortSmallNoOvc) {
+    testSortedNoOvc(QUEUE_SIZE);
+}
+
+TEST_F(SortTest, SortSmallNoOvc2) {
+    testSortedNoOvc(QUEUE_SIZE * 3 / 2);
+}
+
+TEST_F(SortTest, SortSmallishNoOvc) {
+    testSortedNoOvc(QUEUE_SIZE * 3);
+}
+
+TEST_F(SortTest, SortSmallishNoOvc2) {
+    testSortedNoOvc(QUEUE_SIZE * 4);
+}
+
+TEST_F(SortTest, SortSmallishNoOvc3) {
+    testSortedNoOvc(QUEUE_SIZE * 5);
+}
+
+TEST_F(SortTest, SortSmallishNoOvc4) {
+    testSortedNoOvc(QUEUE_SIZE * 6);
+}
+
+TEST_F(SortTest, SortMediumNoOvc) {
+    testSorted(INITIAL_RUNS * QUEUE_SIZE);
+}
+
+//TEST_F(SortTest, SortMediumButSmallerNoOvc) {
+//    testSorted(INITIAL_RUNS * QUEUE_SIZE - QUEUE_SIZE / 2);
+//}
+//
+//TEST_F(SortTest, SortMediumButABitLargerNoOvc) {
+//    testSorted(INITIAL_RUNS * QUEUE_SIZE + QUEUE_SIZE / 2);
+//}
+//
+TEST_F(SortTest, SortMediumButABitLargerNoOvc2) {
+    testSorted(INITIAL_RUNS * QUEUE_SIZE + QUEUE_SIZE * 3 / 2);
+}
+//
+//TEST_F(SortTest, SortLargeNoOvc) {
+//    testSorted(INITIAL_RUNS * QUEUE_SIZE * 8);
+//}
