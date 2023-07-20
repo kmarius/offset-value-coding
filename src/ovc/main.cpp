@@ -303,10 +303,10 @@ void test_join_tiny() {
     delete join;
 }
 
-void test_join() {
+void test_merge_join() {
     unsigned upper = 128;
-    unsigned join_columns = 4;
-    unsigned num_rows = 1000000;
+    unsigned join_columns = 2;
+    unsigned num_rows = 10000;
 
     auto *left = new Sort(new GeneratorZeroPrefix(num_rows, upper));
     auto *right = new Sort(new GeneratorZeroPrefix(num_rows, upper));
@@ -320,20 +320,30 @@ void test_join() {
 }
 
 
-void test_hash_join() {
-    unsigned upper = 128;
-    unsigned join_columns = 4;
-    unsigned num_rows = 1000000;
+void compare_joins() {
+    int upper = 128;
+    int join_columns = 3;
+    int num_rows = 1000000;
 
     auto *left = new GeneratorZeroPrefix(num_rows, upper);
     auto *right = new GeneratorZeroPrefix(num_rows, upper);
-    auto *join = new LeftSemiHashJoin(left, right, join_columns);
+
+    auto *merge_join = new LeftSemiJoin(new Sort(left->clone()), new Sort(right->clone()), join_columns);
+    auto *hash_join = new LeftSemiHashJoin(left, right, join_columns);
 
     auto expected = (unsigned) (1.0 * num_rows * (1.0 - pow(1 - 1.0 / pow(upper, join_columns), num_rows)));
     log_info("expecting approx. %u results", expected);
 
-    join->run();
-    delete join;
+    auto start = now();
+    merge_join->run();
+    log_info("merge join: %lums", since(start));
+    start = now();
+
+    hash_join->run();
+    log_info("hash join: %lums", since(start));
+
+    delete merge_join;
+    delete hash_join;
 }
 
 void test_compare_prefix() {
@@ -368,8 +378,8 @@ int main(int argc, char *argv[]) {
 
     //test_generic_priorityqueue();
 
-    //test_join();
-    test_hash_join();
+    // test_merge_join();
+    compare_joins();
 
     //test_compare_prefix();
 

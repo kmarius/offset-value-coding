@@ -13,7 +13,6 @@ namespace ovc {
     Partitioner::Partitioner(int num_partitions)
             : num_partitions(num_partitions), bufferManager(num_partitions << 1) {
         assert(num_partitions > 0);
-        log_info("num_partitions=%d", num_partitions);
 
         partitions.reserve(num_partitions);
         for (int i = 0; i < num_partitions; i++) {
