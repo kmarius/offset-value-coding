@@ -1,14 +1,12 @@
 #pragma once
 
-#include "Iterator.h"
+#include "BinaryIterator.h"
 
 namespace ovc::iterators {
 
-    class AssertEqual : public Iterator {
+    class AssertEqual : public BinaryIterator {
     public:
         AssertEqual(Iterator *left, Iterator *right);
-
-        ~AssertEqual() override;
 
         void open() override;
 
@@ -19,9 +17,8 @@ namespace ovc::iterators {
         void close() override;
 
         bool equal;
+
     private:
-        Iterator *left_;
-        Iterator *right_;
         unsigned long count;
     };
 }
