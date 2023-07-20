@@ -24,7 +24,7 @@ protected:
 
 TEST_F(GroupByTest, EmptyTest) {
     auto *plan = new AssertEqual(
-            new GroupBy(new SortBase<DistinctOff, OvcOn, RowLessPrefix>(new GeneratorZeroSuffix(0, 0, 0)), 4),
+            new GroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(new GeneratorZeroSuffix(0, 0, 0), RowCmpPrefix{4}), 4),
             new VectorScan({})
     );
     plan->run();
@@ -34,7 +34,7 @@ TEST_F(GroupByTest, EmptyTest) {
 
 TEST_F(GroupByTest, OneColumnSimple) {
     auto *plan = new AssertEqual(
-            new GroupBy(new SortBase<DistinctOff, OvcOn, RowLessPrefix>(
+            new GroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(
                     new VectorScan({
                                            {0, 0, {0, 1}},
                                            {0, 1, {0, 2}},
@@ -43,14 +43,13 @@ TEST_F(GroupByTest, OneColumnSimple) {
                                            {0, 4, {1, 5}},
                                            {0, 3, {2, 6}},
                                            {0, 4, {2, 7}},
-                                   })), 1),
+                                   }), RowCmpPrefix(1)), 1),
             new VectorScan({
                                    {0, 0, {0, 2}},
                                    {0, 0, {1, 3}},
                                    {0, 0, {2, 2}},
                            })
     );
-    row_less_prefix = 1;
     plan->run();
     ASSERT_TRUE(plan->equal);
     delete plan;
@@ -58,7 +57,7 @@ TEST_F(GroupByTest, OneColumnSimple) {
 
 TEST_F(GroupByTest, TwoColumnsSimple) {
     auto *plan = new AssertEqual(
-            new GroupBy(new SortBase<DistinctOff, OvcOn, RowLessPrefix>(
+            new GroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(
                     new VectorScan({
                                            {0, 0, {0, 1, 5}},
                                            {0, 1, {0, 1, 5}},
@@ -67,7 +66,7 @@ TEST_F(GroupByTest, TwoColumnsSimple) {
                                            {0, 4, {1, 3, 7}},
                                            {0, 3, {2, 7, 2}},
                                            {0, 4, {2, 7, 9}},
-                                   })), 2),
+                                   }), RowCmpPrefix{2}), 2),
             new VectorScan({
                                    {0, 0, {0, 1, 2}},
                                    {0, 0, {1, 2, 1}},
@@ -75,7 +74,6 @@ TEST_F(GroupByTest, TwoColumnsSimple) {
                                    {0, 0, {2, 7, 2}},
                            })
     );
-    row_less_prefix = 2;
     plan->run();
     ASSERT_TRUE(plan->equal);
     delete plan;
@@ -85,7 +83,7 @@ TEST_F(GroupByTest, DoesntLoseRows) {
     unsigned num_rows = 100000;
     int group_columns = 2;
 
-    auto *plan = new GroupBy(new SortBase<DistinctOff, OvcOn, RowLessPrefix>(new GeneratorZeroSuffix(num_rows, 32, 5)), group_columns);
+    auto *plan = new GroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(new GeneratorZeroSuffix(num_rows, 32, 5), RowCmpPrefix(group_columns)), group_columns);
     plan->open();
     unsigned count = 0;
     for (Row *row; (row = plan->next()); plan->free()) {
@@ -99,9 +97,8 @@ TEST_F(GroupByTest, DoesntLoseRows) {
 TEST_F(GroupByTest, DoesntLoseRows2) {
     unsigned num_rows = 100000;
     int group_columns = 4;
-    row_less_prefix = group_columns;
 
-    auto *plan = new GroupBy(new SortBase<DistinctOff, OvcOn, RowLessPrefix>(new GeneratorZeroSuffix(num_rows, 32, 3)), group_columns);
+    auto *plan = new GroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(new GeneratorZeroSuffix(num_rows, 32, 3), RowCmpPrefix(group_columns)), group_columns);
     plan->open();
     unsigned count = 0;
     for (Row *row; (row = plan->next()); plan->free()) {

@@ -17,19 +17,20 @@ namespace ovc::iterators {
     const bool OvcOff = false;
     const bool OvcOn = true;
 
-    template<bool DISTINCT, bool USE_OVC, class Less = RowLess>
+    template<bool DISTINCT, bool USE_OVC, typename Compare = RowCmp>
     struct Sorter {
+        Compare cmp;
         Row *workspace;
         size_t workspace_size;
         std::vector<MemoryRun> memory_runs;
         std::queue<std::string> external_run_paths;
         std::vector<io::ExternalRunR> external_runs;
         io::BufferManager buffer_manager;
-        PriorityQueue<USE_OVC, Less> queue;
+        PriorityQueue<USE_OVC, Compare> queue;
         Row prev;
         bool has_prev;
 
-        explicit Sorter();
+        explicit Sorter(const Compare &cmp = Compare());
 
         ~Sorter();
 
@@ -65,10 +66,10 @@ namespace ovc::iterators {
         void insert_external_runs(size_t fan_in);
     };
 
-    template<bool DISTINCT, bool USE_OVC, class Less = RowLess>
+    template<bool DISTINCT, bool USE_OVC, typename Compare = RowCmp>
     class SortBase : public UnaryIterator {
     public:
-        explicit SortBase(Iterator *input);
+        explicit SortBase(Iterator *input, const Compare &cmp = Compare());
 
         void open() override;
 
@@ -85,7 +86,8 @@ namespace ovc::iterators {
         }
 
     private:
-        Sorter<DISTINCT, USE_OVC, Less> sorter;
+        Sorter<DISTINCT, USE_OVC, Compare> sorter;
+        Compare cmp;
     };
 
     typedef SortBase<DistinctOff, OvcOn> Sort;

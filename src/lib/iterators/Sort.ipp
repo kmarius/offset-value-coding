@@ -21,21 +21,22 @@ namespace ovc::iterators {
         return std::string(BASEDIR "/run_" + std::to_string(i++) + ".dat");
     }
 
-    template<bool DISTINCT, bool USE_OVC, class Less>
-    Sorter<DISTINCT, USE_OVC, Less>::Sorter() :
-            queue(QUEUE_CAPACITY),
+    template<bool DISTINCT, bool USE_OVC, typename Compare>
+    Sorter<DISTINCT, USE_OVC, Compare>::Sorter(const Compare &cmp) :
+            cmp(cmp),
+            queue(QUEUE_CAPACITY, cmp),
             buffer_manager(1024),
             workspace(new Row[SORTER_WORKSPACE_CAPACITY]),
             workspace_size(0) {
     }
 
-    template<bool DISTINCT, bool USE_OVC, class Less>
-    Sorter<DISTINCT, USE_OVC, Less>::~Sorter() {
+    template<bool DISTINCT, bool USE_OVC, typename Compare>
+    Sorter<DISTINCT, USE_OVC, Compare>::~Sorter() {
         cleanup();
     };
 
-    template<bool DISTINCT, bool USE_OVC, class Less>
-    void Sorter<DISTINCT, USE_OVC, Less>::cleanup() {
+    template<bool DISTINCT, bool USE_OVC, typename Compare>
+    void Sorter<DISTINCT, USE_OVC, Compare>::cleanup() {
         delete[] workspace;
         workspace = nullptr;
         for (auto &run: external_runs) {
@@ -47,8 +48,8 @@ namespace ovc::iterators {
         };
     }
 
-    template<bool DISTINCT, bool USE_OVC, class Less>
-    bool Sorter<DISTINCT, USE_OVC, Less>::generate_initial_runs(Iterator *input) {
+    template<bool DISTINCT, bool USE_OVC, typename Compare>
+    bool Sorter<DISTINCT, USE_OVC, Compare>::generate_initial_runs(Iterator *input) {
         log_trace("SortBase::generate_initial_runs()");
 
         size_t runs_generated = 0;
@@ -107,11 +108,11 @@ namespace ovc::iterators {
                     prev = {0};
                 }
                 Row *row_ = queue.top();
-                if (row_->less(prev)) {
+                if (cmp(*row_, prev)) {
                     log_error("prev: %s", prev.c_str());
                     log_error("cur:  %s", row_->c_str());
                 }
-                assert(!row_->less(prev));
+                assert(!cmp(*row_, prev));
                 prev = *row_;
             }
 #endif
@@ -131,7 +132,7 @@ namespace ovc::iterators {
             assert(queue.isCorrect());
 
             if (inserted == QUEUE_CAPACITY) {
-                assert(run.isSorted());
+                assert(run.isSorted(cmp));
                 memory_runs.push_back(std::move(run));
                 run = {};
                 insert_run_index++;
@@ -253,7 +254,7 @@ namespace ovc::iterators {
         assert(queue.isCorrect());
         for (auto &r: memory_runs) {
             assert(r.size() > 0);
-            assert(r.isSorted());
+            assert(r.isSorted(cmp));
         }
 
         runs_generated++;
@@ -271,8 +272,8 @@ namespace ovc::iterators {
 // assume: priority queue is filled with in-memory memory_runs
 // output memory_runs are external
 // ends with isEmpty priority queue
-    template<bool DISTINCT, bool USE_OVC, class Less>
-    void Sorter<DISTINCT, USE_OVC, Less>::merge_in_memory() {
+    template<bool DISTINCT, bool USE_OVC, typename Compare>
+    void Sorter<DISTINCT, USE_OVC, Compare>::merge_in_memory() {
         log_trace("SortBase::merge_in_memory()");
         if (queue.isEmpty()) {
             return;
@@ -291,12 +292,12 @@ namespace ovc::iterators {
 #ifndef NDEBUG
             {
                 Row *row = queue.top();
-                if (row->less(prev)) {
+                if (cmp(*row, prev)) {
                     log_error("SortBase::merge_memory(): not ascending");
                     log_error("SortBase::merge_memory(): prev %s", prev.c_str());
                     log_error("SortBase::merge_memory(): cur  %s", row->c_str());
                 }
-                assert(!row->less(prev));
+                assert(!cmp(*row, prev));
                 prev = *row;
             }
 #endif
@@ -319,8 +320,8 @@ namespace ovc::iterators {
         memory_runs.clear();
     }
 
-    template<bool DISTINCT, bool USE_OVC, class Less>
-    void Sorter<DISTINCT, USE_OVC, Less>::insert_external_runs(size_t fan_in) {
+    template<bool DISTINCT, bool USE_OVC, typename Compare>
+    void Sorter<DISTINCT, USE_OVC, Compare>::insert_external_runs(size_t fan_in) {
         assert(fan_in <= QUEUE_CAPACITY);
         assert(queue.isEmpty());
         assert(external_run_paths.size() >= fan_in);
@@ -340,8 +341,8 @@ namespace ovc::iterators {
         queue.flush_sentinels();
     }
 
-    template<bool DISTINCT, bool USE_OVC, class Less>
-    std::string Sorter<DISTINCT, USE_OVC, Less>::merge_external_runs(size_t fan_in) {
+    template<bool DISTINCT, bool USE_OVC, typename Compare>
+    std::string Sorter<DISTINCT, USE_OVC, Compare>::merge_external_runs(size_t fan_in) {
         log_trace("merging %lu external runs", QUEUE_CAPACITY);
         insert_external_runs(fan_in);
 
@@ -357,12 +358,12 @@ namespace ovc::iterators {
             {
                 Row *row_ = queue.top();
                 const std::string &run_path = queue.top_path();
-                if (row_->less(prev)) {
+                if (cmp(*row_, prev)) {
                     log_error("SortBase::merge_external(): not ascending in run %s", run_path.c_str());
                     log_error("SortBase::merge_external(): prev %s", prev.c_str());
                     log_error("SortBase::merge_external(): cur  %s", row_->c_str());
                 }
-                assert(!row_->less(prev));
+                assert(!cmp(*row_, prev));
                 prev = *row_;
             }
 #endif
@@ -386,8 +387,8 @@ namespace ovc::iterators {
         return path;
     }
 
-    template<bool DISTINCT, bool USE_OVC, class Less>
-    void Sorter<DISTINCT, USE_OVC, Less>::consume(Iterator *input_) {
+    template<bool DISTINCT, bool USE_OVC, typename Compare>
+    void Sorter<DISTINCT, USE_OVC, Compare>::consume(Iterator *input_) {
         for (bool has_more_input = true; has_more_input;) {
             has_more_input = generate_initial_runs(input_);
             merge_in_memory();
@@ -414,23 +415,24 @@ namespace ovc::iterators {
         log_trace("Sorter::consume() fan-in for the last merge step is %lu", external_runs.size());
     }
 
-    template<bool DISTINCT, bool USE_OVC, class Less>
-    SortBase<DISTINCT, USE_OVC, Less>::SortBase(Iterator *input) : UnaryIterator(input) {
+    template<bool DISTINCT, bool USE_OVC, typename Compare>
+    SortBase<DISTINCT, USE_OVC, Compare>::SortBase(Iterator *input, const Compare &cmp)
+            : UnaryIterator(input), cmp(cmp), sorter(cmp) {
         output_has_ovc = USE_OVC;
         output_is_sorted = true;
         output_is_unique = DISTINCT;
     };
 
-    template<bool DISTINCT, bool USE_OVC, class Less>
-    void SortBase<DISTINCT, USE_OVC, Less>::open() {
+    template<bool DISTINCT, bool USE_OVC, typename Compare>
+    void SortBase<DISTINCT, USE_OVC, Compare>::open() {
         Iterator::open();
         input_->open();
         sorter.consume(input_);
         input_->close();
     }
 
-    template<bool DISTINCT, bool USE_OVC, class Less>
-    Row *SortBase<DISTINCT, USE_OVC, Less>::next() {
+    template<bool DISTINCT, bool USE_OVC, typename Compare>
+    Row *SortBase<DISTINCT, USE_OVC, Compare>::next() {
         if (sorter.queue.isEmpty()) {
             return nullptr;
         }
@@ -465,13 +467,13 @@ namespace ovc::iterators {
             return nullptr;
         }
 
-        if (row->less(sorter.prev)) {
+        if (cmp(*row, sorter.prev)) {
             const std::string &run_path = sorter.queue.top_path();
             log_error("SortBase::merge_external(): not ascending in run %s", run_path.c_str());
             log_error("SortBase::merge_external(): prev %s", sorter.prev.c_str());
             log_error("SortBase::merge_external(): cur  %s", row->c_str());
         }
-        assert(!row->less(sorter.prev));
+        assert(!cmp(*row, sorter.prev));
 
         sorter.has_prev = true;
         sorter.prev = *row;
@@ -507,8 +509,8 @@ namespace ovc::iterators {
 #endif
     }
 
-    template<bool DISTINCT, bool USE_OVC, class Less>
-    void SortBase<DISTINCT, USE_OVC, Less>::close() {
+    template<bool DISTINCT, bool USE_OVC, typename Compare>
+    void SortBase<DISTINCT, USE_OVC, Compare>::close() {
         Iterator::close();
         sorter.cleanup();
     }

@@ -33,16 +33,16 @@
 
 namespace ovc {
 
-    template<bool USE_OVC, class Less>
-    struct PriorityQueueBase<USE_OVC, Less>::WorkspaceItem {
+    template<bool USE_OVC, typename Compare>
+    struct PriorityQueueBase<USE_OVC, Compare>::WorkspaceItem {
         Row *row;
         void *udata;
 
         WorkspaceItem() = default;
     };
 
-    template<bool USE_OVC, class Less>
-    struct PriorityQueueBase<USE_OVC, Less>::Node {
+    template<bool USE_OVC, typename Compare>
+    struct PriorityQueueBase<USE_OVC, Compare>::Node {
         /* Sort key in this priority queue. */
         node_key_t key;
 
@@ -105,7 +105,7 @@ namespace ovc {
         }
 
         // sets ovc of the loser w.r.t. the winner
-        inline bool less(Node &node, WorkspaceItem *ws, struct ovc_stats *stats = nullptr) {
+        inline bool less(Node &node, Compare &cmp, WorkspaceItem *ws, struct ovc_stats *stats = nullptr) {
             stats->comparisons++;
 
             if constexpr (!USE_OVC) {
@@ -125,7 +125,7 @@ namespace ovc {
                     stats->comparisons_of_actual_rows++;
 
                     OVC ovc;
-                    if (Less{}(*ws[index].row, *ws[node.index].row, ovc, NODE_OFFSET(key) + 1, stats)) {
+                    if (cmp(*ws[index].row, *ws[node.index].row, ovc, NODE_OFFSET(key) + 1, stats)) {
                         node.setOvc(ovc);
                         return true;
                     } else {
@@ -151,9 +151,9 @@ namespace ovc {
         }
     };
 
-
-    template<bool USE_OVC, class Less>
-    PriorityQueueBase<USE_OVC, Less>::PriorityQueueBase(size_t capacity) : capacity_(capacity), size_(0) {
+    template<bool USE_OVC, typename Compare>
+    PriorityQueueBase<USE_OVC, Compare>::PriorityQueueBase(size_t capacity, const Compare &cmp)
+            : capacity_(capacity), size_(0), cmp(cmp), stats() {
         assert(std::__popcount(capacity) == 1);
         assert(PRIORITYQUEUE_CAPACITY >= (1 << RUN_IDX_BITS) - 3);
         workspace = new WorkspaceItem[capacity];
@@ -165,16 +165,15 @@ namespace ovc {
         log_info("PriorityQueue capacity=%lu", capacity);
     }
 
-    template<bool USE_OVC, class Less>
-    bool PriorityQueueBase<USE_OVC, Less>::isCorrect() const {
+    template<bool USE_OVC, typename Compare>
+    bool PriorityQueueBase<USE_OVC, Compare>::isCorrect() const {
         for (Index i = 0; i < capacity() / 2; i++) {
             for (Index j = capacity() / 2 + heap[i].index / 2; j > i; j = parent(j)) {
                 if (!heap[j].isValid()) {
                     continue;
                 }
-
                 if (heap[j].key <= heap[i].key &&
-                    workspace[heap[j].index].row->less(*workspace[heap[i].index].row)) {
+                    cmp(*workspace[heap[j].index].row, *workspace[heap[i].index].row)) {
 #ifndef NDEBUG
                     log_error("Element at position %lu is not smaller than the one in position %lu", i, j);
                     // TODO: log the queue here
@@ -186,23 +185,23 @@ namespace ovc {
         return true;
     }
 
-    template<bool USE_OVC, class Less>
-    PriorityQueueBase<USE_OVC, Less>::~PriorityQueueBase() {
+    template<bool USE_OVC, typename Compare>
+    PriorityQueueBase<USE_OVC, Compare>::~PriorityQueueBase() {
         delete[] workspace;
         delete[] heap;
     }
 
 
-    template<bool USE_OVC, class Less>
-    Row *PriorityQueueBase<USE_OVC, Less>::pop_safe(Index run_index) {
+    template<bool USE_OVC, typename Compare>
+    Row *PriorityQueueBase<USE_OVC, Compare>::pop_safe(Index run_index) {
         while (heap[0].isLowSentinel()) {
             flush_sentinel();
         }
         return pop(run_index);
     }
 
-    template<bool USE_OVC, class Less>
-    void PriorityQueueBase<USE_OVC, Less>::flush_sentinel(bool safe) {
+    template<bool USE_OVC, typename Compare>
+    void PriorityQueueBase<USE_OVC, Compare>::flush_sentinel(bool safe) {
         if (safe) {
             if (heap[0].isLowSentinel()) {
                 pass(heap[0].index, HIGH_SENTINEL(MERGE_RUN_IDX));
@@ -213,40 +212,40 @@ namespace ovc {
         }
     }
 
-    template<bool USE_OVC, class Less>
-    void PriorityQueueBase<USE_OVC, Less>::flush_sentinels() {
+    template<bool USE_OVC, typename Compare>
+    void PriorityQueueBase<USE_OVC, Compare>::flush_sentinels() {
         for (int i = size_; i < capacity_; i++) {
             Index workspace_index = heap[0].index;
             pass(workspace_index, HIGH_SENTINEL(MERGE_RUN_IDX));
         }
     }
 
-    template<bool USE_OVC, class Less>
-    std::string PriorityQueueBase<USE_OVC, Less>::to_string() const {
+    template<bool USE_OVC, typename Compare>
+    std::string PriorityQueueBase<USE_OVC, Compare>::to_string() const {
         std::stringstream stream;
         stream << *this << std::endl;
         return stream.str();
     }
 
-    template<bool USE_OVC, class Less>
-    size_t PriorityQueueBase<USE_OVC, Less>::top_run_idx() {
+    template<bool USE_OVC, typename Compare>
+    size_t PriorityQueueBase<USE_OVC, Compare>::top_run_idx() {
         return heap[0].run_index();
     }
 
-    template<bool USE_OVC, class Less>
-    void *PriorityQueueBase<USE_OVC, Less>::top_udata() {
+    template<bool USE_OVC, typename Compare>
+    void *PriorityQueueBase<USE_OVC, Compare>::top_udata() {
         assert(!isEmpty());
         return workspace[heap[0].index].udata;
     }
 
-    template<bool USE_OVC, class Less>
-    Row *PriorityQueueBase<USE_OVC, Less>::top() {
+    template<bool USE_OVC, typename Compare>
+    Row *PriorityQueueBase<USE_OVC, Compare>::top() {
         assert(!isEmpty());
         return workspace[heap[0].index].row;
     }
 
-    template<bool USE_OVC, class Less>
-    Row *PriorityQueueBase<USE_OVC, Less>::pop(Index run_index) {
+    template<bool USE_OVC, typename Compare>
+    Row *PriorityQueueBase<USE_OVC, Compare>::pop(Index run_index) {
         assert(!isEmpty());
         assert(!heap[0].isLowSentinel());
 
@@ -263,8 +262,8 @@ namespace ovc {
         return res;
     }
 
-    template<bool USE_OVC, class Less>
-    void PriorityQueueBase<USE_OVC, Less>::push(Row *row, Index run_index, void *udata) {
+    template<bool USE_OVC, typename Compare>
+    void PriorityQueueBase<USE_OVC, Compare>::push(Row *row, Index run_index, void *udata) {
         assert(size_ < capacity_);
         assert(heap[0].isLowSentinel());
         assert(row != nullptr);
@@ -277,19 +276,19 @@ namespace ovc {
         size_++;
     }
 
-    template<bool USE_OVC, class Less>
-    void PriorityQueueBase<USE_OVC, Less>::pass(Index index, Key key) {
+    template<bool USE_OVC, typename Compare>
+    void PriorityQueueBase<USE_OVC, Compare>::pass(Index index, Key key) {
         Node candidate(index, key);
         for (Index slot = capacity_ / 2 + index / 2; slot != 0; slot /= 2) {
-            if (heap[slot].less(candidate, workspace, &stats)) {
+            if (heap[slot].less(candidate, cmp, workspace, &stats)) {
                 heap[slot].swap(candidate);
             }
         }
         heap[0] = candidate;
     }
 
-    template<bool USE_OVC, class Less>
-    void PriorityQueueBase<USE_OVC, Less>::reset() {
+    template<bool USE_OVC, typename Compare>
+    void PriorityQueueBase<USE_OVC, Compare>::reset() {
         assert(isEmpty());
         for (int i = 0; i < capacity(); i++) {
             heap[i].key = LOW_SENTINEL(0);

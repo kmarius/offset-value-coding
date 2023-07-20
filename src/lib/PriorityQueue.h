@@ -20,11 +20,11 @@ namespace ovc {
 
     typedef unsigned long Key;
 
-    template<bool USE_OVC, class Less>
+    template<bool USE_OVC, typename Compare>
     class PriorityQueueBase {
     public:
 
-        PriorityQueueBase(size_t capacity);
+        PriorityQueueBase(size_t capacity, const Compare &cmp = Compare());
 
         ~PriorityQueueBase();
 
@@ -98,7 +98,7 @@ namespace ovc {
             return stats;
         }
 
-        friend std::ostream &operator<<(std::ostream &o, const PriorityQueueBase<USE_OVC, Less> &pq) {
+        friend std::ostream &operator<<(std::ostream &o, const PriorityQueueBase<USE_OVC, Compare> &pq) {
             for (size_t i = 0; i < pq.capacity(); i++) {
                 if (i > 0) {
                     o << std::endl;
@@ -120,17 +120,18 @@ namespace ovc {
         Node *heap;
         WorkspaceItem *workspace;
         struct ovc_stats stats;
+        Compare cmp;
     };
 
-    template<bool USE_OVC, class Less = RowLess>
-    class PriorityQueue : public PriorityQueueBase<USE_OVC, Less> {
+    template<bool USE_OVC, typename Compare = RowCmp>
+    class PriorityQueue : public PriorityQueueBase<USE_OVC, Compare> {
 
     public:
-        explicit PriorityQueue(size_t capacity) : PriorityQueueBase<USE_OVC, Less>(capacity) {};
+        explicit PriorityQueue(size_t capacity, const Compare &less = Compare()) : PriorityQueueBase<USE_OVC, Compare>(capacity, less) {};
 
         template<class T = void>
         inline void push(Row *row, Index run_index, T *udata = nullptr) {
-            PriorityQueueBase<USE_OVC, Less>::push(row, run_index, reinterpret_cast<void *>(udata));
+            PriorityQueueBase<USE_OVC, Compare>::push(row, run_index, reinterpret_cast<void *>(udata));
         }
 
         template<class T = void>

@@ -74,9 +74,10 @@ namespace ovc {
          * Check if the run is sorted.
          * @return True if the run is sorted. False otherwise.
          */
-        bool isSorted() {
+         template<typename Compare = RowCmp>
+        bool isSorted(const Compare &cmp = RowCmp{}) {
             for (int i = 1; i < data.size(); i++) {
-                if (data[i]->less(*data[i - 1])) {
+                if (cmp(*data[i], *data[i - 1])) {
                     return false;
                 }
             }

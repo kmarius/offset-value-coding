@@ -47,8 +47,6 @@ namespace ovc {
 
     extern unsigned long row_equal_prefix;
 
-    extern unsigned long row_less_prefix;
-
     struct OVC_s {
         ovc_type_t ovc;
 
@@ -104,7 +102,7 @@ namespace ovc {
         };
 
         /**
-         * less-than semantics
+         * cmp-than semantics
          * @param row
          * @return
          */
@@ -117,12 +115,13 @@ namespace ovc {
             return false;
         }
 
-        static bool cmp(const Row &lhs, const Row &rhs, OVC &ovc, unsigned int offset = 0, struct ovc_stats *stats = nullptr) {
+        static bool
+        cmp(const Row &lhs, const Row &rhs, OVC &ovc, unsigned int offset = 0, struct ovc_stats *stats = nullptr) {
             return lhs.less(rhs, ovc, offset, stats);
         }
 
         /**
-         * less-than semantics, writes the OVC of the loser w.r.t the winner to the provided address
+         * cmp-than semantics, writes the OVC of the loser w.r.t the winner to the provided address
          * @param row
          * @param ovc
          * @return
@@ -163,7 +162,8 @@ namespace ovc {
             }
         }
 
-        inline bool less_prefix(const Row &row, OVC &ovc, unsigned int offset, unsigned cmp_columns, struct ovc_stats *stats) const {
+        inline bool less_prefix(const Row &row, OVC &ovc, unsigned int offset, unsigned cmp_columns,
+                                struct ovc_stats *stats) const {
             long cmp;
 
 #ifndef NDEBUG
@@ -222,17 +222,32 @@ namespace ovc {
         friend std::ostream &operator<<(std::ostream &stream, const Row &row);
     } Row;
 
-    class RowLess {
+    struct RowCmp {
     public:
-        bool operator() (const Row &lhs, const Row &rhs, OVC &ovc, unsigned int offset, struct ovc_stats *stats = nullptr) {
+        bool operator()(const Row &lhs, const Row &rhs, OVC &ovc, unsigned offset, struct ovc_stats *stats) const {
             return lhs.less(rhs, ovc, offset, stats);
+        }
+
+        bool operator()(const Row &lhs, const Row &rhs) const {
+            OVC ovc;
+            return lhs.less(rhs, ovc, 0, nullptr);
         }
     };
 
-    class RowLessPrefix {
+    struct RowCmpPrefix {
+        const int prefix;
     public:
-        bool operator() (const Row &lhs, const Row &rhs, OVC &ovc, unsigned offset, struct ovc_stats *stats) {
-            return lhs.less_prefix(rhs, ovc, offset, row_less_prefix, stats);
+        RowCmpPrefix() = delete;
+
+        explicit RowCmpPrefix(int prefix) : prefix(prefix) {};
+
+        bool operator()(const Row &lhs, const Row &rhs, OVC &ovc, unsigned offset, struct ovc_stats *stats) const {
+            return lhs.less_prefix(rhs, ovc, offset, prefix, stats);
+        }
+
+        bool operator()(const Row &lhs, const Row &rhs) const {
+            OVC ovc;
+            return lhs.less_prefix(rhs, ovc, 0, prefix, nullptr);
         }
     };
 }

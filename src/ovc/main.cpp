@@ -279,8 +279,8 @@ void compare_generate_vs_scan() {
 }
 
 void test_generic_priorityqueue() {
-    auto *plan = new SortBase<true, true, RowLessPrefix>(new GeneratorZeroPrefix(100, 10));
-    row_less_prefix = 2;
+    RowCmpPrefix cmp(2);
+    auto *plan = new SortBase<true, true, RowCmpPrefix>(new GeneratorZeroPrefix(100, 10), cmp);
     plan->run(true);
     delete plan;
 }
@@ -317,6 +317,13 @@ void test_join() {
     join->run();
     delete join;
 }
+
+void test_compare_prefix() {
+    auto *plan = new SortBase<false, true, RowCmpPrefix>(new GeneratorZeroPrefix(10, 128, 1), RowCmpPrefix{2});
+    plan->run(true);
+    delete plan;
+}
+
 int main(int argc, char *argv[]) {
     log_open(LOG_TRACE);
     log_set_quiet(false);
@@ -343,7 +350,9 @@ int main(int argc, char *argv[]) {
 
     //test_generic_priorityqueue();
 
-    test_join();
+    //test_join();
+
+    test_compare_prefix();
 
     log_info("elapsed=%lums", since(start));
 
