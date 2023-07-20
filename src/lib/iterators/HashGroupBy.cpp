@@ -7,8 +7,6 @@ namespace ovc::iterators {
     HashGroupBy::HashGroupBy(Iterator *input, int group_columns)
             : UnaryIterator(input), group_columns(group_columns), ind(0) {
         output_is_unique = true;
-        // global in Row.h
-        row_equal_prefix = group_columns;
     }
 
     void HashGroupBy::open() {
@@ -54,18 +52,12 @@ namespace ovc::iterators {
         return &rows[ind++];
     }
 
-    struct equal_prefix {
-        bool operator()(const Row &a, const Row &b) const {
-            return a.equal_prefix(b);
-        }
-    };
-
     std::vector<Row> HashGroupBy::process_partition(const std::string &path) {
         auto res = std::vector<Row>();
 
         ExternalRunR part(path, bufferManager, true);
 
-        auto counts = std::unordered_map<Row, unsigned long, std::hash<Row>, equal_prefix>();
+        auto counts = std::unordered_map<Row, unsigned long, std::hash<Row>, RowEqualPrefix>(128, std::hash<Row>(), RowEqualPrefix(group_columns));
         static int part_idx = 0;
         part_idx++;
 

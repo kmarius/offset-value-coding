@@ -45,8 +45,6 @@ namespace ovc {
 // statistics: number of times == was called
     extern unsigned long row_num_calls_to_equal;
 
-    extern unsigned long row_equal_prefix;
-
     struct OVC_s {
         ovc_type_t ovc;
 
@@ -78,17 +76,6 @@ namespace ovc {
          * @return
          */
         bool equals(const Row &row) const;
-
-        bool equal_prefix(const Row &row) const {
-            row_num_calls_to_equal++;
-            for (int i = 0; i < row_equal_prefix; i++) {
-                row_equality_column_comparisons++;
-                if (columns[i] != row.columns[i]) {
-                    return false;
-                }
-            }
-            return true;
-        }
 
         bool operator==(const Row &other) const {
             row_num_calls_to_equal++;

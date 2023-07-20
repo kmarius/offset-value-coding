@@ -9,8 +9,6 @@ namespace ovc {
     unsigned long row_num_calls_to_hash = 0;
     unsigned long row_num_calls_to_equal = 0;
 
-    unsigned long row_equal_prefix = 0;
-
     std::ostream &operator<<(std::ostream &stream, const Row &row) {
         stream << "[" << row.key << ": ";
         for (int i = 0; i < ROW_ARITY; ++i) {
