@@ -34,19 +34,6 @@ namespace ovc {
     }
 
 
-    const char *Row::c_str() const {
-        static char buf[128];
-        int pos = sprintf(buf, "[%d@%d:%lu: ", getOVC().getValue(), ROW_ARITY - getOVC().getOffset(), tid);
-        for (int i = 0; i < ROW_ARITY; i++) {
-            pos += sprintf(buf + pos, "%lu", columns[i]);
-            if (i < ROW_ARITY - 1) {
-                pos += sprintf(buf + pos, ", ");
-            }
-        }
-        sprintf(buf + pos, "]");
-        return buf;
-    }
-
 /*
  * https://en.m.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
  */

@@ -15,6 +15,8 @@
 #include "lib/iterators/GeneratorZeroSuffix.h"
 #include "lib/iterators/Shuffle.h"
 #include "lib/iterators/Scan.h"
+#include "lib/iterators/VectorScan.h"
+#include "lib/iterators/LeftSemiJoin.h"
 
 #include <vector>
 #include <iostream>
@@ -283,6 +285,38 @@ void test_generic_priorityqueue() {
     delete plan;
 }
 
+void test_join_tiny() {
+    auto *left = new VectorScan({
+                                        {0, 0, {1, 2, 7, 0}},
+                                        {0, 0, {1, 2, 3, 0}},
+                                        {0, 0, {1, 3, 8, 0}},
+
+                                });
+    auto *right = new VectorScan({
+                                        {0, 0, {1, 2, 0}},
+                                        {0, 0, {1, 3, 0}},
+
+                                });
+    auto *join = new LeftSemiJoin(left, right, 2);
+    join->run(true);
+    delete join;
+}
+
+void test_join() {
+    unsigned upper = 128;
+    unsigned join_columns = 4;
+    unsigned num_rows = 1000000;
+
+    auto *left = new Sort(new GeneratorZeroPrefix(num_rows, upper));
+    auto *right = new Sort(new GeneratorZeroPrefix(num_rows, upper));
+    auto *join = new LeftSemiJoin(left, right, join_columns);
+
+    auto expected = (unsigned) (1.0 * num_rows * (1.0 - pow(1 - 1.0 / pow(upper, join_columns), num_rows)));
+    log_info("expecting approx. %u results", expected);
+
+    join->run();
+    delete join;
+}
 int main(int argc, char *argv[]) {
     log_open(LOG_TRACE);
     log_set_quiet(false);
@@ -307,7 +341,9 @@ int main(int argc, char *argv[]) {
 
     //compare_generate_vs_scan();
 
-    test_generic_priorityqueue();
+    //test_generic_priorityqueue();
+
+    test_join();
 
     log_info("elapsed=%lums", since(start));
 
@@ -315,3 +351,4 @@ int main(int argc, char *argv[]) {
     log_close();
     return 0;
 }
+

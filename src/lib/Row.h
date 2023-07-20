@@ -203,7 +203,21 @@ namespace ovc {
          * Get a string representation (in a statically allocated buffer).
          * @return The string.
          */
-        const char *c_str() const;
+        const char *c_str(char *buf = nullptr) const {
+            static char sbuf[128];
+            if (buf == nullptr) {
+                buf = sbuf;
+            }
+            int pos = sprintf(buf, "[%d@%d:%lu: ", getOVC().getValue(), ROW_ARITY - getOVC().getOffset(), tid);
+            for (int i = 0; i < ROW_ARITY; i++) {
+                pos += sprintf(buf + pos, "%lu", columns[i]);
+                if (i < ROW_ARITY - 1) {
+                    pos += sprintf(buf + pos, ", ");
+                }
+            }
+            sprintf(buf + pos, "]");
+            return buf;
+        }
 
         friend std::ostream &operator<<(std::ostream &stream, const Row &row);
     } Row;
