@@ -17,6 +17,7 @@
 #include "lib/iterators/Scan.h"
 #include "lib/iterators/VectorScan.h"
 #include "lib/iterators/LeftSemiJoin.h"
+#include "lib/iterators/LeftSemiHashJoin.h"
 
 #include <vector>
 #include <iostream>
@@ -318,6 +319,23 @@ void test_join() {
     delete join;
 }
 
+
+void test_hash_join() {
+    unsigned upper = 128;
+    unsigned join_columns = 4;
+    unsigned num_rows = 1000000;
+
+    auto *left = new GeneratorZeroPrefix(num_rows, upper);
+    auto *right = new GeneratorZeroPrefix(num_rows, upper);
+    auto *join = new LeftSemiHashJoin(left, right, join_columns);
+
+    auto expected = (unsigned) (1.0 * num_rows * (1.0 - pow(1 - 1.0 / pow(upper, join_columns), num_rows)));
+    log_info("expecting approx. %u results", expected);
+
+    join->run();
+    delete join;
+}
+
 void test_compare_prefix() {
     auto *plan = new SortBase<false, true, RowCmpPrefix>(new GeneratorZeroPrefix(10, 128, 1), RowCmpPrefix{2});
     plan->run(true);
@@ -351,8 +369,9 @@ int main(int argc, char *argv[]) {
     //test_generic_priorityqueue();
 
     //test_join();
+    test_hash_join();
 
-    test_compare_prefix();
+    //test_compare_prefix();
 
     log_info("elapsed=%lums", since(start));
 

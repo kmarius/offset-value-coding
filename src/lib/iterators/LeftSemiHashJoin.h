@@ -8,6 +8,9 @@
 namespace ovc::iterators {
     class LeftSemiHashJoin : public BinaryIterator {
     public:
+
+        LeftSemiHashJoin(Iterator *left, Iterator *right, int joinColumns);
+
         void open() override;
 
         Row *next() override;
@@ -23,6 +26,6 @@ namespace ovc::iterators {
         io::ExternalRunR *left_partition;
         io::ExternalRunR *right_partition;
         io::BufferManager bufferManager;
-        std::unordered_set<Row> set;
+        std::unordered_set<Row, std::hash<Row>, RowEqualPrefix> set;
     };
 }

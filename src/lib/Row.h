@@ -250,6 +250,24 @@ namespace ovc {
             return lhs.less_prefix(rhs, ovc, 0, prefix, nullptr);
         }
     };
+
+    struct RowEqualPrefix {
+        const int prefix;
+    public:
+        RowEqualPrefix() = delete;
+
+        explicit RowEqualPrefix(const int prefix) : prefix(prefix) {}
+
+        bool operator()(const Row &lhs, const Row &rhs) const {
+            for (int i = 0; i < prefix; i++) {
+                if (lhs.columns[i] != rhs.columns[i]) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+    };
 }
 
 namespace std {

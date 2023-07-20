@@ -5,8 +5,9 @@ namespace ovc {
 
     struct hash_set_stats hs_stats = {0};
 
-    static std::string gen_path(int i) {
-        return BASEDIR "/part" + std::to_string(i) + ".dat";
+    static std::string gen_path() {
+        static int i = 0;
+        return BASEDIR "/part" + std::to_string(i++) + ".dat";
     }
 
     Partitioner::Partitioner(int num_partitions)
@@ -16,14 +17,14 @@ namespace ovc {
 
         partitions.reserve(num_partitions);
         for (int i = 0; i < num_partitions; i++) {
-            std::string path = gen_path(i);
+            std::string path = gen_path();
             paths.push_back(path);
             partitions.emplace_back(path, bufferManager);
         }
     }
 
     Partitioner::~Partitioner() {
-        //delete[] partitions;
+        finalize();
     }
 
     void Partitioner::put(Row *row) {
@@ -35,8 +36,9 @@ namespace ovc {
     }
 
     void Partitioner::finalize() {
-        for (int i = 0; i < num_partitions; i++) {
-            partitions[i].finalize();
+        for (auto &partition: partitions) {
+            partition.finalize();
         }
+        partitions.clear();
     }
 }
