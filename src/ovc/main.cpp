@@ -354,6 +354,9 @@ void test_compare_prefix() {
 
 #define combine_xor(h1, h2) (h1 ^ h2)
 #define combine_complex(h1, h2) (h1 ^ h2 + 0x517cc1b727220a95 + (h1 << 6) + (h1 >> 2))
+#define combine_plus(h1, h2) (h1 + h2)
+#define combine_plus_complex(h1, h2) (3 * h1 + h2)
+#define combine_java(h1, h2) (31 * h1 + h2)
 
 static inline uint64_t hash(uint64_t val) {
     uint64_t h = 0xcbf29ce484222325;
@@ -377,7 +380,7 @@ void hash_combination() {
             unsigned long h1 = hash(column);
             h = combine_xor(h, h1);
         }
-        acc |= h;
+        acc ^= h;
     }
     auto time_xor = since(start);
 
@@ -388,13 +391,49 @@ void hash_combination() {
             unsigned long h1 = hash(column);
             h = combine_complex(h, h1);
         }
-        acc |= h;
+        acc ^= h;
     }
     auto time_complex = since(start);
+
+    start = now();
+    for (int i = 0; i < reps; i++) {
+        uint64_t h = 0;
+        for (unsigned long &column: row.columns) {
+            unsigned long h1 = hash(column);
+            h = combine_plus(h, h1);
+        }
+        acc ^= h;
+    }
+    auto time_plus = since(start);
+
+    start = now();
+    for (int i = 0; i < reps; i++) {
+        uint64_t h = 0;
+        for (unsigned long &column: row.columns) {
+            unsigned long h1 = hash(column);
+            h = combine_plus_complex(h, h1);
+        }
+        acc ^= h;
+    }
+    auto time_plus_complex = since(start);
+
+    start = now();
+    for (int i = 0; i < reps; i++) {
+        uint64_t h = 0;
+        for (unsigned long &column: row.columns) {
+            unsigned long h1 = hash(column);
+            h = combine_java(h, h1);
+        }
+        acc ^= h;
+    }
+    auto time_java = since(start);
 
     log_info("%d repetitions (combining 8 hashes of 8 bytes)", reps);
     log_info("combine_xor: %lums", time_xor);
     log_info("combine_complex: %lums", time_complex);
+    log_info("combine_plus: %lums", time_plus);
+    log_info("combine_plus_complex: %lums", time_plus_complex);
+    log_info("combine_java: %lums", time_plus_complex);
 }
 
 int main(int argc, char *argv[]) {
