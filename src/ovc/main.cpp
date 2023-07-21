@@ -411,17 +411,6 @@ void hash_combination() {
         uint64_t h = 0;
         for (unsigned long &column: row.columns) {
             unsigned long h1 = hash(column);
-            h = combine_plus_complex(h, h1);
-        }
-        acc ^= h;
-    }
-    auto time_plus_complex = since(start);
-
-    start = now();
-    for (int i = 0; i < reps; i++) {
-        uint64_t h = 0;
-        for (unsigned long &column: row.columns) {
-            unsigned long h1 = hash(column);
             h = combine_java(h, h1);
         }
         acc ^= h;
@@ -432,8 +421,7 @@ void hash_combination() {
     log_info("combine_xor: %lums", time_xor);
     log_info("combine_complex: %lums", time_complex);
     log_info("combine_plus: %lums", time_plus);
-    log_info("combine_plus_complex: %lums", time_plus_complex);
-    log_info("combine_java: %lums", time_plus_complex);
+    log_info("combine_java: %lums", time_java);
 }
 
 int main(int argc, char *argv[]) {
