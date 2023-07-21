@@ -3,7 +3,7 @@
 #include "lib/log.h"
 #include "lib/iterators/AssertSortedUnique.h"
 #include "lib/iterators/Sort.h"
-#include "lib/iterators/Generator.h"
+#include "lib/iterators/IncreasingRangeGenerator.h"
 #include "lib/iterators/VectorScan.h"
 
 #include <gtest/gtest.h>
@@ -30,7 +30,7 @@ protected:
     void testDistinct(size_t num_rows) {
         auto *plan = new AssertSortedUnique(new Sort(
                 new HashDistinct(
-                        new Generator(num_rows, 100, SEED, true))));
+                        new IncreasingRangeGenerator(num_rows, 100, SEED, true))));
         plan->run();
         ASSERT_TRUE(plan->isSortedAndUnique());
         delete plan;
@@ -38,7 +38,7 @@ protected:
 };
 
 TEST_F(HashDistinctTest, EmptyTest) {
-    auto *plan = new AssertSortedUnique(new Generator(0, 100, SEED));
+    auto *plan = new AssertSortedUnique(new IncreasingRangeGenerator(0, 100, SEED));
     plan->run();
     ASSERT_TRUE(plan->isSortedAndUnique());
     ASSERT_EQ(plan->count(), 0);

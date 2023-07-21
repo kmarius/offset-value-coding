@@ -1,5 +1,5 @@
 #include "lib/iterators/Filter.h"
-#include "lib/iterators/Generator.h"
+#include "lib/iterators/IncreasingRangeGenerator.h"
 #include "lib/iterators/Sort.h"
 #include "lib/PriorityQueue.h"
 #include "lib/log.h"
@@ -10,9 +10,9 @@
 #include "lib/iterators/PrefixTruncationCounter.h"
 #include "lib/iterators/Distinct.h"
 #include "lib/iterators/AssertSorted.h"
-#include "lib/iterators/GeneratorZeroPrefix.h"
+#include "lib/iterators/ZeroPrefixGenerator.h"
 #include "lib/iterators/GroupBy.h"
-#include "lib/iterators/GeneratorZeroSuffix.h"
+#include "lib/iterators/ZeroSuffixGenerator.h"
 #include "lib/iterators/Shuffle.h"
 #include "lib/iterators/Scan.h"
 #include "lib/iterators/VectorScan.h"
@@ -31,7 +31,7 @@ bool pred(const Row *row) {
 
 void example_simple_tree() {
     Iterator *plan = new Filter(
-            new Generator(10000, 1000),
+            new IncreasingRangeGenerator(10000, 1000),
             pred
     );
     plan->run(true);
@@ -45,7 +45,7 @@ void example_distinct() {
 
     auto distinct = new Distinct(
             new Sort(
-                    new Generator(num_rows, DOMAIN, 1337)
+                    new IncreasingRangeGenerator(num_rows, DOMAIN, 1337)
             ));
     Iterator *plan = new AssertSortedUnique(distinct);
     plan->run();
@@ -65,8 +65,8 @@ void example_comparison() {
     size_t num_rows = 1000000;
     size_t seed = 1337;
 
-    auto plan_hash = new HashDistinct(new Generator(num_rows, 100, seed));
-    auto plan_sort = new Distinct(new Sort(new Generator(num_rows, 100, seed)));
+    auto plan_hash = new HashDistinct(new IncreasingRangeGenerator(num_rows, 100, seed));
+    auto plan_sort = new Distinct(new Sort(new IncreasingRangeGenerator(num_rows, 100, seed)));
 
     hash_set_stats_reset();
     auto start = now();
@@ -107,7 +107,7 @@ void example_sort() {
 
     auto plan = new AssertSorted(
             new Sort(
-                    new Generator(num_rows, DOMAIN, 1337)
+                    new IncreasingRangeGenerator(num_rows, DOMAIN, 1337)
             ));
 
     plan->run();
@@ -124,7 +124,7 @@ void example_hashing() {
     size_t num_rows = 1000000;
     size_t seed = 1337;
 
-    auto plan = new HashDistinct(new Generator(num_rows, 100, seed));
+    auto plan = new HashDistinct(new IncreasingRangeGenerator(num_rows, 100, seed));
 
     hash_set_stats_reset();
     auto start = now();
@@ -143,7 +143,7 @@ void example_hashing() {
 
 void example_truncation() {
     size_t num_rows = 1000 * 1000 * 2;
-    auto sort = new Sort(new Generator(num_rows, 100, 1337));
+    auto sort = new Sort(new IncreasingRangeGenerator(num_rows, 100, 1337));
     auto plan = new PrefixTruncationCounter(sort);
     plan->run();
 
@@ -165,7 +165,7 @@ void comparison_sort() {
         fprintf(file, "n,nxk,trunc,sort,sort_no_ovc\n");
         for (size_t i = 1; i <= 10; i++) {
             size_t num_rows = i * 100000;
-            auto *gen = new GeneratorZeroPrefix(num_rows, 100, prefix, 1337);
+            auto *gen = new ZeroPrefixGenerator(num_rows, 100, prefix, 1337);
             auto sort = new Sort(gen->clone());
             auto trunc = new PrefixTruncationCounter(sort);
 
@@ -195,7 +195,7 @@ void comparison_distinct() {
         for (size_t i = 1; i <= 10; i++) {
             size_t num_rows = i * 100000;
 
-            auto gen = new GeneratorZeroPrefix(num_rows, 100, prefix, 1337);
+            auto gen = new ZeroPrefixGenerator(num_rows, 100, prefix, 1337);
             auto sort = new SortDistinct(gen->clone());
             auto sort_no_ovc = new SortDistinctNoOvc(gen->clone());
             auto hash = new HashDistinct(gen);
@@ -227,10 +227,10 @@ void example_count_column_comparisons() {
     printf("n,nxk,trunc_comp,sort_comp,sort_no_ovc_comp\n");
     for (size_t i = 1; i < 2; i++) {
         size_t num_rows = i * 100000;
-        auto sort = new Sort(new Generator(num_rows, 100, 1337));
+        auto sort = new Sort(new IncreasingRangeGenerator(num_rows, 100, 1337));
         auto trunc = new PrefixTruncationCounter(sort);
 
-        auto sort_no_ovc = new SortNoOvc(new Generator(num_rows, 100, 1337));
+        auto sort_no_ovc = new SortNoOvc(new IncreasingRangeGenerator(num_rows, 100, 1337));
 
         trunc->run();
         sort_no_ovc->run();
@@ -245,21 +245,21 @@ void example_count_column_comparisons() {
 
 void example_group_by() {
     auto plan = new GroupBy(
-            new Sort(new GeneratorZeroSuffix(100000, 128, 6, 1337)),
+            new Sort(new ZeroSuffixGenerator(100000, 128, 6, 1337)),
             1);
     plan->run(true);
     delete plan;
 }
 
 void external_shuffle() {
-    auto plan = new Shuffle(new Sort(new GeneratorZeroPrefix(4000000, 128)));
+    auto plan = new Shuffle(new Sort(new ZeroPrefixGenerator(4000000, 128)));
     plan->run();
     delete plan;
 }
 
 void compare_generate_vs_scan() {
     size_t num_rows = 17000000;
-    auto gen = GeneratorZeroPrefix(num_rows, 128, 0, 1337);
+    auto gen = ZeroPrefixGenerator(num_rows, 128, 0, 1337);
 
     auto *plan_generate = new Sort(gen.clone());
     gen.write("generated.dat");
@@ -281,7 +281,7 @@ void compare_generate_vs_scan() {
 
 void test_generic_priorityqueue() {
     RowCmpPrefix cmp(2);
-    auto *plan = new SortBase<true, true, RowCmpPrefix>(new GeneratorZeroPrefix(100, 10), cmp);
+    auto *plan = new SortBase<true, true, RowCmpPrefix>(new ZeroPrefixGenerator(100, 10), cmp);
     plan->run(true);
     delete plan;
 }
@@ -308,8 +308,8 @@ void test_merge_join() {
     unsigned join_columns = 2;
     unsigned num_rows = 10000;
 
-    auto *left = new Sort(new GeneratorZeroPrefix(num_rows, upper));
-    auto *right = new Sort(new GeneratorZeroPrefix(num_rows, upper));
+    auto *left = new Sort(new ZeroPrefixGenerator(num_rows, upper));
+    auto *right = new Sort(new ZeroPrefixGenerator(num_rows, upper));
     auto *join = new LeftSemiJoin(left, right, join_columns);
 
     auto expected = (unsigned) (1.0 * num_rows * (1.0 - pow(1 - 1.0 / pow(upper, join_columns), num_rows)));
@@ -325,8 +325,8 @@ void compare_joins() {
     int join_columns = 3;
     int num_rows = 1000000;
 
-    auto *left = new GeneratorZeroPrefix(num_rows, upper);
-    auto *right = new GeneratorZeroPrefix(num_rows, upper);
+    auto *left = new ZeroPrefixGenerator(num_rows, upper);
+    auto *right = new ZeroPrefixGenerator(num_rows, upper);
 
     auto *merge_join = new LeftSemiJoin(new Sort(left->clone()), new Sort(right->clone()), join_columns);
     auto *hash_join = new LeftSemiHashJoin(left, right, join_columns);
@@ -347,7 +347,7 @@ void compare_joins() {
 }
 
 void test_compare_prefix() {
-    auto *plan = new SortBase<false, true, RowCmpPrefix>(new GeneratorZeroPrefix(10, 128, 1), RowCmpPrefix{2});
+    auto *plan = new SortBase<false, true, RowCmpPrefix>(new ZeroPrefixGenerator(10, 128, 1), RowCmpPrefix{2});
     plan->run(true);
     delete plan;
 }

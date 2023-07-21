@@ -1,4 +1,4 @@
-#include "lib/iterators/Generator.h"
+#include "lib/iterators/IncreasingRangeGenerator.h"
 #include "lib/log.h"
 
 #include <cstdlib>
@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    ovc::iterators::Generator gen(num_rows, 1000);
+    ovc::iterators::IncreasingRangeGenerator gen(num_rows, 1000);
     gen.write(path);
 
     return 0;

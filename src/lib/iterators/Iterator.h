@@ -119,17 +119,15 @@ namespace ovc::iterators {
         bool output_is_unique;
     };
 
-    class IGenerator : public Iterator {
-
+    class Generator : public Iterator {
     public:
-        virtual ~IGenerator() {};
+        ~Generator() override = default;
 
-        virtual IGenerator *clone() const = 0;
+        virtual Generator *clone() const = 0;
     };
 
     class UnaryIterator : public Iterator {
     public:
-
         explicit UnaryIterator(Iterator *input) : input_(input) {}
 
         ~UnaryIterator() override {

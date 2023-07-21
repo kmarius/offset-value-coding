@@ -1,6 +1,6 @@
 #include "lib/Row.h"
 #include "lib/iterators/AssertSorted.h"
-#include "lib/iterators/Generator.h"
+#include "lib/iterators/IncreasingRangeGenerator.h"
 #include "lib/iterators/VectorScan.h"
 #include "lib/iterators/Sort.h"
 #include "lib/iterators/AssertEqual.h"
@@ -27,8 +27,8 @@ protected:
     }
 
     void testSorted(size_t num_rows) {
-        auto gen = new Generator(num_rows, 100, SEED, true);
-        auto rows = Generator(num_rows, 100, SEED, true).collect();
+        auto gen = new IncreasingRangeGenerator(num_rows, 100, SEED, true);
+        auto rows = IncreasingRangeGenerator(num_rows, 100, SEED, true).collect();
         auto sorted = new AssertSorted(new Sort(gen));
         std::sort(rows.begin(), rows.end(),
                   [](const Row &a, const Row &b) -> bool {
@@ -43,8 +43,8 @@ protected:
     }
 
     void testSortedNoOvc(size_t num_rows) {
-        auto gen = new Generator(num_rows, 100, SEED, true);
-        auto rows = Generator(num_rows, 100, SEED, true).collect();
+        auto gen = new IncreasingRangeGenerator(num_rows, 100, SEED, true);
+        auto rows = IncreasingRangeGenerator(num_rows, 100, SEED, true).collect();
         auto sorted = new AssertSorted(new SortNoOvc(gen));
         std::sort(rows.begin(), rows.end(),
                   [](const Row &a, const Row &b) -> bool {

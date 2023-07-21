@@ -1,6 +1,6 @@
 #include "lib/Row.h"
 #include "lib/iterators/AssertSortedUnique.h"
-#include "lib/iterators/Generator.h"
+#include "lib/iterators/IncreasingRangeGenerator.h"
 #include "lib/iterators/Sort.h"
 #include "lib/iterators/VectorScan.h"
 
@@ -26,14 +26,14 @@ protected:
     }
 
     void testSortDistinct(size_t num_rows) const {
-        auto plan = new AssertSortedUnique(new SortDistinct(new Generator(num_rows, 100, SEED, true)));
+        auto plan = new AssertSortedUnique(new SortDistinct(new IncreasingRangeGenerator(num_rows, 100, SEED, true)));
         plan->run();
         ASSERT_TRUE(plan->isSortedAndUnique());
         delete plan;
     }
 
     void testSortDistinctNoOvc(size_t num_rows) const {
-        auto plan = new AssertSortedUnique(new SortDistinctNoOvc(new Generator(num_rows, 100, SEED, true)));
+        auto plan = new AssertSortedUnique(new SortDistinctNoOvc(new IncreasingRangeGenerator(num_rows, 100, SEED, true)));
         plan->run();
         ASSERT_TRUE(plan->isSortedAndUnique());
         delete plan;
@@ -41,7 +41,7 @@ protected:
 };
 
 TEST_F(SortDistinctTest, EmptyTest) {
-    auto *plan = new AssertSortedUnique(new SortDistinct(new Generator(0, 100, SEED)));
+    auto *plan = new AssertSortedUnique(new SortDistinct(new IncreasingRangeGenerator(0, 100, SEED)));
     plan->run();
     ASSERT_TRUE(plan->isSortedAndUnique());
     ASSERT_EQ(plan->count(), 0);

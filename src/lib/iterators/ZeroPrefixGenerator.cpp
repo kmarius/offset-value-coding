@@ -1,10 +1,10 @@
-#include "GeneratorZeroPrefix.h"
+#include "ZeroPrefixGenerator.h"
 #include "lib/log.h"
 
 namespace ovc::iterators {
 
-    GeneratorZeroPrefix::GeneratorZeroPrefix(unsigned long num_rows, int upper, int prefix, unsigned long seed)
-            : IGenerator(), num_rows(num_rows), upper(upper), prefix(prefix), buf({0}) {
+    ZeroPrefixGenerator::ZeroPrefixGenerator(unsigned long num_rows, int upper, int prefix, unsigned long seed)
+            : Generator(), num_rows(num_rows), upper(upper), prefix(prefix), buf({0}) {
         std::random_device dev;
         seed = seed == (unsigned long) -1 ? dev() : seed;
         seed_ = seed;
@@ -12,7 +12,7 @@ namespace ovc::iterators {
         dist = std::uniform_int_distribution<std::mt19937::result_type>(0, upper - 1);
     }
 
-    Row *GeneratorZeroPrefix::next() {
+    Row *ZeroPrefixGenerator::next() {
         Iterator::next();
         if (num_rows == 0) {
             return nullptr;

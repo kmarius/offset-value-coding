@@ -1,11 +1,11 @@
-#include "Generator.h"
+#include "IncreasingRangeGenerator.h"
 #include "lib/log.h"
 
 #include <random>
 
 namespace ovc::iterators {
-    Generator::Generator(Count num_rows, unsigned long upper, unsigned long seed, bool store)
-            : IGenerator(), num_rows(num_rows), tid(0), store(store), upper_(upper), seed_(seed) {
+    IncreasingRangeGenerator::IncreasingRangeGenerator(Count num_rows, unsigned long upper, unsigned long seed, bool store)
+            : Generator(), num_rows(num_rows), tid(0), store(store), upper_(upper), seed_(seed) {
         std::random_device dev;
         seed = seed == (unsigned long) -1 ? dev() : seed;
         seed_ = seed;
@@ -14,7 +14,7 @@ namespace ovc::iterators {
         log_info("using seed %lu", seed);
     }
 
-    Row *Generator::next() {
+    Row *IncreasingRangeGenerator::next() {
         Iterator::next();
 
         if (num_rows == 0) {

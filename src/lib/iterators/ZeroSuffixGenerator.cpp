@@ -1,9 +1,9 @@
-#include "GeneratorZeroSuffix.h"
+#include "ZeroSuffixGenerator.h"
 
 namespace ovc::iterators {
 
-    GeneratorZeroSuffix::GeneratorZeroSuffix(unsigned long num_rows, int upper, int suffix, unsigned long seed)
-            : IGenerator(), num_rows(num_rows), upper(upper), suffix(suffix), buf({0}), seed_(0) {
+    ZeroSuffixGenerator::ZeroSuffixGenerator(unsigned long num_rows, int upper, int suffix, unsigned long seed)
+            : Generator(), num_rows(num_rows), upper(upper), suffix(suffix), buf({0}), seed_(0) {
         std::random_device dev;
         seed = seed == (unsigned long) -1 ? dev() : seed;
         seed_ = seed;
@@ -12,7 +12,7 @@ namespace ovc::iterators {
     }
 
 
-    Row *GeneratorZeroSuffix::next() {
+    Row *ZeroSuffixGenerator::next() {
         Iterator::next();
         if (num_rows == 0) {
             return nullptr;

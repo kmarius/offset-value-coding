@@ -8,16 +8,16 @@
 
 namespace ovc::iterators {
 
-    class Generator : public IGenerator {
+    class IncreasingRangeGenerator : public Generator {
     public :
-        explicit Generator(Count rows, unsigned long upper, unsigned long seed = -1, bool store = false);
+        explicit IncreasingRangeGenerator(Count rows, unsigned long upper, unsigned long seed = -1, bool store = false);
 
         Row *next() override;
 
         std::vector<Row> rows;
 
-        IGenerator *clone() const override {
-            return new Generator(num_rows, upper_, seed_, store);
+        Generator *clone() const override {
+            return new IncreasingRangeGenerator(num_rows, upper_, seed_, store);
         }
 
     private :
