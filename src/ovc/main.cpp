@@ -370,7 +370,7 @@ int main(int argc, char *argv[]) {
     //example_count_column_comparisons();
 
     //comparison_sort();
-    example_group_by();
+    //example_group_by();
 
     //external_shuffle();
 
@@ -382,6 +382,11 @@ int main(int argc, char *argv[]) {
     //compare_joins();
 
     //test_compare_prefix();
+
+    for (auto &r : ZeroPrefixGenerator(10, 128)) {
+        std::cout << r << std::endl;
+        break;
+    }
 
     log_info("elapsed=%lums", since(start));
 

@@ -4,6 +4,7 @@
 #include "lib/Row.h"
 
 #include <vector>
+#include <iostream>
 
 namespace ovc::iterators {
 
@@ -15,6 +16,7 @@ namespace ovc::iterators {
 
     class Iterator {
     public:
+
         Iterator() : status(Unopened),
                      output_has_ovc(false), output_is_hashed(false), output_is_sorted(false),
                      output_is_unique(false) {};
@@ -110,6 +112,67 @@ namespace ovc::iterators {
          * @param path The path_sync of the file.
          */
         void write(const std::string &path);
+        struct iter {
+            using iterator_category = std::input_iterator_tag;
+            using difference_type = std::ptrdiff_t;
+            using value_type = Row;
+            using pointer = value_type *;
+            using reference = value_type &;
+
+            explicit iter(Iterator *self) : self(self), row(nullptr) {
+                if (self) {
+                    if (self->status == Unopened) {
+                        self->open();
+                    }
+                    row = self->next();
+                }
+            }
+
+            // we can not copy this iterat because the destructor must only be called once
+            iter(const iter &it) = delete;
+
+            ~iter() {
+                if (self && self->status == Opened) {
+                    self->close();
+                }
+            }
+
+            reference operator*() const { return *row; }
+
+            pointer operator->() { return row; }
+
+            iter &operator++() {
+                if (self) {
+                    if (row) {
+                        self->free();
+                    }
+                    row = self->next();
+                }
+                return *this;
+            }
+
+            Row *operator++(int) {
+                Row *tmp = row;
+                ++(*this);
+                return tmp;
+            }
+
+            friend bool operator==(const iter &a, const iter &b) { return a.row == b.row; };
+
+            friend bool operator!=(const iter &a, const iter &b) { return !(a == b); };
+
+        private:
+            Iterator *self;
+            Row *row;
+        };
+
+        iter begin() {
+            return iter(this);
+        }
+
+        static iter end() {
+            return iter(nullptr);
+        }
 
     protected:
         IteratorStatus status = Unopened;

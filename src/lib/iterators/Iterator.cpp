@@ -7,25 +7,23 @@ namespace ovc::iterators {
     void Iterator::run(bool print) {
         Count rows_seen = 0;
 
-        open();
-        for (Row *row; (row = next()); free()) {
+        for (auto &row : *this) {
             rows_seen++;
             if (print) {
-                log_info("%s", row->c_str());
+                log_info("%s", row.c_str());
             }
         }
-        close();
 
         log_info("%lu rows seen", (unsigned long) rows_seen);
     }
 
     std::vector<Row> Iterator::collect() {
         std::vector<Row> rows = {};
-        open();
-        for (Row *row; (row = next()); free()) {
-            rows.push_back(*row);
+
+        for (auto &row : *this) {
+            rows.push_back(row);
         }
-        close();
+
         return rows;
     }
 
