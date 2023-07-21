@@ -355,7 +355,6 @@ void test_compare_prefix() {
 #define combine_xor(h1, h2) (h1 ^ h2)
 #define combine_complex(h1, h2) (h1 ^ h2 + 0x517cc1b727220a95 + (h1 << 6) + (h1 >> 2))
 #define combine_plus(h1, h2) (h1 + h2)
-#define combine_plus_complex(h1, h2) (3 * h1 + h2)
 #define combine_java(h1, h2) (31 * h1 + h2)
 
 static inline uint64_t hash(uint64_t val) {
