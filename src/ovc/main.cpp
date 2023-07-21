@@ -294,10 +294,10 @@ void test_join_tiny() {
 
                                 });
     auto *right = new VectorScan({
-                                        {0, 0, {1, 2, 0}},
-                                        {0, 0, {1, 3, 0}},
+                                         {0, 0, {1, 2, 0}},
+                                         {0, 0, {1, 3, 0}},
 
-                                });
+                                 });
     auto *join = new LeftSemiJoin(left, right, 2);
     join->run(true);
     delete join;
@@ -352,6 +352,51 @@ void test_compare_prefix() {
     delete plan;
 }
 
+#define combine_xor(h1, h2) (h1 ^ h2)
+#define combine_complex(h1, h2) (h1 ^ h2 + 0x517cc1b727220a95 + (h1 << 6) + (h1 >> 2))
+
+static inline uint64_t hash(uint64_t val) {
+    uint64_t h = 0xcbf29ce484222325;
+    for (int i = 0; i < 8; i++) {
+        h = (h ^ ((char *) (&val))[i]) * 0x00000100000001b3;
+    }
+    return h;
+}
+
+volatile uint64_t acc = 0;
+
+void hash_combination() {
+    Row row = ZeroPrefixGenerator(1, 128).collect()[0];
+
+    const int reps = 10000000;
+
+    auto start = now();
+    for (int i = 0; i < reps; i++) {
+        uint64_t h = 0;
+        for (unsigned long &column: row.columns) {
+            unsigned long h1 = hash(column);
+            h = combine_xor(h, h1);
+        }
+        acc |= h;
+    }
+    auto time_xor = since(start);
+
+    start = now();
+    for (int i = 0; i < reps; i++) {
+        uint64_t h = 0;
+        for (unsigned long &column: row.columns) {
+            unsigned long h1 = hash(column);
+            h = combine_complex(h, h1);
+        }
+        acc |= h;
+    }
+    auto time_complex = since(start);
+
+    log_info("%d repetitions (combining 8 hashes of 8 bytes)", reps);
+    log_info("combine_xor: %lums", time_xor);
+    log_info("combine_complex: %lums", time_complex);
+}
+
 int main(int argc, char *argv[]) {
     log_open(LOG_TRACE);
     log_set_quiet(false);
@@ -383,10 +428,7 @@ int main(int argc, char *argv[]) {
 
     //test_compare_prefix();
 
-    for (auto &r : ZeroPrefixGenerator(10, 128)) {
-        std::cout << r << std::endl;
-        break;
-    }
+    hash_combination();
 
     log_info("elapsed=%lums", since(start));
 
