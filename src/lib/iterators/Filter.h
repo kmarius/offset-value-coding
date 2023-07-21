@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Iterator.h"
-#include "UnaryIterator.h"
 
 namespace ovc::iterators {
 
@@ -11,7 +10,13 @@ namespace ovc::iterators {
 
         Filter(Iterator *input, Predicate *predicate);
 
+        void open() override;
+
         Row *next() override;
+
+        void free() override;
+
+        void close() override;
 
     private :
         Predicate *const predicate_;

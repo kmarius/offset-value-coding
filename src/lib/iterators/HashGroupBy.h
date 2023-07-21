@@ -1,7 +1,7 @@
 #pragma once
 
 #include <unordered_map>
-#include "UnaryIterator.h"
+#include "Iterator.h"
 #include "lib/io/ExternalRunR.h"
 
 namespace ovc::iterators {
@@ -13,8 +13,6 @@ namespace ovc::iterators {
         void open() override;
 
         Row *next() override;
-
-        void free() override {};
 
         void close() override;
 

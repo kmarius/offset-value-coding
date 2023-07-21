@@ -28,7 +28,7 @@ TEST_F(HashGroupByTest, EmptyTest) {
             new VectorScan({})
     );
     plan->run();
-    ASSERT_TRUE(plan->equal);
+    ASSERT_TRUE(plan->isEqual());
     delete plan;
 }
 
@@ -51,7 +51,7 @@ TEST_F(HashGroupByTest, OneColumnSimple) {
                            })
     );
     plan->run();
-    ASSERT_TRUE(plan->equal);
+    ASSERT_TRUE(plan->isEqual());
     delete plan;
 }
 
@@ -75,7 +75,7 @@ TEST_F(HashGroupByTest, TwoColumnsSimple) {
                            })
     );
     plan->run();
-    ASSERT_TRUE(plan->equal);
+    ASSERT_TRUE(plan->isEqual());
     delete plan;
 }
 

@@ -1,12 +1,18 @@
 #pragma once
 
-#include "UnaryIterator.h"
+#include "Iterator.h"
 
 namespace ovc::iterators {
 
     class PrefixTruncationCounter : public UnaryIterator {
     public:
         explicit PrefixTruncationCounter(Iterator *input);
+
+        void open() override;
+
+        void free() override;
+
+        void close() override;
 
         Row *next() override;
 

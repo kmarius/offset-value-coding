@@ -14,8 +14,9 @@ namespace ovc::iterators {
 
     template<bool USE_OVC>
     void GroupByBase<USE_OVC>::open() {
-        UnaryIterator::open();
-        Row *row = UnaryIterator::next();
+        Iterator::open();
+        input_->open();
+        Row *row = input_->next();
         if (row) {
             input_buf = *row;
             empty = false;
@@ -24,6 +25,7 @@ namespace ovc::iterators {
 
     template<>
     Row *GroupByBase<true>::next() {
+        Iterator::next();
         if (empty) {
             return nullptr;
         }
@@ -33,10 +35,10 @@ namespace ovc::iterators {
             output_buf.columns[i] = input_buf.columns[i];
         }
 
-        for (Row *row; (row = UnaryIterator::next()) != nullptr; UnaryIterator::free()) {
+        for (Row *row; (row = input_->next()) != nullptr; input_->free()) {
             if (row->getOVC().getOffset() < group_columns) {
                 input_buf = *row;
-                UnaryIterator::free();
+                input_->free();
                 output_buf.columns[group_columns] = count;
                 return &output_buf;
             }
@@ -61,11 +63,11 @@ namespace ovc::iterators {
             output_buf.columns[i] = input_buf.columns[i];
         }
 
-        for (Row *row; (row = UnaryIterator::next()) != nullptr; UnaryIterator::free()) {
+        for (Row *row; (row = input_->next()) != nullptr; input_->free()) {
             for (int i = 0; i < group_columns; i++) {
                 if (row->columns[i] != input_buf.columns[i]) {
                     input_buf = *row;
-                    UnaryIterator::free();
+                    input_->free();
                     output_buf.columns[group_columns] = count;
                     return &output_buf;
                 }

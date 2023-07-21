@@ -34,6 +34,9 @@ protected:
                                 new Generator(num_rows, 100, SEED, true))));
         plan->run();
         ASSERT_TRUE(plan->isSortedAndUnique());
+        if (num_rows > 0) {
+            ASSERT_TRUE(plan->count() > 0);
+        }
         delete plan;
     }
 
@@ -49,7 +52,7 @@ protected:
 };
 
 TEST_F(DistinctTest, EmptyTest) {
-    auto *plan = new AssertSortedUnique(new Generator(0, 100, SEED));
+    auto *plan = new AssertSortedUnique(new VectorScan({}));
     plan->run();
     ASSERT_TRUE(plan->isSortedAndUnique());
     ASSERT_EQ(plan->count(), 0);

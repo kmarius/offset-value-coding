@@ -118,4 +118,44 @@ namespace ovc::iterators {
         bool output_is_hashed;
         bool output_is_unique;
     };
+
+    class IGenerator : public Iterator {
+
+    public:
+        virtual ~IGenerator() {};
+
+        virtual IGenerator *clone() const = 0;
+    };
+
+    class UnaryIterator : public Iterator {
+    public:
+
+        explicit UnaryIterator(Iterator *input) : input_(input) {}
+
+        ~UnaryIterator() override {
+            delete input_;
+        }
+
+        template<class T>
+        T *getInput() {
+            return reinterpret_cast<T *>(input_);
+        }
+
+    protected:
+        Iterator *input_;
+    };
+
+    class BinaryIterator : public Iterator {
+    public:
+        BinaryIterator(Iterator *left, Iterator *right) : left(left), right(right) {}
+
+        ~BinaryIterator() override {
+            delete left;
+            delete right;
+        }
+
+    protected:
+        Iterator *left;
+        Iterator *right;
+    };
 }

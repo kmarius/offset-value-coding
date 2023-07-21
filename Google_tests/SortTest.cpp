@@ -38,7 +38,7 @@ protected:
         plan->run();
         ASSERT_TRUE(sorted->isSorted());
         ASSERT_EQ(sorted->count(), num_rows);
-        ASSERT_TRUE(plan->equal);
+        ASSERT_TRUE(plan->isEqual());
         delete plan;
     }
 
@@ -54,13 +54,13 @@ protected:
         plan->run();
         ASSERT_TRUE(sorted->isSorted());
         ASSERT_EQ(sorted->count(), num_rows);
-        ASSERT_TRUE(plan->equal);
+        ASSERT_TRUE(plan->isEqual());
         delete plan;
     }
 };
 
 TEST_F(SortTest, EmptyTest) {
-    auto *plan = new AssertSorted(new Generator(0, 100, SEED));
+    auto *plan = new AssertSorted(new VectorScan({}));
     plan->run();
     ASSERT_TRUE(plan->isSorted());
     ASSERT_EQ(plan->count(), 0);

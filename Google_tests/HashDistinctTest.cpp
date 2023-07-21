@@ -27,7 +27,7 @@ protected:
 
     }
 
-    void testDedup(size_t num_rows) {
+    void testDistinct(size_t num_rows) {
         auto *plan = new AssertSortedUnique(new Sort(
                 new HashDistinct(
                         new Generator(num_rows, 100, SEED, true))));
@@ -71,50 +71,50 @@ TEST_F(HashDistinctTest, DetectDupe) {
     delete plan;
 }
 
-TEST_F(HashDistinctTest, DedupEmpty) {
-    testDedup(0);
+TEST_F(HashDistinctTest, DistinctEmpty) {
+    testDistinct(0);
 }
 
-TEST_F(HashDistinctTest, DedupOne) {
-    testDedup(1);
+TEST_F(HashDistinctTest, DistinctOne) {
+    testDistinct(1);
 }
 
-TEST_F(HashDistinctTest, DedupTwo) {
-    testDedup(2);
+TEST_F(HashDistinctTest, DistinctTwo) {
+    testDistinct(2);
 }
 
-TEST_F(HashDistinctTest, DedupTiny) {
-    testDedup(5);
+TEST_F(HashDistinctTest, DistinctTiny) {
+    testDistinct(5);
 }
 
-TEST_F(HashDistinctTest, DedupSmall) {
-    testDedup(QUEUE_SIZE);
+TEST_F(HashDistinctTest, DistinctSmall) {
+    testDistinct(QUEUE_SIZE);
 }
 
-TEST_F(HashDistinctTest, DedupSmall2) {
-    testDedup(QUEUE_SIZE + QUEUE_SIZE / 2);
+TEST_F(HashDistinctTest, DistinctSmall2) {
+    testDistinct(QUEUE_SIZE + QUEUE_SIZE / 2);
 }
 
-TEST_F(HashDistinctTest, DedupSmallish) {
-    testDedup(QUEUE_SIZE * 3);
+TEST_F(HashDistinctTest, DistinctSmallish) {
+    testDistinct(QUEUE_SIZE * 3);
 }
 
-TEST_F(HashDistinctTest, DedupMedium) {
-    testDedup(QUEUE_SIZE * INITIAL_RUNS);
+TEST_F(HashDistinctTest, DistinctMedium) {
+    testDistinct(QUEUE_SIZE * INITIAL_RUNS);
 }
 
-TEST_F(HashDistinctTest, DedupMediumButSmaller) {
-    testDedup(QUEUE_SIZE * INITIAL_RUNS - QUEUE_SIZE / 2);
+TEST_F(HashDistinctTest, DistinctMediumButSmaller) {
+    testDistinct(QUEUE_SIZE * INITIAL_RUNS - QUEUE_SIZE / 2);
 }
 
-TEST_F(HashDistinctTest, DedupMediumButABitLarger) {
-    testDedup(QUEUE_SIZE * INITIAL_RUNS + QUEUE_SIZE / 2);
+TEST_F(HashDistinctTest, DistinctMediumButABitLarger) {
+    testDistinct(QUEUE_SIZE * INITIAL_RUNS + QUEUE_SIZE / 2);
 }
 
-TEST_F(HashDistinctTest, DedupMediumButABitLarger2) {
-    testDedup(QUEUE_SIZE * INITIAL_RUNS + QUEUE_SIZE * 3 / 2);
+TEST_F(HashDistinctTest, DistinctMediumButABitLarger2) {
+    testDistinct(QUEUE_SIZE * INITIAL_RUNS + QUEUE_SIZE * 3 / 2);
 }
 
-TEST_F(HashDistinctTest, DedupLarge) {
-    testDedup(QUEUE_SIZE * INITIAL_RUNS * 8);
+TEST_F(HashDistinctTest, DistinctLarge) {
+    testDistinct(QUEUE_SIZE * INITIAL_RUNS * 8);
 }

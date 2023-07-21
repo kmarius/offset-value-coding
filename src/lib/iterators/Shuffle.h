@@ -1,6 +1,6 @@
 #pragma once
 
-#include "UnaryIterator.h"
+#include "Iterator.h"
 #include "lib/Partitioner.h"
 #include "lib/io/ExternalRunR.h"
 

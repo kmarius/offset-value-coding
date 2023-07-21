@@ -1,6 +1,6 @@
 #pragma once
 
-#include "UnaryIterator.h"
+#include "Iterator.h"
 
 namespace ovc::iterators {
 
@@ -9,7 +9,22 @@ namespace ovc::iterators {
     public:
         explicit DistinctBase(Iterator *input);
 
+        void open() override {
+            Iterator::open();
+            input_->open();
+        }
+
         Row *next() override;
+
+        void free() override {
+            Iterator::free();
+            input_->free();
+        }
+
+        void close() override {
+            Iterator::close();
+            input_->close();
+        }
 
         size_t num_dupes;
 

@@ -6,9 +6,15 @@ namespace ovc::iterators {
 
     class VectorScan : public Iterator {
     public:
-        explicit VectorScan(std::vector<Row> rows);
+        explicit VectorScan(std::vector<Row> rows) : rows(std::move(rows)), index(0) {};
 
-        Row *next() override;
+        Row *next() override {
+            Iterator::next();
+            if (index >= rows.size()) {
+                return nullptr;
+            }
+            return &rows[index++];
+        };
 
     private:
         std::vector<Row> rows;

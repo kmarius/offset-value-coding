@@ -28,7 +28,7 @@ TEST_F(GroupByTest, EmptyTest) {
             new VectorScan({})
     );
     plan->run();
-    ASSERT_TRUE(plan->equal);
+    ASSERT_TRUE(plan->isEqual());
     delete plan;
 }
 
@@ -51,7 +51,7 @@ TEST_F(GroupByTest, OneColumnSimple) {
                            })
     );
     plan->run();
-    ASSERT_TRUE(plan->equal);
+    ASSERT_TRUE(plan->isEqual());
     delete plan;
 }
 
@@ -75,7 +75,7 @@ TEST_F(GroupByTest, TwoColumnsSimple) {
                            })
     );
     plan->run();
-    ASSERT_TRUE(plan->equal);
+    ASSERT_TRUE(plan->isEqual());
     delete plan;
 }
 
@@ -129,7 +129,7 @@ TEST_F(GroupByTest, OneColumnSimpleNoOVC) {
                            })
     );
     plan->run();
-    ASSERT_TRUE(plan->equal);
+    ASSERT_TRUE(plan->isEqual());
     delete plan;
 }
 
@@ -153,7 +153,7 @@ TEST_F(GroupByTest, TwoColumnsSimpleNoOVC) {
                            })
     );
     plan->run();
-    ASSERT_TRUE(plan->equal);
+    ASSERT_TRUE(plan->isEqual());
     delete plan;
 }
 

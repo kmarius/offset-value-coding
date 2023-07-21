@@ -10,12 +10,13 @@ namespace ovc::iterators {
     }
 
     void HashDistinct::open() {
-        UnaryIterator::open();
+        Iterator::open();
+        input_->open();
 
         Partitioner partitioner(1 << RUN_IDX_BITS);
 
         // fill and probe external hashmap
-        for (Row *row; (row = UnaryIterator::next()); UnaryIterator::free()) {
+        for (Row *row; (row = input_->next()); input_->free()) {
             row->setHash();
             partitioner.put(row);
         }

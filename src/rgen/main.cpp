@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
     char *end;
     long num_rows = strtol(argv[2], &end, 10);
     if (num_rows <= 0) {
-        fprintf(stderr, "num_rows must be positive\n");
+        fprintf(stderr, "count_ must be positive\n");
         return 1;
     }
 

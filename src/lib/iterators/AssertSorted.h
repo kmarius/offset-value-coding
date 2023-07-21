@@ -1,6 +1,7 @@
 #pragma once
 
-#include "UnaryIterator.h"
+#include "Iterator.h"
+#include "lib/log.h"
 
 namespace ovc::iterators {
 
@@ -9,17 +10,52 @@ namespace ovc::iterators {
  */
     class AssertSorted : public UnaryIterator {
     public:
-        explicit AssertSorted(Iterator *iterator);
+        explicit AssertSorted(Iterator *iterator) : UnaryIterator(iterator),
+                                                    is_sorted(true), count_(0), prev({0}) {}
 
-        bool isSorted() const;
+        void open() override {
+            Iterator::open();
+            input_->open();
+        };
 
-        size_t count() const;
+        Row *next() override {
+            Iterator::next();
+            Row *row = input_->next();
+            if (row == nullptr) {
+                return nullptr;
+            }
+            if (is_sorted && row->less(prev)) {
+                log_error("input not sorted at %d: prev: %s", count_ + 1, prev.c_str());
+                log_error("                        cur: %s", row->c_str());
+                is_sorted = false;
+            }
+            prev = *row;
+            count_++;
+            return row;
+        };
 
-        Row *next() override;
+        void free() override {
+            Iterator::free();
+            input_->free();
+        };
+
+        void close() override {
+            Iterator::close();
+            input_->close();
+
+        };
+
+        bool isSorted() const {
+            return is_sorted;
+        };
+
+        size_t count() const {
+            return count_;
+        };
 
     private:
         Row prev;
         bool is_sorted;
-        size_t num_rows;
+        size_t count_;
     };
 }

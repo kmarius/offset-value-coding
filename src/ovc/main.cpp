@@ -38,20 +38,20 @@ void example_simple_tree() {
     delete plan;
 }
 
-void example_dedup() {
+void example_distinct() {
     size_t num_rows = QUEUE_CAPACITY * QUEUE_CAPACITY * (QUEUE_CAPACITY - 3);
 
-    ovc::log_info("num_rows=%lu", num_rows);
+    ovc::log_info("count_=%lu", num_rows);
 
-    auto dedup = new Distinct(
+    auto distinct = new Distinct(
             new Sort(
                     new Generator(num_rows, DOMAIN, 1337)
             ));
-    Iterator *plan = new AssertSortedUnique(dedup);
+    Iterator *plan = new AssertSortedUnique(distinct);
     plan->run();
-    ovc_stats &stats = dedup->getInput<Sort>()->getStats();
+    ovc_stats &stats = distinct->getInput<Sort>()->getStats();
 
-    ovc::log_info("num_dupex: %d", dedup->num_dupes);
+    ovc::log_info("num_dupex: %d", distinct->num_dupes);
 
 
     ovc::log_info("nlogn:                   %lu", (size_t) (num_rows * ::log((double) num_rows)));
@@ -99,11 +99,11 @@ void example_comparison() {
 
 void example_sort() {
     // three "memory_runs" are reserved for: low fences, high fences, and the we-are-merging-indicator
-    //size_t num_rows = 10000;
-    //size_t num_rows = ((1 << RUN_IDX_BITS )- 3) * ((1 << RUN_IDX_BITS) - 3) * QUEUE_CAPACITY;
+    //size_t count_ = 10000;
+    //size_t count_ = ((1 << RUN_IDX_BITS )- 3) * ((1 << RUN_IDX_BITS) - 3) * QUEUE_CAPACITY;
     size_t num_rows = 2 * ((1 << RUN_IDX_BITS) - 3) * QUEUE_CAPACITY;
 
-    ovc::log_info("num_rows=%lu", num_rows);
+    ovc::log_info("count_=%lu", num_rows);
 
     auto plan = new AssertSorted(
             new Sort(
@@ -188,7 +188,7 @@ void comparison_sort() {
     }
 }
 
-void comparison_dedup() {
+void comparison_distinct() {
     for (int prefix = 0; prefix < 8; prefix += 2) {
         FILE *file = fopen(("column_comparisons_distinct_prefix_" + std::to_string(prefix) + ".csv").c_str(), "w");
         fprintf(file, "n,sort,sort_no_ovc,hash\n");
@@ -209,7 +209,7 @@ void comparison_dedup() {
             //fprintf(file, "%lu,%zu,%lu,%lu,%lu\n",
             fprintf(file, "%lu,%lu,%lu,%lu\n",
                     num_rows,
-                    // num_rows -hash->duplicates,
+                    // count_ -hash->duplicates,
                     sort->getStats().column_comparisons + num_rows,
                     sort_no_ovc->getStats().column_comparisons,
                     row_equality_column_comparisons);
@@ -362,7 +362,7 @@ int main(int argc, char *argv[]) {
 
     //raw_rows();
     //example_sort();
-    //example_dedup();
+    //example_distinct();
     //example_comparison();
     //example_hashing();
     //example_truncation();
@@ -370,7 +370,7 @@ int main(int argc, char *argv[]) {
     //example_count_column_comparisons();
 
     //comparison_sort();
-    //example_group_by();
+    example_group_by();
 
     //external_shuffle();
 
@@ -379,7 +379,7 @@ int main(int argc, char *argv[]) {
     //test_generic_priorityqueue();
 
     // test_merge_join();
-    compare_joins();
+    //compare_joins();
 
     //test_compare_prefix();
 

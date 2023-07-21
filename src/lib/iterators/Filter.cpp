@@ -10,12 +10,27 @@ namespace ovc::iterators {
     }
 
     Row *Filter::next() {
-        for (Row *row; (row = UnaryIterator::next());) {
+        Iterator::next();
+        for (Row *row; (row = input_->next()); input_->free()) {
             if (predicate_(row)) {
                 return row;
             };
-            UnaryIterator::free();
         }
         return nullptr;
+    }
+
+    void Filter::open() {
+        Iterator::open();
+        input_->open();
+    }
+
+    void Filter::free() {
+        Iterator::free();
+        input_->free();
+    }
+
+    void Filter::close() {
+        Iterator::close();
+        input_->close();
     }
 }

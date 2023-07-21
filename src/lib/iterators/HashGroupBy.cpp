@@ -10,11 +10,12 @@ namespace ovc::iterators {
     }
 
     void HashGroupBy::open() {
-        UnaryIterator::open();
+        Iterator::open();
+        input_->open();
 
         Partitioner partitioner(1 << RUN_IDX_BITS);
 
-        for (Row *row; (row = UnaryIterator::next()); UnaryIterator::free()) {
+        for (Row *row; (row = input_->next()); input_->free()) {
             row->setHash(group_columns);
             partitioner.put(row);
         }

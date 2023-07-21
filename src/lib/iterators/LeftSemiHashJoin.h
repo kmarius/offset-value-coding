@@ -1,7 +1,7 @@
 #pragma once
 
 #include <unordered_set>
-#include "BinaryIterator.h"
+#include "Iterator.h"
 #include "lib/io/BufferManager.h"
 #include "lib/io/ExternalRunR.h"
 

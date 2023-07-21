@@ -30,7 +30,6 @@ add_library(libovc
         src/lib/io/ExternalRunW.h
         src/lib/io/ExternalRunWS.cpp
         src/lib/io/ExternalRunWS.h
-        src/lib/iterators/AssertSorted.cpp
         src/lib/iterators/AssertSorted.h
         src/lib/iterators/Filter.cpp
         src/lib/iterators/Filter.h
@@ -38,7 +37,6 @@ add_library(libovc
         src/lib/iterators/Generator.h
         src/lib/iterators/Iterator.cpp
         src/lib/iterators/Iterator.h
-        src/lib/iterators/Scan.cpp
         src/lib/iterators/Scan.h
         src/lib/iterators/Sort.h
         src/lib/log.cpp
@@ -48,8 +46,7 @@ add_library(libovc
         src/lib/Row.h
         src/lib/Run.h
         src/lib/utils.h
-        src/lib/iterators/VectorScan.cpp
-        src/lib/iterators/VectorScan.h src/lib/iterators/Distinct.cpp src/lib/iterators/Distinct.h src/lib/iterators/AssertSortedUnique.h src/lib/iterators/AssertSortedUnique.cpp src/lib/iterators/AssertEqual.cpp src/lib/iterators/AssertEqual.h src/lib/iterators/HashDistinct.cpp src/lib/Partitioner.cpp src/lib/Partitioner.h src/lib/iterators/PrefixTruncationCounter.cpp src/lib/iterators/PrefixTruncationCounter.h src/lib/iterators/UnaryIterator.h src/lib/iterators/OVCApplier.cpp src/lib/iterators/OVCApplier.h src/lib/iterators/GeneratorZeroPrefix.h src/lib/iterators/GeneratorZeroPrefix.cpp src/lib/iterators/Sort.ipp src/lib/iterators/IGenerator.h src/lib/iterators/GroupBy.cpp src/lib/iterators/GroupBy.h src/lib/iterators/GeneratorZeroSuffix.cpp src/lib/iterators/GeneratorZeroSuffix.h src/lib/iterators/HashGroupBy.cpp src/lib/iterators/HashGroupBy.h src/lib/iterators/Shuffle.cpp src/lib/iterators/Shuffle.h src/lib/PriorityQueue.ipp src/lib/iterators/BinaryIterator.h src/lib/iterators/LeftSemiJoin.cpp src/lib/iterators/LeftSemiJoin.h src/lib/iterators/LeftSemiHashJoin.cpp src/lib/iterators/LeftSemiHashJoin.h)
+        src/lib/iterators/VectorScan.h src/lib/iterators/Distinct.cpp src/lib/iterators/Distinct.h src/lib/iterators/AssertSortedUnique.h src/lib/iterators/AssertEqual.h src/lib/iterators/HashDistinct.cpp src/lib/Partitioner.cpp src/lib/Partitioner.h src/lib/iterators/PrefixTruncationCounter.cpp src/lib/iterators/PrefixTruncationCounter.h src/lib/iterators/OVCApplier.h src/lib/iterators/GeneratorZeroPrefix.h src/lib/iterators/GeneratorZeroPrefix.cpp src/lib/iterators/Sort.ipp src/lib/iterators/GroupBy.cpp src/lib/iterators/GroupBy.h src/lib/iterators/GeneratorZeroSuffix.cpp src/lib/iterators/GeneratorZeroSuffix.h src/lib/iterators/HashGroupBy.cpp src/lib/iterators/HashGroupBy.h src/lib/iterators/Shuffle.cpp src/lib/iterators/Shuffle.h src/lib/PriorityQueue.ipp src/lib/iterators/LeftSemiJoin.cpp src/lib/iterators/LeftSemiJoin.h src/lib/iterators/LeftSemiHashJoin.cpp src/lib/iterators/LeftSemiHashJoin.h)
 target_link_libraries(libovc uring)
 
 add_executable(ovc src/ovc/main.cpp)

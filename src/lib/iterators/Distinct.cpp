@@ -14,7 +14,7 @@ namespace ovc::iterators {
 
     template<bool USE_OVC>
     Row *DistinctBase<USE_OVC>::next() {
-        for (Row *row; (row = UnaryIterator::next()); UnaryIterator::free()) {
+        for (Row *row; (row = input_->next()); input_->free()) {
             if constexpr (USE_OVC) {
                 // TODO: we can repair OVCs here
                 if (row->key != 0) {

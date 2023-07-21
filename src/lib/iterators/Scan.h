@@ -9,9 +9,12 @@ namespace ovc::iterators {
 
     class Scan : public Iterator {
     public :
-        explicit Scan(const std::string &path);
+        explicit Scan(const std::string &path) : buffer_manager(1), run(path, buffer_manager) {};
 
-        Row *next() override;
+        Row *next() override {
+            Iterator::next();
+            return run.read();
+        };
 
     private :
         BufferManager buffer_manager;

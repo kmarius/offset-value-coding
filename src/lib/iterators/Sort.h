@@ -4,7 +4,6 @@
 #include "lib/PriorityQueue.h"
 #include "lib/Run.h"
 #include "Iterator.h"
-#include "UnaryIterator.h"
 
 #include <vector>
 #include <queue>
@@ -74,10 +73,6 @@ namespace ovc::iterators {
         void open() override;
 
         Row *next() override;
-
-        void free() override {
-            Iterator::free();
-        }
 
         void close() override;
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <random>
-#include "IGenerator.h"
+#include "Iterator.h"
 
 namespace ovc::iterators {
 

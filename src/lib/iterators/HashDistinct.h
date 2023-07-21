@@ -3,7 +3,7 @@
 #include <unordered_set>
 #include "lib/Partitioner.h"
 #include "lib/io/ExternalRunR.h"
-#include "UnaryIterator.h"
+#include "Iterator.h"
 
 namespace ovc::iterators {
 

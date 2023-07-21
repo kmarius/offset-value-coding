@@ -9,7 +9,7 @@ namespace ovc {
             class duration_t = std::chrono::milliseconds
     >
     static inline auto since(std::chrono::time_point<clock_t, duration_t> const &start) {
-        return std::chrono::duration_cast<result_t>(clock_t::now() - start).count();
+        return std::chrono::duration_cast<result_t>(clock_t::now() - start).count_();
     }
 
     static inline auto now() {

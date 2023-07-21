@@ -29,8 +29,8 @@ namespace ovc::iterators {
         std::vector<std::string> paths;
         rows.reserve(SHUFFLE_RUN_SIZE);
 
-        UnaryIterator::open();
-        for (Row *row; (row = UnaryIterator::next()); UnaryIterator::free()) {
+        input_->open();
+        for (Row *row; (row = input_->next()); input_->free()) {
             if (rows.size() == SHUFFLE_RUN_SIZE) {
                 std::shuffle(rows.begin(), rows.end(), rng);
                 std::string path = gen_path();
@@ -44,7 +44,7 @@ namespace ovc::iterators {
             }
             rows.push_back(*row);
         }
-        UnaryIterator::close();
+        input_->close();
 
         if (!rows.empty()) {
             std::shuffle(rows.begin(), rows.end(), rng);

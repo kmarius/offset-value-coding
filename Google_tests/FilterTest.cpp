@@ -39,6 +39,7 @@ TEST_F(FilterTest, EmptyTest) {
                     }
             ));
     plan->run();
-    ASSERT_TRUE(plan->equal);
+    ASSERT_TRUE(plan->isEqual());
+    ASSERT_EQ(plan->getCount(), 1);
     delete plan;
 }

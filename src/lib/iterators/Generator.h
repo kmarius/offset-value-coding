@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IGenerator.h"
+#include "Iterator.h"
 #include "../defs.h"
 
 #include <vector>
