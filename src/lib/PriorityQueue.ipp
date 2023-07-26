@@ -162,7 +162,6 @@ namespace ovc {
             heap[i].index = i;
             heap[i].key = LOW_SENTINEL(0);
         }
-        log_info("PriorityQueue capacity=%lu", capacity);
     }
 
     template<bool USE_OVC, typename Compare>

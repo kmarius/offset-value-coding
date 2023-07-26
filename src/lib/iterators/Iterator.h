@@ -22,7 +22,7 @@ namespace ovc::iterators {
                      output_is_unique(false) {};
 
         virtual ~Iterator() {
-            assert(status == Closed);
+            assert(status != Opened);
         };
 
         /**

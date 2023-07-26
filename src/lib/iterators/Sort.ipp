@@ -417,7 +417,7 @@ namespace ovc::iterators {
 
     template<bool DISTINCT, bool USE_OVC, typename Compare>
     SortBase<DISTINCT, USE_OVC, Compare>::SortBase(Iterator *input, const Compare &cmp)
-            : UnaryIterator(input), cmp(cmp), sorter(cmp) {
+            : UnaryIterator(input), cmp(cmp), sorter(cmp), count(0) {
         output_has_ovc = USE_OVC;
         output_is_sorted = true;
         output_is_unique = DISTINCT;
@@ -502,8 +502,12 @@ namespace ovc::iterators {
                     break;
                 }
             }
+            if (row != nullptr) {
+                count++;
+            }
             return row;
         } else {
+            count++;
             return sorter.queue.pop_external();
         }
 #endif

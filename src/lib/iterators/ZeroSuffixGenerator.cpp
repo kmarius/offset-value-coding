@@ -11,7 +11,6 @@ namespace ovc::iterators {
         dist = std::uniform_int_distribution<std::mt19937::result_type>(0, upper - 1);
     }
 
-
     Row *ZeroSuffixGenerator::next() {
         Iterator::next();
         if (num_rows == 0) {
@@ -21,8 +20,8 @@ namespace ovc::iterators {
 
         for (int i = 0; i < ROW_ARITY - suffix; i++) {
             buf.columns[i] = dist(rng) % upper;
-            buf.tid++;
         }
+        buf.tid++;
         return &buf;
     }
 }

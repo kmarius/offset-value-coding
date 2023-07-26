@@ -18,6 +18,9 @@
 #include "lib/iterators/VectorScan.h"
 #include "lib/iterators/LeftSemiJoin.h"
 #include "lib/iterators/LeftSemiHashJoin.h"
+#include "lib/iterators/Multiplier.h"
+#include "lib/iterators/Counter.h"
+#include "lib/iterators/ApproximateDuplicateGenerator.h"
 
 #include <vector>
 #include <iostream>
@@ -423,6 +426,37 @@ void hash_combination() {
     log_info("combine_java: %lums", time_java);
 }
 
+void example_duplicate_generation() {
+    int prefix = 4;
+    int num_unique = 4;
+    int mult = 4;
+    auto *shuf = new Shuffle(new Multiplier(new ZeroPrefixGenerator(num_unique, 1024, prefix), mult));
+    auto *plan = new SortDistinct(shuf);
+    plan->run(true);
+    log_info("%lu", shuf->getCount());
+    delete plan;
+}
+
+void experiment_sort_distinct() {
+    int num_rows = 1000000;
+    int num_experiments = 10;
+    log_set_quiet(true);
+    printf("input_size,output_size,column_comparisons_ovc,column_comparisons_no_ovc\n");
+    for (int i = 0; i < num_experiments; i++) {
+        auto unique = (i + 1) * (1.0 / num_experiments);
+        auto *gen = new ApproximateDuplicateGenerator(num_rows, unique, 0, 0, 1337);
+        auto *plan_ovc = new SortDistinct(gen->clone());
+        auto *plan_no_ovc = new SortDistinctNoOvc(gen);
+        plan_ovc->run();
+        plan_no_ovc->run();
+        printf("%d,%lu,%lu,%lu\n", num_rows, plan_ovc->getCount(), plan_ovc->getStats().column_comparisons, plan_no_ovc->getStats().column_comparisons);
+        delete plan_ovc;
+        delete plan_no_ovc;
+    }
+
+    log_set_quiet(false);
+}
+
 int main(int argc, char *argv[]) {
     log_open(LOG_TRACE);
     log_set_quiet(false);
@@ -454,7 +488,11 @@ int main(int argc, char *argv[]) {
 
     //test_compare_prefix();
 
-    hash_combination();
+    // hash_combination();
+
+    // example_duplicate_generation();
+    experiment_sort_distinct();
+
 
     log_info("elapsed=%lums", since(start));
 

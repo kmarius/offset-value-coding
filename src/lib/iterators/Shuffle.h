@@ -18,10 +18,13 @@ namespace ovc::iterators {
 
         Row *next() override;
 
-        void free() override {};
+        unsigned long getCount() const {
+            return count;
+        }
 
     private:
         BufferManager buffer_manager;
         std::vector<io::ExternalRunR *> runs;
+        unsigned long count;
     };
 }

@@ -80,9 +80,14 @@ namespace ovc::iterators {
             return sorter.queue.getStats();
         }
 
+        unsigned long getCount() const {
+            return count;
+        }
+
     private:
         Sorter<DISTINCT, USE_OVC, Compare> sorter;
         Compare cmp;
+        unsigned long count;
     };
 
     typedef SortBase<DistinctOff, OvcOn> Sort;

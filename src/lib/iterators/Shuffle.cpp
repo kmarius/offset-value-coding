@@ -13,7 +13,7 @@ namespace ovc::iterators {
         return BASEDIR "/shuffle_" + std::to_string(i++) + ".dat";
     }
 
-    Shuffle::Shuffle(Iterator *input) : UnaryIterator(input), buffer_manager(SHUFFLE_BUFFER_PAGES) {
+    Shuffle::Shuffle(Iterator *input) : UnaryIterator(input), buffer_manager(SHUFFLE_BUFFER_PAGES), count(0) {
     }
 
     Shuffle::~Shuffle() {
@@ -24,6 +24,7 @@ namespace ovc::iterators {
     }
 
     void Shuffle::open() {
+        Iterator::open();
         auto rng = std::default_random_engine{};
         std::vector<Row> rows;
         std::vector<std::string> paths;
@@ -79,6 +80,7 @@ namespace ovc::iterators {
             auto *run = runs[ind];
             Row *row = run->read();
             if (row) {
+                count++;
                 return row;
             }
             run->remove();
