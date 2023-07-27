@@ -96,6 +96,11 @@ namespace ovc {
             return data[ind];
         }
 
+        Row *back() {
+            assert(data.size() > 0);
+            return data.back();
+        }
+
         /**
          * Set the offset value codes in a sorted run.
          */

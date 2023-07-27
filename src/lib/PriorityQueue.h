@@ -84,6 +84,8 @@ namespace ovc {
 
         void *top_udata();
 
+        OVC top_ovc();
+
         size_t top_run_idx();
 
         std::string to_string() const;

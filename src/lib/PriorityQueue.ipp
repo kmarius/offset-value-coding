@@ -238,6 +238,11 @@ namespace ovc {
     }
 
     template<bool USE_OVC, typename Compare>
+    OVC PriorityQueueBase<USE_OVC, Compare>::top_ovc() {
+        return heap[0].ovc();
+    }
+
+    template<bool USE_OVC, typename Compare>
     Row *PriorityQueueBase<USE_OVC, Compare>::top() {
         assert(!isEmpty());
         return workspace[heap[0].index].row;

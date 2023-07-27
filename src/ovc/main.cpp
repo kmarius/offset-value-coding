@@ -21,6 +21,7 @@
 #include "lib/iterators/Multiplier.h"
 #include "lib/iterators/Counter.h"
 #include "lib/iterators/ApproximateDuplicateGenerator.h"
+#include "lib/iterators/InSortGroupBy.h"
 
 #include <vector>
 #include <iostream>
@@ -449,12 +450,31 @@ void experiment_sort_distinct() {
         auto *plan_no_ovc = new SortDistinctNoOvc(gen);
         plan_ovc->run();
         plan_no_ovc->run();
-        printf("%d,%lu,%lu,%lu\n", num_rows, plan_ovc->getCount(), plan_ovc->getStats().column_comparisons, plan_no_ovc->getStats().column_comparisons);
+        printf("%d,%lu,%lu,%lu\n", num_rows, plan_ovc->getCount(), plan_ovc->getStats().column_comparisons,
+               plan_no_ovc->getStats().column_comparisons);
         delete plan_ovc;
         delete plan_no_ovc;
     }
 
     log_set_quiet(false);
+}
+
+void example_in_sort_group_by() {
+    auto *plan = new InSortGroupBy<AvgAggregate>(
+            new ZeroSuffixGenerator(10000, 16, 0),
+            2,
+            AvgAggregate(2, 2)
+    );
+    plan->run(true);
+    delete plan;
+
+    auto *plan2 = new InSortGroupBy<SumAggregate>(
+            new ZeroSuffixGenerator(10000, 16, 0),
+            2,
+            SumAggregate(2, 2)
+    );
+    plan2->run(true);
+    delete plan2;
 }
 
 int main(int argc, char *argv[]) {
@@ -491,8 +511,9 @@ int main(int argc, char *argv[]) {
     // hash_combination();
 
     // example_duplicate_generation();
-    experiment_sort_distinct();
+    //experiment_sort_distinct();
 
+    example_in_sort_group_by();
 
     log_info("elapsed=%lums", since(start));
 

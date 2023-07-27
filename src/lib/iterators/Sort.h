@@ -4,6 +4,7 @@
 #include "lib/PriorityQueue.h"
 #include "lib/Run.h"
 #include "Iterator.h"
+#include "lib/Aggregates.h"
 
 #include <vector>
 #include <queue>
@@ -16,9 +17,10 @@ namespace ovc::iterators {
     const bool OvcOff = false;
     const bool OvcOn = true;
 
-    template<bool DISTINCT, bool USE_OVC, typename Compare = RowCmp>
+    template<bool DISTINCT, bool USE_OVC, typename Compare = RowCmp, typename Aggregate = NullAggregate, bool DO_AGGREGATE = false>
     struct Sorter {
         Compare cmp;
+        Aggregate agg;
         Row *workspace;
         size_t workspace_size;
         std::vector<MemoryRun> memory_runs;
@@ -29,11 +31,13 @@ namespace ovc::iterators {
         Row prev;
         bool has_prev;
 
-        explicit Sorter(const Compare &cmp = Compare());
+        explicit Sorter(const Compare &cmp = Compare(), const Aggregate &agg = Aggregate());
 
         ~Sorter();
 
         void consume(Iterator *input);
+
+        Row *next();
 
         void cleanup();
 
@@ -68,13 +72,32 @@ namespace ovc::iterators {
     template<bool DISTINCT, bool USE_OVC, typename Compare = RowCmp>
     class SortBase : public UnaryIterator {
     public:
-        explicit SortBase(Iterator *input, const Compare &cmp = Compare());
+        SortBase(Iterator *input, const Compare &cmp = Compare())
+                : UnaryIterator(input), sorter(cmp), count(0) {
+            output_has_ovc = USE_OVC;
+            output_is_sorted = true;
+            output_is_unique = DISTINCT;
+        };
 
-        void open() override;
+        void open() {
+            Iterator::open();
+            input_->open();
+            sorter.consume(input_);
+            input_->close();
+        }
 
-        Row *next() override;
+        Row *next() {
+            if (sorter.queue.isEmpty()) {
+                return nullptr;
+            }
+            count++;
+            return sorter.next();
+        }
 
-        void close() override;
+        void close() {
+            Iterator::close();
+            sorter.cleanup();
+        }
 
         struct ovc_stats &getStats() {
             return sorter.queue.getStats();
@@ -86,7 +109,6 @@ namespace ovc::iterators {
 
     private:
         Sorter<DISTINCT, USE_OVC, Compare> sorter;
-        Compare cmp;
         unsigned long count;
     };
 

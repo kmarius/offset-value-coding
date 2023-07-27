@@ -21,22 +21,23 @@ namespace ovc::iterators {
         return std::string(BASEDIR "/run_" + std::to_string(i++) + ".dat");
     }
 
-    template<bool DISTINCT, bool USE_OVC, typename Compare>
-    Sorter<DISTINCT, USE_OVC, Compare>::Sorter(const Compare &cmp) :
+    template<bool DISTINCT, bool USE_OVC, typename Compare, typename Aggregate, bool do_aggregate>
+    Sorter<DISTINCT, USE_OVC, Compare, Aggregate, do_aggregate>::Sorter(const Compare &cmp, const Aggregate &agg) :
             cmp(cmp),
+            agg(agg),
             queue(QUEUE_CAPACITY, cmp),
             buffer_manager(1024),
             workspace(new Row[SORTER_WORKSPACE_CAPACITY]),
             workspace_size(0) {
     }
 
-    template<bool DISTINCT, bool USE_OVC, typename Compare>
-    Sorter<DISTINCT, USE_OVC, Compare>::~Sorter() {
+    template<bool DISTINCT, bool USE_OVC, typename Compare, typename Aggregate, bool do_aggregate>
+    Sorter<DISTINCT, USE_OVC, Compare, Aggregate, do_aggregate>::~Sorter() {
         cleanup();
     };
 
-    template<bool DISTINCT, bool USE_OVC, typename Compare>
-    void Sorter<DISTINCT, USE_OVC, Compare>::cleanup() {
+    template<bool DISTINCT, bool USE_OVC, typename Compare, typename Aggregate, bool do_aggregate>
+    void Sorter<DISTINCT, USE_OVC, Compare, Aggregate, do_aggregate>::cleanup() {
         delete[] workspace;
         workspace = nullptr;
         for (auto &run: external_runs) {
@@ -48,8 +49,8 @@ namespace ovc::iterators {
         };
     }
 
-    template<bool DISTINCT, bool USE_OVC, typename Compare>
-    bool Sorter<DISTINCT, USE_OVC, Compare>::generate_initial_runs(Iterator *input) {
+    template<bool DISTINCT, bool USE_OVC, typename Compare, typename Aggregate, bool DO_AGGREGATE>
+    bool Sorter<DISTINCT, USE_OVC, Compare, Aggregate, DO_AGGREGATE>::generate_initial_runs(Iterator *input) {
         log_trace("SortBase::generate_initial_runs()");
 
         size_t runs_generated = 0;
@@ -70,6 +71,9 @@ namespace ovc::iterators {
         Row *row;
 
         for (; queue.size() < queue.capacity() && (row = input->next());) {
+            if (DO_AGGREGATE) {
+                agg.init(*row);
+            }
             workspace[workspace_size] = *row;
             input->free();
             row = &workspace[workspace_size++];
@@ -98,6 +102,9 @@ namespace ovc::iterators {
 #endif
 
         for (; (row = input->next());) {
+            if (DO_AGGREGATE) {
+                agg.init(*row);
+            }
             workspace[workspace_size] = *row;
             input->free();
             row = &workspace[workspace_size++];
@@ -119,7 +126,15 @@ namespace ovc::iterators {
 
             rows_processed++;
             Row *row1 = queue.pop_push(row, insert_run_index);
-            if constexpr (DISTINCT) {
+            if constexpr (DO_AGGREGATE) {
+                if (row1->key == 0) {
+                    // same group
+                    agg.merge(*run.back(), *row1);
+                } else {
+                    // new group
+                    run.add(row1);
+                }
+            } else if constexpr (DISTINCT) {
                 // TODO: what if we don't use OVCs
                 if (row1->key != 0) {
                     run.add(row1);
@@ -158,7 +173,16 @@ namespace ovc::iterators {
             // The queue is not even full once. Pop everything, we then have a single in-memory run.
             while (!queue.isEmpty()) {
                 Row *row1 = queue.pop_safe(MERGE_RUN_IDX);
-                if constexpr (DISTINCT) {
+                if constexpr (DO_AGGREGATE) {
+                    if (row1->key == 0) {
+                        // same group
+                        agg.merge(*run.back(), *row1);
+                    } else {
+                        // new group
+                        run.add(row1);
+                    }
+                } else if constexpr (DISTINCT) {
+                    // TODO: what if we don't use OVCs
                     if (row1->key != 0) {
                         run.add(row1);
                     }
@@ -175,7 +199,16 @@ namespace ovc::iterators {
             for (; i < QUEUE_CAPACITY - inserted; i++) {
                 if (j < memory_runs.size()) {
                     Row *row1 = queue.pop_push_memory(&memory_runs[j++]);
-                    if constexpr (DISTINCT) {
+                    if constexpr (DO_AGGREGATE) {
+                        if (row1->key == 0) {
+                            // same group
+                            agg.merge(*run.back(), *row1);
+                        } else {
+                            // new group
+                            run.add(row1);
+                        }
+                    } else if constexpr (DISTINCT) {
+                        // TODO: what if we don't use OVCs
                         if (row1->key != 0) {
                             run.add(row1);
                         }
@@ -184,7 +217,16 @@ namespace ovc::iterators {
                     }
                 } else {
                     Row *row1 = queue.pop_safe(MERGE_RUN_IDX);
-                    if constexpr (DISTINCT) {
+                    if constexpr (DO_AGGREGATE) {
+                        if (row1->key == 0) {
+                            // same group
+                            agg.merge(*run.back(), *row1);
+                        } else {
+                            // new group
+                            run.add(row1);
+                        }
+                    } else if constexpr (DISTINCT) {
+                        // TODO: what if we don't use OVCs
                         if (row1->key != 0) {
                             run.add(row1);
                         }
@@ -205,7 +247,16 @@ namespace ovc::iterators {
 
             if (queue.size() == queue.capacity()) {
                 Row *row1 = queue.pop(MERGE_RUN_IDX);
-                if constexpr (DISTINCT) {
+                if constexpr (DO_AGGREGATE) {
+                    if (row1->key == 0) {
+                        // same group
+                        agg.merge(*run.back(), *row1);
+                    } else {
+                        // new group
+                        run.add(row1);
+                    }
+                } else if constexpr (DISTINCT) {
+                    // TODO: what if we don't use OVCs
                     if (row1->key != 0) {
                         run.add(row1);
                     }
@@ -220,7 +271,16 @@ namespace ovc::iterators {
                 if (j < memory_runs.size()) {
                     queue.push_memory(memory_runs[j++]);
                     Row *row1 = queue.pop_safe(MERGE_RUN_IDX);
-                    if constexpr (DISTINCT) {
+                    if constexpr (DO_AGGREGATE) {
+                        if (row1->key == 0) {
+                            // same group
+                            agg.merge(*run.back(), *row1);
+                        } else {
+                            // new group
+                            run.add(row1);
+                        }
+                    } else if constexpr (DISTINCT) {
+                        // TODO: what if we don't use OVCs
                         if (row1->key != 0) {
                             run.add(row1);
                         }
@@ -230,7 +290,16 @@ namespace ovc::iterators {
                 } else {
                     assert(queue.isCorrect());
                     Row *row1 = queue.pop_safe(MERGE_RUN_IDX);
-                    if constexpr (DISTINCT) {
+                    if constexpr (DO_AGGREGATE) {
+                        if (row1->key == 0) {
+                            // same group
+                            agg.merge(*run.back(), *row1);
+                        } else {
+                            // new group
+                            run.add(row1);
+                        }
+                    } else if constexpr (DISTINCT) {
+                        // TODO: what if we don't use OVCs
                         if (row1->key != 0) {
                             run.add(row1);
                         }
@@ -272,8 +341,8 @@ namespace ovc::iterators {
 // assume: priority queue is filled with in-memory memory_runs
 // output memory_runs are external
 // ends with isEmpty priority queue
-    template<bool DISTINCT, bool USE_OVC, typename Compare>
-    void Sorter<DISTINCT, USE_OVC, Compare>::merge_in_memory() {
+    template<bool DISTINCT, bool USE_OVC, typename Compare, typename Aggregate, bool DO_AGGREGATE>
+    void Sorter<DISTINCT, USE_OVC, Compare, Aggregate, DO_AGGREGATE>::merge_in_memory() {
         log_trace("SortBase::merge_in_memory()");
         if (queue.isEmpty()) {
             return;
@@ -301,13 +370,20 @@ namespace ovc::iterators {
                 prev = *row;
             }
 #endif
-            Row *row = queue.pop_memory();
-            if constexpr (DISTINCT) {
-                if (row->key != 0) {
-                    run.add(*row);
+            Row *row1 = queue.pop_memory();
+            if constexpr (DO_AGGREGATE) {
+                while (!queue.isEmpty() && queue.top_ovc() == 0) {
+                    agg.merge(*row1, *queue.top());
+                    queue.pop_memory();
+                }
+                run.add(*row1);
+            } else if constexpr (DISTINCT) {
+                // TODO: what if we don't use OVCs
+                if (row1->key != 0) {
+                    run.add(*row1);
                 }
             } else {
-                run.add(*row);
+                run.add(*row1);
             }
             assert(queue.isCorrect());
         }
@@ -320,8 +396,8 @@ namespace ovc::iterators {
         memory_runs.clear();
     }
 
-    template<bool DISTINCT, bool USE_OVC, typename Compare>
-    void Sorter<DISTINCT, USE_OVC, Compare>::insert_external_runs(size_t fan_in) {
+    template<bool DISTINCT, bool USE_OVC, typename Compare, typename Aggregate, bool do_aggregate>
+    void Sorter<DISTINCT, USE_OVC, Compare, Aggregate, do_aggregate>::insert_external_runs(size_t fan_in) {
         assert(fan_in <= QUEUE_CAPACITY);
         assert(queue.isEmpty());
         assert(external_run_paths.size() >= fan_in);
@@ -341,8 +417,8 @@ namespace ovc::iterators {
         queue.flush_sentinels();
     }
 
-    template<bool DISTINCT, bool USE_OVC, typename Compare>
-    std::string Sorter<DISTINCT, USE_OVC, Compare>::merge_external_runs(size_t fan_in) {
+    template<bool DISTINCT, bool USE_OVC, typename Compare, typename Aggregate, bool do_aggregate>
+    std::string Sorter<DISTINCT, USE_OVC, Compare, Aggregate, do_aggregate>::merge_external_runs(size_t fan_in) {
         log_trace("merging %lu external runs", QUEUE_CAPACITY);
         insert_external_runs(fan_in);
 
@@ -370,6 +446,7 @@ namespace ovc::iterators {
             Row *row = queue.pop_external();
             if constexpr (DISTINCT) {
                 if (row->key != 0) {
+                    // GROUP BY: merge here
                     run.add(*row);
                 }
             } else {
@@ -387,8 +464,8 @@ namespace ovc::iterators {
         return path;
     }
 
-    template<bool DISTINCT, bool USE_OVC, typename Compare>
-    void Sorter<DISTINCT, USE_OVC, Compare>::consume(Iterator *input_) {
+    template<bool DISTINCT, bool USE_OVC, typename Compare, typename Aggregate, bool do_aggregate>
+    void Sorter<DISTINCT, USE_OVC, Compare, Aggregate, do_aggregate>::consume(Iterator *input_) {
         for (bool has_more_input = true; has_more_input;) {
             has_more_input = generate_initial_runs(input_);
             merge_in_memory();
@@ -415,42 +492,23 @@ namespace ovc::iterators {
         log_trace("Sorter::consume() fan-in for the last merge step is %lu", external_runs.size());
     }
 
-    template<bool DISTINCT, bool USE_OVC, typename Compare>
-    SortBase<DISTINCT, USE_OVC, Compare>::SortBase(Iterator *input, const Compare &cmp)
-            : UnaryIterator(input), cmp(cmp), sorter(cmp), count(0) {
-        output_has_ovc = USE_OVC;
-        output_is_sorted = true;
-        output_is_unique = DISTINCT;
-    };
-
-    template<bool DISTINCT, bool USE_OVC, typename Compare>
-    void SortBase<DISTINCT, USE_OVC, Compare>::open() {
-        Iterator::open();
-        input_->open();
-        sorter.consume(input_);
-        input_->close();
-    }
-
-    template<bool DISTINCT, bool USE_OVC, typename Compare>
-    Row *SortBase<DISTINCT, USE_OVC, Compare>::next() {
-        if (sorter.queue.isEmpty()) {
-            return nullptr;
-        }
+    template<bool DISTINCT, bool USE_OVC, typename Compare, typename Aggregate, bool do_aggregate>
+    Row *Sorter<DISTINCT, USE_OVC, Compare, Aggregate, do_aggregate>::next() {
 
 #ifndef NDEBUG
         Row *row = nullptr;
         if constexpr (DISTINCT) {
             if constexpr (USE_OVC) {
-                while ((row = sorter.queue.pop_external()) && row->key == 0) {
-                    if (sorter.queue.isEmpty()) {
+                while ((row = queue.pop_external()) && row->key == 0) {
+                    if (queue.isEmpty()) {
                         row = nullptr;
                         break;
                     }
                 }
             } else {
-                while ((row = sorter.queue.pop_external())) {
-                    if (sorter.has_prev && row->equals(sorter.prev)) {
-                        if (sorter.queue.isEmpty()) {
+                while ((row = queue.pop_external())) {
+                    if (has_prev && row->equals(prev)) {
+                        if (queue.isEmpty()) {
                             row = nullptr;
                             break;
                         }
@@ -460,62 +518,60 @@ namespace ovc::iterators {
                 }
             }
         } else {
-            return sorter.queue.pop_external();
+            return queue.pop_external();
         }
 
         if (row == nullptr) {
             return nullptr;
         }
 
-        if (cmp(*row, sorter.prev)) {
-            const std::string &run_path = sorter.queue.top_path();
+        if (cmp(*row, prev)) {
+            const std::string &run_path = queue.top_path();
             log_error("SortBase::merge_external(): not ascending in run %s", run_path.c_str());
-            log_error("SortBase::merge_external(): prev %s", sorter.prev.c_str());
+            log_error("SortBase::merge_external(): prev %s", prev.c_str());
             log_error("SortBase::merge_external(): cur  %s", row->c_str());
         }
-        assert(!cmp(*row, sorter.prev));
+        assert(!cmp(*row, prev));
 
-        sorter.has_prev = true;
-        sorter.prev = *row;
+        has_prev = true;
+        prev = *row;
         return row;
 #else
-        if constexpr (DISTINCT) {
+        if constexpr (do_aggregate) {
+            Row *row = queue.pop_external();
+            while (!queue.isEmpty() && queue.top_ovc() == 0) {
+                agg.merge(*queue.top(), *row);
+                row = queue.pop_external();
+            }
+            agg.finalize(*row);
+            return row;
+        } else if constexpr (DISTINCT) {
             Row *row = nullptr;
             if constexpr (USE_OVC) {
-                while ((row = sorter.queue.pop_external()) && row->key == 0) {
-                    if (sorter.queue.isEmpty()) {
+                while ((row = queue.pop_external()) && row->key == 0) {
+                    if (queue.isEmpty()) {
                         row = nullptr;
                         break;
                     }
                 }
             } else {
-                while ((row = sorter.queue.pop_external())) {
-                    if (sorter.has_prev && row->equals(sorter.prev)) {
-                        if (sorter.queue.isEmpty()) {
+                while ((row = queue.pop_external())) {
+                    if (has_prev && row->equals(prev)) {
+                        if (queue.isEmpty()) {
                             row = nullptr;
                             break;
                         }
                         continue;
                     }
-                    sorter.has_prev = true;
-                    sorter.prev = *row;
+                    has_prev = true;
+                    prev = *row;
                     break;
                 }
             }
-            if (row != nullptr) {
-                count++;
-            }
             return row;
         } else {
-            count++;
-            return sorter.queue.pop_external();
+            return queue.pop_external();
         }
 #endif
-    }
-
-    template<bool DISTINCT, bool USE_OVC, typename Compare>
-    void SortBase<DISTINCT, USE_OVC, Compare>::close() {
-        Iterator::close();
-        sorter.cleanup();
     }
 }
