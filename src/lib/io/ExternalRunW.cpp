@@ -58,6 +58,10 @@ namespace ovc::io {
         rows_total++;
     }
 
+    Row *ExternalRunW::back() {
+        return reinterpret_cast<Row *> (buffers[current]->data + sizes[current]) - 1;
+    }
+
     size_t ExternalRunW::size() const {
         return rows_total;
     }

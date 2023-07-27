@@ -34,7 +34,7 @@ namespace ovc::iterators {
             OVC ovc;
 
             // while buffered right is smaller (per join_columns prefix), replace it with next
-            for (; buffer[0].less_prefix(*row_left, ovc, 0, join_columns, nullptr); ) {
+            for (; buffer[0].cmp_prefix(*row_left, ovc, 0, join_columns, nullptr); ) {
                 Row *row_right = right->next();
                 if (row_right == nullptr) {
                     buffer.clear();
@@ -45,7 +45,7 @@ namespace ovc::iterators {
             }
 
             // if left is now smaller, continue loop
-            if (row_left->less_prefix(buffer[0], ovc, 0, join_columns, nullptr)) {
+            if (row_left->cmp_prefix(buffer[0], ovc, 0, join_columns, nullptr)) {
                 left->free();
                 continue;
             }

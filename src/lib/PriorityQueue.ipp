@@ -115,7 +115,7 @@ namespace ovc {
                 }
                 stats->comparisons_of_actual_rows++;
                 OVC ovc;
-                return ws[index].row->less(*ws[node.index].row, ovc, 0, stats);
+                return ws[index].row->cmp(*ws[node.index].row, ovc, 0, stats) < 0;
             } else {
                 if (key == node.key) {
                     stats->comparisons_equal_key++;
@@ -125,7 +125,7 @@ namespace ovc {
                     stats->comparisons_of_actual_rows++;
 
                     OVC ovc;
-                    if (cmp(*ws[index].row, *ws[node.index].row, ovc, NODE_OFFSET(key) + 1, stats)) {
+                    if (cmp(*ws[index].row, *ws[node.index].row, ovc, NODE_OFFSET(key) + 1, stats) < 0) {
                         node.setOvc(ovc);
                         return true;
                     } else {
@@ -172,7 +172,7 @@ namespace ovc {
                     continue;
                 }
                 if (heap[j].key <= heap[i].key &&
-                    cmp(*workspace[heap[j].index].row, *workspace[heap[i].index].row)) {
+                    cmp(*workspace[heap[j].index].row, *workspace[heap[i].index].row) < 0) {
 #ifndef NDEBUG
                     log_error("Element at position %lu is not smaller than the one in position %lu", i, j);
                     // TODO: log the queue here

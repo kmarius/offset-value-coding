@@ -59,6 +59,8 @@ namespace ovc::io {
          */
         void add(Row &row);
 
+        Row *back();
+
         /**
          * Get the number of rows that have already been written to this run.
          * @return The number of rows.

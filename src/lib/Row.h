@@ -89,7 +89,7 @@ namespace ovc {
         };
 
         /**
-         * cmp-than semantics
+         * cmp__-than semantics
          * @param row
          * @return
          */
@@ -102,18 +102,13 @@ namespace ovc {
             return false;
         }
 
-        static bool
-        cmp(const Row &lhs, const Row &rhs, OVC &ovc, unsigned int offset = 0, struct ovc_stats *stats = nullptr) {
-            return lhs.less(rhs, ovc, offset, stats);
-        }
-
         /**
-         * cmp-than semantics, writes the OVC of the loser w.r.t the winner to the provided address
+         * cmp semantics, writes the OVC of the loser w.r.t the winner to the provided address
          * @param row
          * @param ovc
          * @return
          */
-        inline bool less(const Row &row, OVC &ovc, unsigned int offset = 0, struct ovc_stats *stats = nullptr) const {
+        inline long cmp(const Row &row, OVC &ovc, unsigned int offset = 0, struct ovc_stats *stats = nullptr) const {
             long cmp;
 
 #ifndef NDEBUG
@@ -131,7 +126,7 @@ namespace ovc {
             if (offset >= ROW_ARITY) {
                 // rows are equal
                 ovc = 0;
-                return false;
+                return 0;
             }
 
             if (stats) {
@@ -141,16 +136,15 @@ namespace ovc {
             if (cmp < 0) {
                 // we are smaller
                 ovc = MAKE_OVC(ROW_ARITY, offset, row.columns[offset]);
-                return true;
             } else {
                 // we are larger
                 ovc = MAKE_OVC(ROW_ARITY, offset, columns[offset]);
-                return false;
             }
+            return cmp;
         }
 
-        inline bool less_prefix(const Row &row, OVC &ovc, unsigned int offset, unsigned cmp_columns,
-                                struct ovc_stats *stats) const {
+        inline long cmp_prefix(const Row &row, OVC &ovc, unsigned int offset, unsigned cmp_columns,
+                               struct ovc_stats *stats) const {
             long cmp;
 
 #ifndef NDEBUG
@@ -168,7 +162,7 @@ namespace ovc {
             if (offset >= cmp_columns) {
                 // rows are equal
                 ovc = 0;
-                return false;
+                return 0;
             }
 
             if (stats) {
@@ -178,12 +172,11 @@ namespace ovc {
             if (cmp < 0) {
                 // we are smaller
                 ovc = MAKE_OVC(ROW_ARITY, offset, row.columns[offset]);
-                return true;
             } else {
                 // we are larger
                 ovc = MAKE_OVC(ROW_ARITY, offset, columns[offset]);
-                return false;
             }
+            return cmp;
         }
 
         /**
@@ -211,13 +204,13 @@ namespace ovc {
 
     struct RowCmp {
     public:
-        bool operator()(const Row &lhs, const Row &rhs, OVC &ovc, unsigned offset, struct ovc_stats *stats) const {
-            return lhs.less(rhs, ovc, offset, stats);
+        int operator()(const Row &lhs, const Row &rhs, OVC &ovc, unsigned offset, struct ovc_stats *stats) const {
+            return lhs.cmp(rhs, ovc, offset, stats);
         }
 
-        bool operator()(const Row &lhs, const Row &rhs) const {
+        int operator()(const Row &lhs, const Row &rhs) const {
             OVC ovc;
-            return lhs.less(rhs, ovc, 0, nullptr);
+            return lhs.cmp(rhs, ovc, 0, nullptr);
         }
     };
 
@@ -228,13 +221,13 @@ namespace ovc {
 
         explicit RowCmpPrefix(int prefix) : prefix(prefix) {};
 
-        bool operator()(const Row &lhs, const Row &rhs, OVC &ovc, unsigned offset, struct ovc_stats *stats) const {
-            return lhs.less_prefix(rhs, ovc, offset, prefix, stats);
+        int operator()(const Row &lhs, const Row &rhs, OVC &ovc, unsigned offset, struct ovc_stats *stats) const {
+            return lhs.cmp_prefix(rhs, ovc, offset, prefix, stats);
         }
 
-        bool operator()(const Row &lhs, const Row &rhs) const {
+        int operator()(const Row &lhs, const Row &rhs) const {
             OVC ovc;
-            return lhs.less_prefix(rhs, ovc, 0, prefix, nullptr);
+            return lhs.cmp_prefix(rhs, ovc, 0, prefix, nullptr);
         }
     };
 
@@ -245,7 +238,7 @@ namespace ovc {
 
         explicit RowEqualPrefix(const int prefix) : prefix(prefix) {}
 
-        bool operator()(const Row &lhs, const Row &rhs) const {
+        int operator()(const Row &lhs, const Row &rhs) const {
             for (int i = 0; i < prefix; i++) {
                 if (lhs.columns[i] != rhs.columns[i]) {
                     return false;

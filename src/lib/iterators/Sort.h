@@ -42,6 +42,38 @@ namespace ovc::iterators {
         void cleanup();
 
     private:
+        bool equals(Row *row1, Row *row2, const Compare &cmp) {
+            if constexpr (USE_OVC) {
+                return row2->key == 0;
+            } else {
+                return cmp(*row1, *row2) == 0;
+            }
+        }
+
+        template<typename R>
+        void process_row(Row *row, R &run) {
+            if constexpr (DO_AGGREGATE) {
+                if (row->key == 0) {
+                    // same group
+                    agg.merge(*run.back(), *row);
+                } else {
+                    // new group
+                    run.add(row);
+                }
+            } else if constexpr (DISTINCT) {
+                if constexpr (USE_OVC) {
+                    if (row->key != 0) {
+                        run.add(row);
+                    }
+                } else {
+                    // compare with previous row
+                    run.add(row);
+                }
+            } else {
+                run.add(row);
+            }
+        }
+
         /**
          * Generate initial runs from the input. When this function returns, only in-memory runs are left in the queue
          * to be merged. Returns false if the input was empty and returned nullptr.

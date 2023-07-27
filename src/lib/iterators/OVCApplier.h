@@ -18,7 +18,7 @@ namespace ovc::iterators {
             if (row == nullptr) {
                 return nullptr;
             }
-            prev_.less(*row, row->key);
+            prev_.cmp__(*row, row->key);
             prev_ = *row;
             return row;
         };
