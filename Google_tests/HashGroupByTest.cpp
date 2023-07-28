@@ -24,7 +24,7 @@ protected:
 
 TEST_F(HashGroupByTest, EmptyTest) {
     auto *plan = new AssertEqual(
-            new HashGroupBy(new Sort(new ZeroSuffixGenerator(0, 0, 0)), 4),
+            new HashGroupBy(new Sort(new ZeroSuffixGenerator(0, 0, 0)), 4, aggregates::Count(4)),
             new VectorScan({})
     );
     plan->run();
@@ -43,7 +43,7 @@ TEST_F(HashGroupByTest, OneColumnSimple) {
                                            {0, 4, {1, 5}},
                                            {0, 3, {2, 6}},
                                            {0, 4, {2, 7}},
-                                   }), 1)),
+                                   }), 1, aggregates::Count(1))),
             new VectorScan({
                                    {0, 0, {0, 2}},
                                    {0, 0, {1, 3}},
@@ -66,7 +66,7 @@ TEST_F(HashGroupByTest, TwoColumnsSimple) {
                                            {0, 4, {1, 3, 7}},
                                            {0, 3, {2, 7, 2}},
                                            {0, 4, {2, 7, 9}},
-                                   }), 2)),
+                                   }), 2, aggregates::Count(2))),
             new VectorScan({
                                    {0, 0, {0, 1, 2}},
                                    {0, 0, {1, 2, 1}},
@@ -83,7 +83,7 @@ TEST_F(HashGroupByTest, DoesntLoseRows) {
     unsigned num_rows = 100000;
     int group_columns = 2;
 
-    auto *plan = new HashGroupBy(new ZeroSuffixGenerator(num_rows, 32, 5), group_columns);
+    auto *plan = new HashGroupBy(new ZeroSuffixGenerator(num_rows, 32, 5), group_columns, aggregates::Count(group_columns));
     plan->open();
     unsigned count = 0;
     for (Row *row; (row = plan->next()); plan->free()) {
@@ -98,7 +98,7 @@ TEST_F(HashGroupByTest, DoesntLoseRows2) {
     unsigned num_rows = 100000;
     int group_columns = 4;
 
-    auto *plan = new HashGroupBy(new ZeroSuffixGenerator(num_rows, 32, 3), group_columns);
+    auto *plan = new HashGroupBy(new ZeroSuffixGenerator(num_rows, 32, 3), group_columns, aggregates::Count(group_columns));
     plan->open();
     unsigned count = 0;
     for (Row *row; (row = plan->next()); plan->free()) {

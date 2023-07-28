@@ -6,9 +6,10 @@
 
 namespace ovc::iterators {
 
+    template<typename Aggregate>
     class HashGroupBy : public UnaryIterator {
     public:
-        HashGroupBy(Iterator *input, int group_columns);
+        HashGroupBy(Iterator *input, int group_columns, const Aggregate &agg = Aggregate());
 
         void open() override;
 
@@ -17,6 +18,7 @@ namespace ovc::iterators {
         void close() override;
 
     private:
+        Aggregate agg;
         int group_columns;
         std::vector<std::string> partitions;
         io::BufferManager bufferManager;
@@ -26,3 +28,5 @@ namespace ovc::iterators {
         std::vector<Row> process_partition(const std::string &path);
     };
 }
+
+#include "HashGroupBy.ipp"
