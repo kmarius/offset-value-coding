@@ -5,7 +5,6 @@
 #include "lib/log.h"
 #include "lib/iterators/ZeroSuffixGenerator.h"
 #include "lib/iterators/Sort.h"
-#include "lib/iterators/InSortGroupBy.h"
 
 #include <gtest/gtest.h>
 
@@ -25,7 +24,7 @@ protected:
 
 TEST_F(InSortGroupByTest, EmptyTest) {
     auto *plan = new AssertEqual(
-            new InSortGroupBy(new ZeroSuffixGenerator(0, 0, 0), 1, CountAggregate(1)),
+            new InSortGroupBy(new ZeroSuffixGenerator(0, 0, 0), 1, aggregates::Count(1)),
             new VectorScan({})
     );
     plan->run();
@@ -44,7 +43,7 @@ TEST_F(InSortGroupByTest, OneColumnSimple) {
                                            {0, 4, {1, 5}},
                                            {0, 3, {2, 6}},
                                            {0, 4, {2, 7}},
-                                   }), 1, CountAggregate(1)),
+                                   }), 1, aggregates::Count(1)),
             new VectorScan({
                                    {0, 0, {0, 2}},
                                    {0, 0, {1, 3}},
@@ -67,7 +66,7 @@ TEST_F(InSortGroupByTest, TwoColumnsSimple) {
                                            {0, 4, {1, 3, 7}},
                                            {0, 3, {2, 7, 2}},
                                            {0, 4, {2, 7, 9}},
-                                   }), 2, CountAggregate(2)),
+                                   }), 2, aggregates::Count(2)),
             new VectorScan({
                                    {0, 0, {0, 1, 2}},
                                    {0, 0, {1, 2, 1}},
@@ -85,7 +84,7 @@ TEST_F(InSortGroupByTest, DoesntLoseRows) {
     int group_columns = 2;
 
     auto *plan = new InSortGroupBy(new ZeroSuffixGenerator(num_rows, 32, 5), group_columns,
-                                   CountAggregate(group_columns));
+                                   aggregates::Count(group_columns));
     plan->open();
     unsigned count = 0;
     for (Row *row; (row = plan->next()); plan->free()) {
@@ -101,7 +100,7 @@ TEST_F(InSortGroupByTest, DoesntLoseRows2) {
     int group_columns = 4;
 
     auto *plan = new InSortGroupBy(new ZeroSuffixGenerator(num_rows, 32, 3), group_columns,
-                                   CountAggregate(group_columns));
+                                   aggregates::Count(group_columns));
     plan->open();
     unsigned count = 0;
     for (Row *row; (row = plan->next()); plan->free()) {
@@ -124,7 +123,7 @@ TEST_F(InSortGroupByTest, OneColumnSimpleNoOVC) {
                                            {0, 4, {1, 5}},
                                            {0, 3, {2, 6}},
                                            {0, 4, {2, 7}},
-                                   }), 1, CountAggregate(1)),
+                                   }), 1, aggregates::Count(1)),
             new VectorScan({
                                    {0, 0, {0, 2}},
                                    {0, 0, {1, 3}},
@@ -147,7 +146,7 @@ TEST_F(InSortGroupByTest, TwoColumnsSimpleNoOVC) {
                                            {0, 4, {1, 3, 7}},
                                            {0, 3, {2, 7, 2}},
                                            {0, 4, {2, 7, 9}},
-                                   }), 2, CountAggregate(2)),
+                                   }), 2, aggregates::Count(2)),
             new VectorScan({
                                    {0, 0, {0, 1, 2}},
                                    {0, 0, {1, 2, 1}},
@@ -166,7 +165,7 @@ TEST_F(InSortGroupByTest, DoesntLoseRowsNoOVC) {
 
     auto *plan = new InSortGroupByNoOvc(new ZeroSuffixGenerator(num_rows, 32, 5),
                                         group_columns,
-                                        CountAggregate(group_columns));
+                                        aggregates::Count(group_columns));
     plan->open();
     unsigned count = 0;
     for (Row *row; (row = plan->next()); plan->free()) {
@@ -183,7 +182,7 @@ TEST_F(InSortGroupByTest, DoesntLoseRows2NoOVC) {
 
     auto *plan = new InSortGroupByNoOvc(new ZeroSuffixGenerator(num_rows, 32, 3),
                                         group_columns,
-                                        CountAggregate(group_columns));
+                                        aggregates::Count(group_columns));
     plan->open();
     unsigned count = 0;
     for (Row *row; (row = plan->next()); plan->free()) {

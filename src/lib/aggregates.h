@@ -2,10 +2,10 @@
 
 #include "Row.h"
 
-namespace ovc {
+namespace ovc::aggregates {
 
-    struct NullAggregate {
-        NullAggregate() {}
+    struct Null {
+        Null() {}
 
         void init(Row &row) const {
         }
@@ -17,10 +17,10 @@ namespace ovc {
         }
     };
 
-    struct SumAggregate {
-        SumAggregate(int groupColumns, int aggColumn) : group_columns(groupColumns), agg_column(aggColumn) {}
+    struct Sum {
+        Sum(int groupColumns, int aggColumn) : group_columns(groupColumns), agg_column(aggColumn) {}
 
-        SumAggregate() = delete;
+        Sum() = delete;
 
         void init(Row &row) const {
             row.columns[group_columns] = row.columns[agg_column];
@@ -42,10 +42,10 @@ namespace ovc {
         const int agg_column;
     };
 
-    struct AvgAggregate {
-        AvgAggregate(int groupColumns, int aggColumn) : group_columns(groupColumns), agg_column(aggColumn) {}
+    struct Avg {
+        Avg(int groupColumns, int aggColumn) : group_columns(groupColumns), agg_column(aggColumn) {}
 
-        AvgAggregate() = delete;
+        Avg() = delete;
 
         void init(Row &row) const {
             row.columns[group_columns] = row.columns[agg_column];
@@ -70,10 +70,10 @@ namespace ovc {
         const int agg_column;
     };
 
-    struct CountAggregate {
-        explicit CountAggregate(int groupColumns) : group_columns(groupColumns) {}
+    struct Count {
+        explicit Count(int groupColumns) : group_columns(groupColumns) {}
 
-        CountAggregate() = delete;
+        Count() = delete;
 
         void init(Row &row) const {
             row.columns[group_columns] = 1;

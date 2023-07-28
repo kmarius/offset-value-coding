@@ -461,28 +461,28 @@ void experiment_sort_distinct() {
 }
 
 void example_in_sort_group_by() {
-    auto *plan = new InSortGroupBy<AvgAggregate>(
+    auto *plan = new InSortGroupBy(
             new ZeroSuffixGenerator(10000, 16, 0),
             2,
-            AvgAggregate(2, 2)
+            aggregates::Avg(2, 2)
     );
     plan->run(true);
     delete plan;
 
-    auto *plan2 = new InSortGroupBy<SumAggregate>(
+    auto *plan2 = new InSortGroupBy(
             new ZeroSuffixGenerator(10000, 16, 0),
             2,
-            SumAggregate(2, 2)
+            aggregates::Sum(2, 2)
     );
     plan2->run(true);
     delete plan2;
 }
 
 void example_in_sort_group_by_no_ovc() {
-    auto *plan = new InSortGroupByNoOvc<CountAggregate>(
+    auto *plan = new InSortGroupByNoOvc(
             new ZeroSuffixGenerator(20, 8, 0),
             1,
-            CountAggregate(1)
+            aggregates::Count(1)
     );
     plan->run(true);
     delete plan;

@@ -4,7 +4,7 @@
 #include "lib/PriorityQueue.h"
 #include "lib/Run.h"
 #include "Iterator.h"
-#include "lib/Aggregates.h"
+#include "lib/aggregates.h"
 
 #include <vector>
 #include <queue>
@@ -17,7 +17,7 @@ namespace ovc::iterators {
     const bool OvcOff = false;
     const bool OvcOn = true;
 
-    template<bool DISTINCT, bool USE_OVC, typename Compare = RowCmp, typename Aggregate = NullAggregate, bool DO_AGGREGATE = false>
+    template<bool DISTINCT, bool USE_OVC, typename Compare = RowCmp, typename Aggregate = aggregates::Null, bool DO_AGGREGATE = false>
     struct Sorter {
         Compare cmp;
         Aggregate agg;
