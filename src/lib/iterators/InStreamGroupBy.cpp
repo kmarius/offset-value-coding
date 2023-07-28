@@ -1,10 +1,10 @@
-#include "GroupBy.h"
+#include "InStreamGroupBy.h"
 #include "lib/log.h"
 
 namespace ovc::iterators {
 
     template<bool USE_OVC>
-    GroupByBase<USE_OVC>::GroupByBase(Iterator *input, int group_columns) :
+    InStreamGroupByBase<USE_OVC>::InStreamGroupByBase(Iterator *input, int group_columns) :
             UnaryIterator(input), input_buf(), output_buf(),
             group_columns(group_columns), empty(true) {
         assert(input->outputIsSorted());
@@ -13,7 +13,7 @@ namespace ovc::iterators {
     }
 
     template<bool USE_OVC>
-    void GroupByBase<USE_OVC>::open() {
+    void InStreamGroupByBase<USE_OVC>::open() {
         Iterator::open();
         input_->open();
         Row *row = input_->next();
@@ -24,7 +24,7 @@ namespace ovc::iterators {
     }
 
     template<>
-    Row *GroupByBase<true>::next() {
+    Row *InStreamGroupByBase<true>::next() {
         Iterator::next();
         if (empty) {
             return nullptr;
@@ -53,7 +53,7 @@ namespace ovc::iterators {
     }
 
     template<>
-    Row *GroupByBase<false>::next() {
+    Row *InStreamGroupByBase<false>::next() {
         if (empty) {
             return nullptr;
         }
@@ -83,8 +83,8 @@ namespace ovc::iterators {
     }
 
     template
-    class GroupByBase<true>;
+    class InStreamGroupByBase<true>;
 
     template
-    class GroupByBase<false>;
+    class InStreamGroupByBase<false>;
 }

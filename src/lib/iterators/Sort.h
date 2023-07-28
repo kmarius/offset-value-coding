@@ -139,9 +139,7 @@ namespace ovc::iterators {
     };
 
     typedef SortBase<DistinctOff, OvcOn> Sort;
-    typedef SortBase<DistinctOn, OvcOn> SortDistinct;
     typedef SortBase<DistinctOff, OvcOff> SortNoOvc;
-    typedef SortBase<DistinctOn, OvcOff> SortDistinctNoOvc;
 }
 
 #include "Sort.ipp"

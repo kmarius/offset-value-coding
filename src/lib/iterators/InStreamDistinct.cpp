@@ -1,10 +1,10 @@
-#include "Distinct.h"
+#include "InStreamDistinct.h"
 #include "lib/log.h"
 
 namespace ovc::iterators {
 
     template<bool USE_OVC>
-    DistinctBase<USE_OVC>::DistinctBase(Iterator *const input)
+    InStreamDistinctBase<USE_OVC>::InStreamDistinctBase(Iterator *const input)
             : UnaryIterator(input), num_dupes(0), has_prev(false), prev({0}) {
         assert(input->outputIsSorted());
         assert(!USE_OVC || input->outputHasOVC());
@@ -13,7 +13,7 @@ namespace ovc::iterators {
     }
 
     template<bool USE_OVC>
-    Row *DistinctBase<USE_OVC>::next() {
+    Row *InStreamDistinctBase<USE_OVC>::next() {
         for (Row *row; (row = input_->next()); input_->free()) {
             if constexpr (USE_OVC) {
                 // TODO: we can repair OVCs here
@@ -33,8 +33,8 @@ namespace ovc::iterators {
     }
 
     template
-    class DistinctBase<true>;
+    class InStreamDistinctBase<true>;
 
     template
-    class DistinctBase<false>;
+    class InStreamDistinctBase<false>;
 }

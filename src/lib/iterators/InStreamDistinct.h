@@ -5,9 +5,9 @@
 namespace ovc::iterators {
 
     template<bool USE_OVC>
-    class DistinctBase : public UnaryIterator {
+    class InStreamDistinctBase : public UnaryIterator {
     public:
-        explicit DistinctBase(Iterator *input);
+        explicit InStreamDistinctBase(Iterator *input);
 
         void open() override {
             Iterator::open();
@@ -33,6 +33,6 @@ namespace ovc::iterators {
         bool has_prev;
     };
 
-    typedef DistinctBase<true> Distinct;
-    typedef DistinctBase<false> DistinctNoOvc;
+    typedef InStreamDistinctBase<true> InStreamDistinct;
+    typedef InStreamDistinctBase<false> InStreamDistinctNoOvc;
 }

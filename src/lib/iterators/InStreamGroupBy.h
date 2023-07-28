@@ -5,9 +5,9 @@
 namespace ovc::iterators {
 
     template<bool USE_OVC>
-    class GroupByBase : public UnaryIterator {
+    class InStreamGroupByBase : public UnaryIterator {
     public:
-        explicit GroupByBase(Iterator *input, int group_columns);
+        explicit InStreamGroupByBase(Iterator *input, int group_columns);
 
         void open() override;
 
@@ -28,6 +28,6 @@ namespace ovc::iterators {
         int group_columns;
     };
 
-    typedef GroupByBase<true> GroupBy;
-    typedef GroupByBase<true> GroupByNoOVC;
+    typedef InStreamGroupByBase<true> InStreamGroupBy;
+    typedef InStreamGroupByBase<true> InStreamGroupByNoOvc;
 }

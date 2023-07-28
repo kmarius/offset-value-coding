@@ -1,5 +1,5 @@
 #include "lib/Row.h"
-#include "lib/iterators/GroupBy.h"
+#include "lib/iterators/InStreamGroupBy.h"
 #include "lib/iterators/VectorScan.h"
 #include "lib/iterators/AssertEqual.h"
 #include "lib/log.h"
@@ -11,7 +11,7 @@
 using namespace ovc;
 using namespace iterators;
 
-class GroupByTest : public ::testing::Test {
+class InStreamGroupByTest : public ::testing::Test {
 protected:
     void SetUp() override {
         log_set_quiet(false);
@@ -22,9 +22,9 @@ protected:
     }
 };
 
-TEST_F(GroupByTest, EmptyTest) {
+TEST_F(InStreamGroupByTest, EmptyTest) {
     auto *plan = new AssertEqual(
-            new GroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(new ZeroSuffixGenerator(0, 0, 0), RowCmpPrefix{4}), 4),
+            new InStreamGroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(new ZeroSuffixGenerator(0, 0, 0), RowCmpPrefix{4}), 4),
             new VectorScan({})
     );
     plan->run();
@@ -32,9 +32,9 @@ TEST_F(GroupByTest, EmptyTest) {
     delete plan;
 }
 
-TEST_F(GroupByTest, OneColumnSimple) {
+TEST_F(InStreamGroupByTest, OneColumnSimple) {
     auto *plan = new AssertEqual(
-            new GroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(
+            new InStreamGroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(
                     new VectorScan({
                                            {0, 0, {0, 1}},
                                            {0, 1, {0, 2}},
@@ -55,9 +55,9 @@ TEST_F(GroupByTest, OneColumnSimple) {
     delete plan;
 }
 
-TEST_F(GroupByTest, TwoColumnsSimple) {
+TEST_F(InStreamGroupByTest, TwoColumnsSimple) {
     auto *plan = new AssertEqual(
-            new GroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(
+            new InStreamGroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(
                     new VectorScan({
                                            {0, 0, {0, 1, 5}},
                                            {0, 1, {0, 1, 5}},
@@ -79,11 +79,11 @@ TEST_F(GroupByTest, TwoColumnsSimple) {
     delete plan;
 }
 
-TEST_F(GroupByTest, DoesntLoseRows) {
+TEST_F(InStreamGroupByTest, DoesntLoseRows) {
     unsigned num_rows = 100000;
     int group_columns = 2;
 
-    auto *plan = new GroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(new ZeroSuffixGenerator(num_rows, 32, 5), RowCmpPrefix(group_columns)), group_columns);
+    auto *plan = new InStreamGroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(new ZeroSuffixGenerator(num_rows, 32, 5), RowCmpPrefix(group_columns)), group_columns);
     plan->open();
     unsigned count = 0;
     for (Row *row; (row = plan->next()); plan->free()) {
@@ -94,11 +94,11 @@ TEST_F(GroupByTest, DoesntLoseRows) {
     delete plan;
 }
 
-TEST_F(GroupByTest, DoesntLoseRows2) {
+TEST_F(InStreamGroupByTest, DoesntLoseRows2) {
     unsigned num_rows = 100000;
     int group_columns = 4;
 
-    auto *plan = new GroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(new ZeroSuffixGenerator(num_rows, 32, 3), RowCmpPrefix(group_columns)), group_columns);
+    auto *plan = new InStreamGroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(new ZeroSuffixGenerator(num_rows, 32, 3), RowCmpPrefix(group_columns)), group_columns);
     plan->open();
     unsigned count = 0;
     for (Row *row; (row = plan->next()); plan->free()) {
@@ -110,9 +110,9 @@ TEST_F(GroupByTest, DoesntLoseRows2) {
 }
 
 
-TEST_F(GroupByTest, OneColumnSimpleNoOVC) {
+TEST_F(InStreamGroupByTest, OneColumnSimpleNoOvc) {
     auto *plan = new AssertEqual(
-            new GroupByNoOVC(new Sort(
+            new InStreamGroupByNoOvc(new Sort(
                     new VectorScan({
                                            {0, 0, {0, 1}},
                                            {0, 1, {0, 2}},
@@ -133,9 +133,9 @@ TEST_F(GroupByTest, OneColumnSimpleNoOVC) {
     delete plan;
 }
 
-TEST_F(GroupByTest, TwoColumnsSimpleNoOVC) {
+TEST_F(InStreamGroupByTest, TwoColumnsSimpleNoOvc) {
     auto *plan = new AssertEqual(
-            new GroupByNoOVC(new Sort(
+            new InStreamGroupByNoOvc(new Sort(
                     new VectorScan({
                                            {0, 0, {0, 1, 5}},
                                            {0, 1, {0, 1, 5}},
@@ -157,11 +157,11 @@ TEST_F(GroupByTest, TwoColumnsSimpleNoOVC) {
     delete plan;
 }
 
-TEST_F(GroupByTest, DoesntLoseRowsNoOVC) {
+TEST_F(InStreamGroupByTest, DoesntLoseRowsNoOvc) {
     unsigned num_rows = 100000;
     int group_columns = 2;
 
-    auto *plan = new GroupByNoOVC(new Sort(new ZeroSuffixGenerator(num_rows, 32, 5)), group_columns);
+    auto *plan = new InStreamGroupByNoOvc(new Sort(new ZeroSuffixGenerator(num_rows, 32, 5)), group_columns);
     plan->open();
     unsigned count = 0;
     for (Row *row; (row = plan->next()); plan->free()) {
@@ -172,11 +172,11 @@ TEST_F(GroupByTest, DoesntLoseRowsNoOVC) {
     delete plan;
 }
 
-TEST_F(GroupByTest, DoesntLoseRows2NoOVC) {
+TEST_F(InStreamGroupByTest, DoesntLoseRows2NoOvc) {
     unsigned num_rows = 100000;
     int group_columns = 4;
 
-    auto *plan = new GroupByNoOVC(new Sort(new ZeroSuffixGenerator(num_rows, 32, 3)), group_columns);
+    auto *plan = new InStreamGroupByNoOvc(new Sort(new ZeroSuffixGenerator(num_rows, 32, 3)), group_columns);
     plan->open();
     unsigned count = 0;
     for (Row *row; (row = plan->next()); plan->free()) {

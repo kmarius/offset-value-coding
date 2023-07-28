@@ -8,10 +8,10 @@
 #include "lib/iterators/HashDistinct.h"
 #include "lib/iterators/AssertEqual.h"
 #include "lib/iterators/PrefixTruncationCounter.h"
-#include "lib/iterators/Distinct.h"
+#include "lib/iterators/InStreamDistinct.h"
 #include "lib/iterators/AssertSorted.h"
 #include "lib/iterators/ZeroPrefixGenerator.h"
-#include "lib/iterators/GroupBy.h"
+#include "lib/iterators/InStreamGroupBy.h"
 #include "lib/iterators/ZeroSuffixGenerator.h"
 #include "lib/iterators/Shuffle.h"
 #include "lib/iterators/Scan.h"
@@ -22,6 +22,7 @@
 #include "lib/iterators/Counter.h"
 #include "lib/iterators/ApproximateDuplicateGenerator.h"
 #include "lib/iterators/InSortGroupBy.h"
+#include "lib/iterators/InSortDistinct.h"
 
 #include <vector>
 #include <iostream>
@@ -47,7 +48,7 @@ void example_distinct() {
 
     ovc::log_info("count_=%lu", num_rows);
 
-    auto distinct = new Distinct(
+    auto distinct = new InStreamDistinct(
             new Sort(
                     new IncreasingRangeGenerator(num_rows, DOMAIN, 1337)
             ));
@@ -70,7 +71,7 @@ void example_comparison() {
     size_t seed = 1337;
 
     auto plan_hash = new HashDistinct(new IncreasingRangeGenerator(num_rows, 100, seed));
-    auto plan_sort = new Distinct(new Sort(new IncreasingRangeGenerator(num_rows, 100, seed)));
+    auto plan_sort = new InStreamDistinct(new Sort(new IncreasingRangeGenerator(num_rows, 100, seed)));
 
     hash_set_stats_reset();
     auto start = now();
@@ -200,8 +201,8 @@ void comparison_distinct() {
             size_t num_rows = i * 100000;
 
             auto gen = new ZeroPrefixGenerator(num_rows, 100, prefix, 1337);
-            auto sort = new SortDistinct(gen->clone());
-            auto sort_no_ovc = new SortDistinctNoOvc(gen->clone());
+            auto sort = new InSortDistinct(gen->clone());
+            auto sort_no_ovc = new InSortDistinctNoOvc(gen->clone());
             auto hash = new HashDistinct(gen);
 
             // reset static counter^
@@ -248,7 +249,7 @@ void example_count_column_comparisons() {
 }
 
 void example_group_by() {
-    auto plan = new GroupBy(
+    auto plan = new InStreamGroupBy(
             new Sort(new ZeroSuffixGenerator(100000, 128, 6, 1337)),
             1);
     plan->run(true);
@@ -432,7 +433,7 @@ void example_duplicate_generation() {
     int num_unique = 4;
     int mult = 4;
     auto *shuf = new Shuffle(new Multiplier(new ZeroPrefixGenerator(num_unique, 1024, prefix), mult));
-    auto *plan = new SortDistinct(shuf);
+    auto *plan = new InSortDistinct(shuf);
     plan->run(true);
     log_info("%lu", shuf->getCount());
     delete plan;
@@ -446,8 +447,8 @@ void experiment_sort_distinct() {
     for (int i = 0; i < num_experiments; i++) {
         auto unique = (i + 1) * (1.0 / num_experiments);
         auto *gen = new ApproximateDuplicateGenerator(num_rows, unique, 0, 0, 1337);
-        auto *plan_ovc = new SortDistinct(gen->clone());
-        auto *plan_no_ovc = new SortDistinctNoOvc(gen);
+        auto *plan_ovc = new InSortDistinct(gen->clone());
+        auto *plan_no_ovc = new InSortDistinctNoOvc(gen);
         plan_ovc->run();
         plan_no_ovc->run();
         printf("%d,%lu,%lu,%lu\n", num_rows, plan_ovc->getCount(), plan_ovc->getStats().column_comparisons,
