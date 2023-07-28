@@ -477,6 +477,16 @@ void example_in_sort_group_by() {
     delete plan2;
 }
 
+void example_in_sort_group_by_no_ovc() {
+    auto *plan = new InSortGroupByNoOvc<CountAggregate>(
+            new ZeroSuffixGenerator(20, 8, 0),
+            1,
+            CountAggregate(1)
+    );
+    plan->run(true);
+    delete plan;
+}
+
 int main(int argc, char *argv[]) {
     log_open(LOG_TRACE);
     log_set_quiet(false);
@@ -513,7 +523,8 @@ int main(int argc, char *argv[]) {
     // example_duplicate_generation();
     //experiment_sort_distinct();
 
-    example_in_sort_group_by();
+    //example_in_sort_group_by();
+    example_in_sort_group_by_no_ovc();
 
     log_info("elapsed=%lums", since(start));
 

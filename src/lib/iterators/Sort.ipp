@@ -280,7 +280,7 @@ namespace ovc::iterators {
                 } else {
                     run.add(*row1);
                     row1 = run.back();
-                    while (!queue.isEmpty() && equals(row1, queue.top(), cmp)) {
+                    while (!queue.isEmpty() && equals(row1, queue.top())) {
                         queue.pop_memory();
                     }
                 }
@@ -362,7 +362,7 @@ namespace ovc::iterators {
                 } else {
                     run.add(*row);
                     row = run.back();
-                    while (!queue.isEmpty() && equals(row, queue.top(), cmp)) {
+                    while (!queue.isEmpty() && equals(row, queue.top())) {
                         queue.pop_external();
                     }
                 }

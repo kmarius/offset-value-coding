@@ -42,7 +42,7 @@ namespace ovc::iterators {
         void cleanup();
 
     private:
-        bool equals(Row *row1, Row *row2, const Compare &cmp) {
+        inline bool equals(Row *row1, Row *row2) {
             if constexpr (USE_OVC) {
                 return row2->key == 0;
             } else {
@@ -51,22 +51,16 @@ namespace ovc::iterators {
         }
 
         template<typename R>
-        void process_row(Row *row, R &run) {
+        inline void process_row(Row *row, R &run) {
             if constexpr (DO_AGGREGATE) {
-                if (row->key == 0) {
-                    // same group
+                // TODO: if we use OVCs, we don't need to check if the run is empty
+                if (!run.isEmpty() && equals(run.back(), row)) {
                     agg.merge(*run.back(), *row);
                 } else {
-                    // new group
                     run.add(row);
                 }
             } else if constexpr (DISTINCT) {
-                if constexpr (USE_OVC) {
-                    if (row->key != 0) {
-                        run.add(row);
-                    }
-                } else {
-                    // compare with previous row
+                if (run.isEmpty() || !equals(run.back(), row)) {
                     run.add(row);
                 }
             } else {

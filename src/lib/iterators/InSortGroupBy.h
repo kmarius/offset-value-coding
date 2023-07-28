@@ -55,4 +55,11 @@ namespace ovc::iterators {
         InSortGroupBy(Iterator *input, int groupColumns, const Aggregate &agg = Aggregate())
                 : InSortGroupByBase<true, Aggregate>(input, groupColumns, agg) {};
     };
+
+    template<typename Aggregate>
+    class InSortGroupByNoOvc : public InSortGroupByBase<false, Aggregate> {
+    public:
+        InSortGroupByNoOvc(Iterator *input, int groupColumns, const Aggregate &agg = Aggregate())
+                : InSortGroupByBase<false, Aggregate>(input, groupColumns, agg) {};
+    };
 }
