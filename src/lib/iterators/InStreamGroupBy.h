@@ -4,17 +4,14 @@
 
 namespace ovc::iterators {
 
-    template<bool USE_OVC>
+    template<bool USE_OVC, typename Aggregate>
     class InStreamGroupByBase : public UnaryIterator {
     public:
-        explicit InStreamGroupByBase(Iterator *input, int group_columns);
+        explicit InStreamGroupByBase(Iterator *input, int group_columns, const Aggregate &agg = Aggregate());
 
         void open() override;
 
         Row *next() override;
-
-        // overwritten, because we own the rows returned by next and the base method calls free on the input
-        void free() override {};
 
         void close() override {
             Iterator::close();
@@ -22,12 +19,26 @@ namespace ovc::iterators {
         }
 
     private:
-        Row input_buf;   // holds the first row of the next group
+        Aggregate agg;
+        Row acc_buf;   // holds the first row of the group
         Row output_buf;  // holds the Row we return in next
         bool empty;
         int group_columns;
     };
 
-    typedef InStreamGroupByBase<true> InStreamGroupBy;
-    typedef InStreamGroupByBase<true> InStreamGroupByNoOvc;
+    template<typename Aggregate>
+    class InStreamGroupBy : public InStreamGroupByBase<true, Aggregate> {
+    public:
+        InStreamGroupBy(Iterator *input, int groupColumns, const Aggregate &agg = Aggregate())
+                : InStreamGroupByBase<true, Aggregate>(input, groupColumns, agg) {};
+    };
+
+    template<typename Aggregate>
+    class InStreamGroupByNoOvc : public InStreamGroupByBase<false, Aggregate> {
+    public:
+        InStreamGroupByNoOvc(Iterator *input, int groupColumns, const Aggregate &agg = Aggregate())
+                : InStreamGroupByBase<false, Aggregate>(input, groupColumns, agg) {};
+    };
 }
+
+#include "InStreamGroupBy.ipp"
