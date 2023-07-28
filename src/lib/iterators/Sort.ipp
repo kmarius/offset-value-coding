@@ -448,7 +448,7 @@ namespace ovc::iterators {
             log_error("SortBase::merge_external(): prev %s", prev.c_str());
             log_error("SortBase::merge_external(): cur  %s", row->c_str());
         }
-        assert(cmp(*row, prev) <= 0);
+        assert(cmp(*row, prev) >= 0);
 
         has_prev = true;
         prev = *row;
