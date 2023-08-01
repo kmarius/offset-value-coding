@@ -27,7 +27,8 @@ namespace ovc {
     }
 
     void Partitioner::put(Row *row) {
-        return partitions[row->key % num_partitions].add(*row);
+        stats.rows_written++;
+        partitions[row->key % num_partitions].add(*row);
     }
 
     std::vector<std::string> Partitioner::getPartitions() {

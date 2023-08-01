@@ -27,6 +27,8 @@ namespace ovc::iterators {
         partitions = partitioner.getPartitions();
         rows = process_partition(partitions.back());
         input_->close();
+
+        stats.rows_written += partitioner.getStats().rows_written;
     }
 
     template<typename Aggregate>
@@ -67,6 +69,7 @@ namespace ovc::iterators {
         auto accs = std::unordered_set<Row, std::hash<Row>, RowEqualPrefix>(128, std::hash<Row>(), RowEqualPrefix(group_columns));
 
         for (Row *row; (row = part.read());) {
+            stats.rows_read++;
             auto tup = accs.find(*row);
             if (tup == accs.end()) {
                 accs.insert(*row);

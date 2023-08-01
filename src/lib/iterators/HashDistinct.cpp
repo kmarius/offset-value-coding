@@ -23,10 +23,13 @@ namespace ovc::iterators {
         partitioner.finalize();
         partitions = partitioner.getPartitions();
         partition = new ExternalRunR(partitions.back(), bufferManager, true);
+
+        stats.rows_written = partitioner.getStats().rows_written;
     }
 
     Row *HashDistinct::next() {
         for (Row *row; (row = next_from_part());) {
+            stats.rows_read++;
             auto pair = set.insert(*row);
             if (pair.second) {
                 // element was actually i<1nserted

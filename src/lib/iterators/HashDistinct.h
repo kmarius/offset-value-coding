@@ -17,11 +17,16 @@ namespace ovc::iterators {
 
         unsigned duplicates;
 
+        struct iterator_stats getStats() {
+            return stats;
+        }
+
     private:
         std::vector<std::string> partitions;
         ExternalRunR *partition;
         BufferManager bufferManager;
         std::unordered_set<Row> set;
+        struct iterator_stats stats;
 
         Row *next_from_part();
     };

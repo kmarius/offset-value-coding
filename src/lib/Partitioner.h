@@ -34,10 +34,15 @@ namespace ovc {
 
         std::vector<std::string> getPartitions();
 
+        struct iterator_stats &getStats() {
+            return stats;
+        }
+
     private:
         int num_partitions;
         std::vector<std::string> paths;
         std::vector<ExternalRunW> partitions;
         BufferManager bufferManager;
+        struct iterator_stats stats;
     };
 }

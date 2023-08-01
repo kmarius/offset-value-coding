@@ -17,6 +17,10 @@ namespace ovc::iterators {
 
         void close() override;
 
+        struct iterator_stats &getStats() {
+            return stats;
+        }
+
     private:
         Aggregate agg;
         int group_columns;
@@ -24,6 +28,7 @@ namespace ovc::iterators {
         io::BufferManager bufferManager;
         std::vector<Row> rows;
         unsigned long ind;
+        struct iterator_stats stats;
 
         std::vector<Row> process_partition(const std::string &path);
     };
