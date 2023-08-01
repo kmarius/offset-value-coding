@@ -105,7 +105,7 @@ namespace ovc {
         }
 
         // sets ovc of the loser w.r.t. the winner
-        inline bool less(Node &node, Compare &cmp, WorkspaceItem *ws, struct ovc_stats *stats = nullptr) {
+        inline bool less(Node &node, Compare &cmp, WorkspaceItem *ws, struct iterator_stats *stats = nullptr) {
             stats->comparisons++;
 
             if constexpr (!USE_OVC) {

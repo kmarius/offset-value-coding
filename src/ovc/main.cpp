@@ -55,7 +55,7 @@ void example_distinct() {
             ));
     Iterator *plan = new AssertSortedUnique(distinct);
     plan->run();
-    ovc_stats &stats = distinct->getInput<Sort>()->getStats();
+    iterator_stats &stats = distinct->getInput<Sort>()->getStats();
 
     ovc::log_info("num_dupex: %d", distinct->num_dupes);
 
@@ -90,7 +90,7 @@ void example_comparison() {
     ovc::log_info("column_comparisons:      %lu", row_equality_column_comparisons);
     ovc::log_info("duration:                %lums", duration);
 
-    ovc_stats &stats = plan_sort->getInput<Sort>()->getStats();
+    iterator_stats &stats = plan_sort->getInput<Sort>()->getStats();
 
     ovc::log_info("sorting:");
     ovc::log_info("nlogn:                   %lu", num_rows * (size_t) ::log((double) num_rows));
@@ -117,7 +117,7 @@ void example_sort() {
             ));
 
     plan->run();
-    ovc_stats &stats = plan->getInput<Sort>()->getStats();
+    iterator_stats &stats = plan->getInput<Sort>()->getStats();
 
     ovc::log_info("%d", plan->count());
     ovc::log_info("nlogn:                   %lu", (size_t) (num_rows * ::log((double) num_rows)));
@@ -153,7 +153,7 @@ void example_truncation() {
     auto plan = new PrefixTruncationCounter(sort);
     plan->run();
 
-    ovc_stats &stats = sort->getStats();
+    iterator_stats &stats = sort->getStats();
     ovc::log_info("nlogn:                   %lu", (size_t) (num_rows * ::log((double) num_rows)));
     ovc::log_info("comparisons:             %lu", stats.comparisons);
     ovc::log_info("full_comparisons_eq_key: %lu", stats.comparisons_equal_key);
@@ -547,8 +547,10 @@ void experiment_group_by() {
         printf("%d,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n", num_rows, in_sort_ovc->getCount(),
                0lu,
                in_stream_scan->getStats().column_comparisons,
-               in_stream_sort_ovc->getStats().column_comparisons + in_stream_sort_ovc->getInput<SortBase<false, true, RowCmpPrefix>>()->getStats().column_comparisons,
-               in_stream_sort_no_ovc->getStats().column_comparisons + in_stream_sort_no_ovc->getInput<SortBase<false, false, RowCmpPrefix>>()->getStats().column_comparisons,
+               in_stream_sort_ovc->getStats().column_comparisons +
+               in_stream_sort_ovc->getInput<SortBase<false, true, RowCmpPrefix>>()->getStats().column_comparisons,
+               in_stream_sort_no_ovc->getStats().column_comparisons +
+               in_stream_sort_no_ovc->getInput<SortBase<false, false, RowCmpPrefix>>()->getStats().column_comparisons,
                in_sort_ovc->getStats().column_comparisons,
                in_sort_no_ovc->getStats().column_comparisons
         );
@@ -562,6 +564,16 @@ void experiment_group_by() {
     }
 
     log_set_quiet(false);
+}
+
+void example_stats() {
+    auto *plan = new InSortGroupBy(
+            new ApproximateDuplicateGenerator(1000000, 0.5, 0, ROW_ARITY - 2, 1337),
+            2,
+            aggregates::Avg(2, 2));
+    plan->run();
+    log_info("%lu, %lu", plan->getStats().rows_written, plan->getStats().rows_read);
+    delete plan;
 }
 
 int main(int argc, char *argv[]) {
@@ -603,7 +615,9 @@ int main(int argc, char *argv[]) {
     //example_in_sort_group_by();
     //example_in_sort_group_by_no_ovc();
 
-    experiment_group_by();
+    //experiment_group_by();
+
+    example_stats();
 
     log_info("elapsed=%lums", since(start));
 

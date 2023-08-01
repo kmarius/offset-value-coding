@@ -96,7 +96,7 @@ namespace ovc {
 
         Row *pop_safe(Index run_index);
 
-        struct ovc_stats &getStats() {
+        struct iterator_stats &getStats() {
             return stats;
         }
 
@@ -121,7 +121,7 @@ namespace ovc {
         size_t capacity_;
         Node *heap;
         WorkspaceItem *workspace;
-        struct ovc_stats stats;
+        struct iterator_stats stats;
         Compare cmp;
     };
 
@@ -199,6 +199,8 @@ namespace ovc {
             auto *run = this->template top_udata2<io::ExternalRunR>();
             Row *res = this->pop(MERGE_RUN_IDX);
             Row *next = run->read();
+
+            this->getStats().rows_read++;
 
             if (likely(next != nullptr)) {
                 push(next, MERGE_RUN_IDX, run);

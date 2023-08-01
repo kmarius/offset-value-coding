@@ -125,7 +125,7 @@ namespace ovc::iterators {
             sorter.cleanup();
         }
 
-        struct ovc_stats &getStats() {
+        struct iterator_stats &getStats() {
             return sorter.queue.getStats();
         }
 

@@ -27,13 +27,15 @@ namespace ovc {
 
     typedef uint32_t ovc_type_t;
 
-    struct ovc_stats {
+    struct iterator_stats {
         size_t comparisons;
         size_t comparisons_equal_key;
         size_t comparisons_of_actual_rows;
         size_t column_comparisons;
+        size_t rows_written;
+        size_t rows_read;
 
-        ovc_stats() = default;
+        iterator_stats() = default;
     };
 
 // statistics: column comparisons done in the == operator
@@ -108,7 +110,7 @@ namespace ovc {
          * @param ovc
          * @return
          */
-        inline long cmp(const Row &row, OVC &ovc, unsigned int offset = 0, struct ovc_stats *stats = nullptr) const {
+        inline long cmp(const Row &row, OVC &ovc, unsigned int offset = 0, struct iterator_stats *stats = nullptr) const {
             long cmp;
 
 #ifndef NDEBUG
@@ -144,7 +146,7 @@ namespace ovc {
         }
 
         inline long cmp_prefix(const Row &row, OVC &ovc, unsigned int offset, unsigned cmp_columns,
-                               struct ovc_stats *stats) const {
+                               struct iterator_stats *stats) const {
             long cmp;
 
 #ifndef NDEBUG
@@ -204,7 +206,7 @@ namespace ovc {
 
     struct RowCmp {
     public:
-        int operator()(const Row &lhs, const Row &rhs, OVC &ovc, unsigned offset, struct ovc_stats *stats) const {
+        int operator()(const Row &lhs, const Row &rhs, OVC &ovc, unsigned offset, struct iterator_stats *stats) const {
             return lhs.cmp(rhs, ovc, offset, stats);
         }
 
@@ -221,7 +223,7 @@ namespace ovc {
 
         explicit RowCmpPrefix(int prefix) : prefix(prefix) {};
 
-        int operator()(const Row &lhs, const Row &rhs, OVC &ovc, unsigned offset, struct ovc_stats *stats) const {
+        int operator()(const Row &lhs, const Row &rhs, OVC &ovc, unsigned offset, struct iterator_stats *stats) const {
             return lhs.cmp_prefix(rhs, ovc, offset, prefix, stats);
         }
 

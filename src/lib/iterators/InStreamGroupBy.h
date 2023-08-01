@@ -18,7 +18,7 @@ namespace ovc::iterators {
             input_->close();
         }
 
-        struct ovc_stats &getStats() {
+        struct iterator_stats &getStats() {
             return stats;
         }
 
@@ -28,7 +28,7 @@ namespace ovc::iterators {
         Row output_buf;  // holds the Row we return in next
         bool empty;
         int group_columns;
-        ovc_stats stats;
+        iterator_stats stats;
     };
 
     template<typename Aggregate>
