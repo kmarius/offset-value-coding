@@ -23,6 +23,7 @@
 #include "lib/iterators/ApproximateDuplicateGenerator.h"
 #include "lib/iterators/InSortGroupBy.h"
 #include "lib/iterators/InSortDistinct.h"
+#include "lib/iterators/HashGroupBy.h"
 
 #include <vector>
 #include <iostream>
@@ -251,7 +252,7 @@ void example_count_column_comparisons() {
 void example_group_by() {
     auto plan = new InStreamGroupBy(
             new Sort(new ZeroSuffixGenerator(100000, 128, 6, 1337)),
-            1);
+            1, aggregates::Count(1));
     plan->run(true);
     delete plan;
 }
@@ -441,20 +442,25 @@ void example_duplicate_generation() {
 
 void experiment_sort_distinct() {
     int num_rows = 1000000;
-    int num_experiments = 10;
+    int num_experiments = 4;
     log_set_quiet(true);
     printf("input_size,output_size,column_comparisons_ovc,column_comparisons_no_ovc\n");
     for (int i = 0; i < num_experiments; i++) {
         auto unique = (i + 1) * (1.0 / num_experiments);
         auto *gen = new ApproximateDuplicateGenerator(num_rows, unique, 0, 0, 1337);
+
         auto *plan_ovc = new InSortDistinct(gen->clone());
-        auto *plan_no_ovc = new InSortDistinctNoOvc(gen);
+        auto *plan_no_ovc = new InSortDistinctNoOvc(gen->clone());
+
         plan_ovc->run();
         plan_no_ovc->run();
+
         printf("%d,%lu,%lu,%lu\n", num_rows, plan_ovc->getCount(), plan_ovc->getStats().column_comparisons,
                plan_no_ovc->getStats().column_comparisons);
+
         delete plan_ovc;
         delete plan_no_ovc;
+        delete gen;
     }
 
     log_set_quiet(false);
@@ -486,6 +492,76 @@ void example_in_sort_group_by_no_ovc() {
     );
     plan->run(true);
     delete plan;
+}
+
+void experiment_group_by() {
+    int num_rows = 16000000;
+    int num_experiments = 4;
+
+    log_set_quiet(true);
+    printf("input_size,output_size,hash,in_stream_scan,in_stream_sort_ovc,in_stream_sort_no_ovc,in_sort_ovc,in_sort_no_ovc\n");
+    for (int i = 0; i < num_experiments; i++) {
+        int zero_prefix = 0;
+        int group_columns = 4;
+
+        auto agg = aggregates::Avg(group_columns, group_columns);
+
+        auto unique = (i + 1) * (1.0 / num_experiments);
+        auto *gen = new ApproximateDuplicateGenerator(num_rows, unique, zero_prefix, ROW_ARITY - group_columns, 1337);
+
+        auto *hash = new HashGroupBy(gen->clone(), group_columns, agg);
+
+        auto *in_stream_scan = new InStreamGroupByNoOvc(
+                new Sort(gen->clone()),
+                group_columns,
+                agg);
+
+        // we only sort by the group-by columns here
+        auto *in_stream_sort_ovc = new InStreamGroupBy(
+                new SortBase<false, true, RowCmpPrefix>(gen->clone(), RowCmpPrefix(group_columns)),
+                group_columns,
+                agg);
+
+        auto *in_stream_sort_no_ovc = new InStreamGroupByNoOvc(
+                new SortBase<false, false, RowCmpPrefix>(gen->clone(), RowCmpPrefix(group_columns)),
+                group_columns,
+                agg);
+
+        auto *in_sort_ovc = new InSortGroupBy(
+                gen->clone(),
+                group_columns,
+                agg);
+
+        auto *in_sort_no_ovc = new InSortGroupByNoOvc(
+                gen->clone(),
+                group_columns,
+                agg);
+
+        hash->run();
+        in_stream_scan->run();
+        in_stream_sort_ovc->run();
+        in_stream_sort_no_ovc->run();
+        in_sort_ovc->run();
+        in_sort_no_ovc->run();
+
+        printf("%d,%lu,%lu,%lu,%lu,%lu,%lu,%lu\n", num_rows, in_sort_ovc->getCount(),
+               0lu,
+               in_stream_scan->getStats().column_comparisons,
+               in_stream_sort_ovc->getStats().column_comparisons + in_stream_sort_ovc->getInput<SortBase<false, true, RowCmpPrefix>>()->getStats().column_comparisons,
+               in_stream_sort_no_ovc->getStats().column_comparisons + in_stream_sort_no_ovc->getInput<SortBase<false, false, RowCmpPrefix>>()->getStats().column_comparisons,
+               in_sort_ovc->getStats().column_comparisons,
+               in_sort_no_ovc->getStats().column_comparisons
+        );
+        delete hash;
+        delete in_sort_ovc;
+        delete in_sort_no_ovc;
+        delete in_stream_scan;
+        delete in_stream_sort_ovc;
+        delete in_stream_sort_no_ovc;
+        delete gen;
+    }
+
+    log_set_quiet(false);
 }
 
 int main(int argc, char *argv[]) {
@@ -525,7 +601,9 @@ int main(int argc, char *argv[]) {
     //experiment_sort_distinct();
 
     //example_in_sort_group_by();
-    example_in_sort_group_by_no_ovc();
+    //example_in_sort_group_by_no_ovc();
+
+    experiment_group_by();
 
     log_info("elapsed=%lums", since(start));
 

@@ -18,12 +18,17 @@ namespace ovc::iterators {
             input_->close();
         }
 
+        struct ovc_stats &getStats() {
+            return stats;
+        }
+
     private:
         Aggregate agg;
         Row acc_buf;   // holds the first row of the group
         Row output_buf;  // holds the Row we return in next
         bool empty;
         int group_columns;
+        ovc_stats stats;
     };
 
     template<typename Aggregate>

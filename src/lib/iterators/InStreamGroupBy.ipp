@@ -7,7 +7,8 @@ namespace ovc::iterators {
     InStreamGroupByBase<USE_OVC, Aggregate>::InStreamGroupByBase(Iterator *input, int group_columns,
                                                                  const Aggregate &agg) :
             UnaryIterator(input), acc_buf(), output_buf(),
-            group_columns(group_columns), empty(true), agg(agg) {
+            group_columns(group_columns), empty(true), agg(agg),
+            stats() {
         assert(input->outputIsSorted());
         assert(!USE_OVC || input->outputHasOVC());
         output_is_unique = true;
@@ -49,6 +50,7 @@ namespace ovc::iterators {
                 }
             } else {
                 for (int i = 0; i < group_columns; i++) {
+                    stats.column_comparisons++;
                     if (row->columns[i] != acc_buf.columns[i]) {
                         output_buf = acc_buf;
                         agg.finalize(output_buf);
