@@ -266,12 +266,22 @@ namespace ovc::iterators {
 #endif
             Row *row1 = queue.pop_memory();
             if constexpr (DO_AGGREGATE) {
-                while (!queue.isEmpty() && queue.top_ovc() == 0) {
-                    agg.merge(*row1, *queue.top());
-                    queue.pop_memory();
+                if (USE_OVC) {
+                    while (!queue.isEmpty() && queue.top_ovc() == 0) {
+                        agg.merge(*row1, *queue.top());
+                        queue.pop_memory();
+                    }
+                    run.add(*row1);
+                    queue.getStats().rows_written++;
+                } else {
+                    run.add(*row1);
+                    queue.getStats().rows_written++;
+                    row1 = run.back();
+                    while (!queue.isEmpty() && equals(row1, queue.top())) {
+                        agg.merge(*row1, *queue.top());
+                        queue.pop_memory();
+                    }
                 }
-                run.add(*row1);
-                queue.getStats().rows_written++;
             } else if constexpr (DISTINCT) {
                 if constexpr (USE_OVC) {
                     run.add(*row1);
@@ -355,10 +365,18 @@ namespace ovc::iterators {
                 run.add(*row);;
                 queue.getStats().rows_written++;
                 row = run.back();
-                while (!queue.isEmpty() && queue.top_ovc() == 0) {
-                    agg.merge(*row, *queue.top());
-                    queue.pop_external();
-                    queue.getStats().rows_read++;
+                if (USE_OVC) {
+                    while (!queue.isEmpty() && queue.top_ovc() == 0) {
+                        agg.merge(*row, *queue.top());
+                        queue.pop_external();
+                        queue.getStats().rows_read++;
+                    }
+                } else {
+                    while (!queue.isEmpty() && equals(row, queue.top())) {
+                        agg.merge(*row, *queue.top());
+                        queue.pop_external();
+                        queue.getStats().rows_read++;
+                    }
                 }
             } else if constexpr (DISTINCT) {
                 if constexpr (USE_OVC) {
@@ -468,9 +486,16 @@ namespace ovc::iterators {
 #else
         if constexpr (DO_AGGREGATE) {
             Row *row = queue.pop_external();
-            while (!queue.isEmpty() && queue.top_ovc() == 0) {
-                agg.merge(*queue.top(), *row);
-                row = queue.pop_external();
+            if (USE_OVC) {
+                while (!queue.isEmpty() && queue.top_ovc() == 0) {
+                    agg.merge(*queue.top(), *row);
+                    row = queue.pop_external();
+                }
+            } else {
+                while (!queue.isEmpty() && equals(queue.top(), row)) {
+                    agg.merge(*queue.top(), *row);
+                    row = queue.pop_external();
+                }
             }
             agg.finalize(*row);
             return row;
