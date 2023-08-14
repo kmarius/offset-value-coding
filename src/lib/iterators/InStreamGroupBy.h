@@ -22,12 +22,17 @@ namespace ovc::iterators {
             return stats;
         }
 
+        unsigned long getCount() const {
+            return count;
+        }
+
     private:
         Aggregate agg;
         Row acc_buf;   // holds the first row of the group
         Row output_buf;  // holds the Row we return in next
         bool empty;
         int group_columns;
+        unsigned long count;
         iterator_stats stats;
     };
 

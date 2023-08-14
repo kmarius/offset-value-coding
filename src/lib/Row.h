@@ -242,6 +242,7 @@ namespace ovc {
 
         int operator()(const Row &lhs, const Row &rhs) const {
             for (int i = 0; i < prefix; i++) {
+                row_equality_column_comparisons++;
                 if (lhs.columns[i] != rhs.columns[i]) {
                     return false;
                 }

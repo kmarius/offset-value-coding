@@ -21,6 +21,10 @@ namespace ovc::iterators {
             return stats;
         }
 
+        unsigned long getCount() const {
+            return count;
+        }
+
     private:
         Aggregate agg;
         int group_columns;
@@ -28,6 +32,7 @@ namespace ovc::iterators {
         io::BufferManager bufferManager;
         std::vector<Row> rows;
         unsigned long ind;
+        unsigned long count;
         struct iterator_stats stats;
 
         std::vector<Row> process_partition(const std::string &path);

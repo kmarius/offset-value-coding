@@ -7,7 +7,7 @@ namespace ovc::iterators {
 
     template<typename Aggregate>
     HashGroupBy<Aggregate>::HashGroupBy(Iterator *input, int group_columns, const Aggregate &agg)
-            : UnaryIterator(input), group_columns(group_columns), ind(0), agg(agg) {
+            : UnaryIterator(input), group_columns(group_columns), ind(0), agg(agg), count(0) {
         output_is_unique = true;
     }
 
@@ -58,6 +58,7 @@ namespace ovc::iterators {
             rows = process_partition(partitions.back());
         }
 
+        count++;
         return &rows[ind++];
     }
 

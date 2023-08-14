@@ -8,7 +8,7 @@ namespace ovc::iterators {
                                                                  const Aggregate &agg) :
             UnaryIterator(input), acc_buf(), output_buf(),
             group_columns(group_columns), empty(true), agg(agg),
-            stats() {
+            stats(), count(0) {
         assert(input->outputIsSorted());
         assert(!USE_OVC || input->outputHasOVC());
         output_is_unique = true;
@@ -46,6 +46,7 @@ namespace ovc::iterators {
                     agg.init(acc_buf);
                     input_->free();
 
+                    count++;
                     return &output_buf;
                 }
             } else {
@@ -59,6 +60,7 @@ namespace ovc::iterators {
                         agg.init(acc_buf);
                         input_->free();
 
+                        count++;
                         return &output_buf;
                     }
                 }
@@ -72,6 +74,7 @@ namespace ovc::iterators {
         output_buf = acc_buf;
         agg.finalize(output_buf);
 
+        count++;
         return &output_buf;
     }
 }
