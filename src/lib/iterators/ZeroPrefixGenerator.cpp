@@ -1,5 +1,4 @@
 #include "ZeroPrefixGenerator.h"
-#include "lib/log.h"
 
 namespace ovc::iterators {
 

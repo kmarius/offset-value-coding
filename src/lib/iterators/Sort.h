@@ -140,6 +140,19 @@ namespace ovc::iterators {
 
     typedef SortBase<DistinctOff, OvcOn> Sort;
     typedef SortBase<DistinctOff, OvcOff> SortNoOvc;
+
+    class SortPrefix : public SortBase<false, true, RowCmpPrefix> {
+    public:
+        SortPrefix(Iterator *input, int sort_prefix)
+                : SortBase<false, true, RowCmpPrefix>(input, RowCmpPrefix(sort_prefix)) {};
+    };
+
+    class SortPrefixNoOvc : public SortBase<false, false, RowCmpPrefix> {
+    public:
+        SortPrefixNoOvc(Iterator *input, int sort_prefix)
+                : SortBase<false, false, RowCmpPrefix>(input, RowCmpPrefix(sort_prefix)) {};
+    };
+
 }
 
 #include "Sort.ipp"
