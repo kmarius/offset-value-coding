@@ -38,9 +38,6 @@ namespace ovc {
         iterator_stats() = default;
     };
 
-// statistics: column comparisons done in the == operator
-    extern unsigned long row_equality_column_comparisons;
-
 // statistics: number of times hash was called
     extern unsigned long row_num_calls_to_hash;
 
@@ -82,7 +79,6 @@ namespace ovc {
         bool operator==(const Row &other) const {
             row_num_calls_to_equal++;
             for (int i = 0; i < ROW_ARITY; i++) {
-                row_equality_column_comparisons++;
                 if (columns[i] != other.columns[i]) {
                     return false;
                 }
@@ -235,21 +231,43 @@ namespace ovc {
 
     struct RowEqualPrefix {
         const int prefix;
+        struct iterator_stats *stats;
     public:
         RowEqualPrefix() = delete;
 
-        explicit RowEqualPrefix(const int prefix) : prefix(prefix) {}
+        explicit RowEqualPrefix(const int prefix, struct iterator_stats *stats = nullptr) : prefix(prefix), stats(stats) {}
 
         int operator()(const Row &lhs, const Row &rhs) const {
             for (int i = 0; i < prefix; i++) {
-                row_equality_column_comparisons++;
+                if (stats) {
+                    stats->column_comparisons++;
+                }
                 if (lhs.columns[i] != rhs.columns[i]) {
                     return false;
                 }
             }
             return true;
         }
+    };
 
+    struct RowEqual {
+        struct iterator_stats *stats;
+    public:
+        RowEqual() = delete;
+
+        explicit RowEqual(struct iterator_stats *stats = nullptr) : stats(stats) {}
+
+        int operator()(const Row &lhs, const Row &rhs) const {
+            for (int i = 0; i < ROW_ARITY; i++) {
+                if (stats) {
+                    stats->column_comparisons++;
+                }
+                if (lhs.columns[i] != rhs.columns[i]) {
+                    return false;
+                }
+            }
+            return true;
+        }
     };
 }
 

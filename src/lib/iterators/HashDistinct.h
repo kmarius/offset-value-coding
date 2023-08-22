@@ -25,7 +25,7 @@ namespace ovc::iterators {
         std::vector<std::string> partitions;
         ExternalRunR *partition;
         BufferManager bufferManager;
-        std::unordered_set<Row> set;
+        std::unordered_set<Row, std::hash<Row>, RowEqual> set;
         struct iterator_stats stats;
 
         Row *next_from_part();

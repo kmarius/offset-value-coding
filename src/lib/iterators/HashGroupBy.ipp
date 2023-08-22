@@ -7,7 +7,7 @@ namespace ovc::iterators {
 
     template<typename Aggregate>
     HashGroupBy<Aggregate>::HashGroupBy(Iterator *input, int group_columns, const Aggregate &agg)
-            : UnaryIterator(input), group_columns(group_columns), ind(0), agg(agg), count(0) {
+            : UnaryIterator(input), group_columns(group_columns), ind(0), agg(agg), count(0), stats() {
         output_is_unique = true;
     }
 
@@ -67,7 +67,7 @@ namespace ovc::iterators {
 
         ExternalRunR part(path, bufferManager, true);
 
-        auto accs = std::unordered_set<Row, std::hash<Row>, RowEqualPrefix>(128, std::hash<Row>(), RowEqualPrefix(group_columns));
+        auto accs = std::unordered_set<Row, std::hash<Row>, RowEqualPrefix>(128, std::hash<Row>(), RowEqualPrefix(group_columns, &stats));
 
         for (Row *row; (row = part.read());) {
             stats.rows_read++;

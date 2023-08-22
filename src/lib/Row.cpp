@@ -5,7 +5,6 @@
 
 namespace ovc {
 
-    unsigned long row_equality_column_comparisons = 0;
     unsigned long row_num_calls_to_hash = 0;
     unsigned long row_num_calls_to_equal = 0;
 

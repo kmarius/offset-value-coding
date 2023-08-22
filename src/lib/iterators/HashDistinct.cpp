@@ -4,7 +4,7 @@
 
 namespace ovc::iterators {
 
-    HashDistinct::HashDistinct(Iterator *input) : UnaryIterator(input), partition(nullptr), bufferManager(4), duplicates(0) {
+    HashDistinct::HashDistinct(Iterator *input) : UnaryIterator(input), partition(nullptr), bufferManager(4), duplicates(0), set(32, std::hash<Row>(), RowEqual(&stats)), stats() {
         output_is_unique = true;
         output_is_hashed = true;
     }
