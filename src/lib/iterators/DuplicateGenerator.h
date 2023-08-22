@@ -1,13 +1,21 @@
 #pragma once
 
-#include <unordered_set>
 #include "Iterator.h"
+#include "ZeroPrefixGenerator.h"
+
+#include <vector>
 
 namespace ovc::iterators {
+
     class DuplicateGenerator : public Generator {
     public:
+        DuplicateGenerator(unsigned long num_rows, unsigned long mult, int prefix = 0, unsigned long seed = -1) : seed(seed),
+                                                                                                  num_rows(num_rows),
+                                                                                                  mult(mult), count(0), ind(0), rows(), prefix(prefix) {}
+
         void open() override {
             Iterator::open();
+            rows = ZeroPrefixGenerator(num_rows / mult, 1 << 15, prefix, seed).collect();
         }
 
         Row *next() override {
@@ -23,11 +31,22 @@ namespace ovc::iterators {
             }
         }
 
+        void close() override {
+            Iterator::close();
+            rows = {};
+        }
+
+        Generator *clone() const override {
+            return new DuplicateGenerator(num_rows, mult, prefix, seed);
+        }
+
     private:
+        unsigned long seed;
         unsigned long num_rows;
         unsigned long count;
         unsigned long mult;
         unsigned long ind;
-        std::vector<Row> rows;
+        int prefix;
+        std::vector <Row> rows;
     };
 }
