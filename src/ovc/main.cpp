@@ -768,7 +768,7 @@ void experiment_group_by3() {
 }
 
 void experiment_group_by4() {
-    int num_rows = 1 << 20;
+    int num_rows = 1 << 22;
     int num_experiments = 11;
 
     log_set_quiet(true);
@@ -780,8 +780,10 @@ void experiment_group_by4() {
     for (int group_columns = 0; group_columns < ROW_ARITY - 1; group_columns++) {
         for (int zero_prefix = 0; zero_prefix < group_columns - 1; zero_prefix++) {
             for (int i = 0; i < num_experiments; i++) {
+                log_set_quiet(false);
                 log_info("group_by with num_rows=%lu, group_columns=%d, zero_prefix=%d output_size=%lu",
                          num_rows, group_columns, zero_prefix, num_rows >> i);
+                log_set_quiet(true);
 
                 auto agg = aggregates::Avg(group_columns, group_columns);
 
