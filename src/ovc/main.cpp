@@ -1,12 +1,11 @@
+#include "lib/utils.h"
 #include "lib/iterators/Filter.h"
 #include "lib/iterators/IncreasingRangeGenerator.h"
 #include "lib/iterators/Sort.h"
 #include "lib/PriorityQueue.h"
 #include "lib/log.h"
-#include "lib/utils.h"
 #include "lib/iterators/AssertSortedUnique.h"
 #include "lib/iterators/HashDistinct.h"
-#include "lib/iterators/AssertEqual.h"
 #include "lib/iterators/PrefixTruncationCounter.h"
 #include "lib/iterators/InStreamDistinct.h"
 #include "lib/iterators/AssertSorted.h"
@@ -19,7 +18,6 @@
 #include "lib/iterators/LeftSemiJoin.h"
 #include "lib/iterators/LeftSemiHashJoin.h"
 #include "lib/iterators/Multiplier.h"
-#include "lib/iterators/Counter.h"
 #include "lib/iterators/ApproximateDuplicateGenerator.h"
 #include "lib/iterators/InSortGroupBy.h"
 #include "lib/iterators/InSortDistinct.h"
@@ -27,7 +25,6 @@
 #include "lib/iterators/DuplicateGenerator.h"
 
 #include <vector>
-#include <iostream>
 
 using namespace ovc;
 using namespace ovc::iterators;
@@ -61,7 +58,7 @@ void example_distinct() {
     ovc::log_info("num_dupex: %d", distinct->num_dupes);
 
 
-    ovc::log_info("nlogn:                   %lu", (size_t)(num_rows * ::log((double) num_rows)));
+    ovc::log_info("nlogn:                   %lu", (size_t) (num_rows * ::log((double) num_rows)));
     ovc::log_info("comparisons:             %lu", stats.comparisons);
     ovc::log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
 
@@ -121,7 +118,7 @@ void example_sort() {
     iterator_stats &stats = plan->getInput<Sort>()->getStats();
 
     ovc::log_info("%d", plan->count());
-    ovc::log_info("nlogn:                   %lu", (size_t)(num_rows * ::log((double) num_rows)));
+    ovc::log_info("nlogn:                   %lu", (size_t) (num_rows * ::log((double) num_rows)));
     ovc::log_info("comparisons:             %lu", stats.comparisons);
     ovc::log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
     delete plan;
@@ -155,7 +152,7 @@ void example_truncation() {
     plan->run();
 
     iterator_stats &stats = sort->getStats();
-    ovc::log_info("nlogn:                   %lu", (size_t)(num_rows * ::log((double) num_rows)));
+    ovc::log_info("nlogn:                   %lu", (size_t) (num_rows * ::log((double) num_rows)));
     ovc::log_info("comparisons:             %lu", stats.comparisons);
     ovc::log_info("full_comparisons_eq_key: %lu", stats.comparisons_equal_key);
     ovc::log_info("comparisons_of_actual_rows: %lu", stats.comparisons_of_actual_rows);
@@ -768,14 +765,14 @@ void experiment_group_by3() {
 }
 
 void experiment_group_by4() {
-    int num_rows = 1 << 22;
+    int num_rows = 1 << 20;
     int num_experiments = 11;
 
     log_set_quiet(true);
 
-    const char *results_path = "results4.csv";
+    const char *results_path = "results5_1m_4k.csv";
     FILE *results = fopen(results_path, "w");
-    fprintf(results, "experiment,group_columns,zero_prefix,input_size,output_size,column_comparisons,rows_written\n");
+    fprintf(results, "experiment,group_columns,zero_prefix,input_size,output_size,column_comparisons,rows_written,duration\n");
 
     for (int group_columns = 0; group_columns < ROW_ARITY - 1; group_columns++) {
         for (int zero_prefix = 0; zero_prefix < group_columns - 1; zero_prefix++) {
@@ -808,45 +805,179 @@ void experiment_group_by4() {
 
                 auto in_sort_no_ovc = InSortGroupByNoOvc(gen.clone(), group_columns, agg);
 
+
+                auto t0 = now();
                 hash.run();
-                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%d\n", "hash", group_columns, zero_prefix, num_rows,
-                        hash.getCount(), hash.getStats().column_comparisons, num_rows);
+                auto hash_duration = since(t0);
 
+                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%zu,%lu\n", "hash", group_columns, zero_prefix, num_rows,
+                        hash.getCount(), hash.getStats().column_comparisons, hash.getStats().rows_written, hash_duration);
+                fflush(results);
+
+                t0 = now();
                 in_stream_scan.run();
-                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu\n", "in_stream_scan", group_columns, zero_prefix, num_rows,
+                auto in_stream_scan_duration = since(t0);
+
+                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_stream_scan", group_columns, zero_prefix, num_rows,
                         in_stream_scan.getCount(),
-                        in_stream_scan.getStats().column_comparisons, in_stream_scan.getStats().rows_written);
+                        in_stream_scan.getStats().column_comparisons, in_stream_scan.getStats().rows_written, in_stream_scan_duration);
 
+                t0 = now();
                 in_sort_ovc.run();
-                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu\n", "in_sort_ovc", group_columns, zero_prefix, num_rows,
-                        in_sort_ovc.getCount(),
-                        in_sort_ovc.getStats().column_comparisons + num_rows, in_sort_ovc.getStats().rows_written);
+                auto in_sort_ovc_duration = since(t0);
 
+                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_sort_ovc", group_columns, zero_prefix, num_rows,
+                        in_sort_ovc.getCount(),
+                        in_sort_ovc.getStats().column_comparisons + num_rows, in_sort_ovc.getStats().rows_written, in_sort_ovc_duration);
+
+                t0 = now();
                 in_stream_sort_ovc.run();
-                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu\n", "in_stream_sort_ovc", group_columns, zero_prefix,
+                auto in_stream_sort_ovc_duration = since(t0);
+
+                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_stream_sort_ovc", group_columns, zero_prefix,
                         num_rows, in_stream_sort_ovc.getCount(),
                         in_stream_sort_ovc.getStats().column_comparisons +
                         in_stream_sort_ovc.getInput<SortPrefix>()->getStats().column_comparisons +
                         num_rows,
-                        in_stream_sort_ovc.getInput<SortPrefix>()->getStats().rows_written);
+                        in_stream_sort_ovc.getInput<SortPrefix>()->getStats().rows_written, in_stream_sort_ovc_duration);
 
+                t0 = now();
                 in_sort_no_ovc.run();
-                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu\n", "in_sort_no_ovc", group_columns, zero_prefix, num_rows,
-                        in_sort_no_ovc.getCount(),
-                        in_sort_no_ovc.getStats().column_comparisons, in_sort_no_ovc.getStats().rows_written);
+                auto in_sort_no_ovc_duration = since(t0);
 
+                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_sort_no_ovc", group_columns, zero_prefix, num_rows,
+                        in_sort_no_ovc.getCount(),
+                        in_sort_no_ovc.getStats().column_comparisons, in_sort_no_ovc.getStats().rows_written, in_sort_no_ovc_duration);
+
+                t0 = now();
                 in_stream_sort_no_ovc.run();
-                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu\n", "in_stream_sort_no_ovc", group_columns, zero_prefix,
+                auto in_stream_sort_no_ovc_duration = since(t0);
+
+                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_stream_sort_no_ovc", group_columns, zero_prefix,
                         num_rows, in_stream_sort_no_ovc.getCount(),
                         in_stream_sort_no_ovc.getStats().column_comparisons +
                         in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().column_comparisons,
-                        in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().rows_written);
+                        in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().rows_written, in_stream_sort_no_ovc_duration);
+
             }
         }
     }
 
     fclose(results);
     log_set_quiet(false);
+}
+
+void experiment_group_by5() {
+    int num_rows = 1 << 20;
+    int num_experiments = 8;
+
+    log_set_quiet(true);
+
+    const char *results_path = "results_1m_4k.csv";
+    FILE *results = fopen(results_path, "w");
+    fprintf(results, "experiment,group_columns,zero_prefix,input_size,output_size,column_comparisons,rows_written,duration\n");
+
+    for (int group_columns = 0; group_columns < ROW_ARITY - 1; group_columns++) {
+        for (int zero_prefix = 0; zero_prefix < group_columns - 1; zero_prefix++) {
+            for (int i = 0; i < num_experiments; i++) {
+                log_set_quiet(false);
+                log_info("group_by with num_rows=%lu, group_columns=%d, zero_prefix=%d output_size=%lu",
+                         num_rows, group_columns, zero_prefix, num_rows >> i);
+                log_set_quiet(true);
+
+                auto agg = aggregates::Avg(group_columns, group_columns);
+
+                auto unique = (i + 1) * (1.0 / num_experiments);
+                auto gen = ApproximateDuplicateGenerator(num_rows, unique, zero_prefix, ROW_ARITY - group_columns,
+                                                         1337);
+
+                auto hash = HashGroupBy(gen.clone(), group_columns, agg);
+
+                auto in_stream_scan = InStreamGroupByNoOvc(new Sort(gen.clone()), group_columns, agg);
+
+                // we only sort by the group-by columns here
+                auto in_stream_sort_ovc = InStreamGroupBy(
+                        new SortPrefix(gen.clone(), group_columns),
+                        group_columns,
+                        agg);
+
+                auto in_stream_sort_no_ovc = InStreamGroupByNoOvc(
+                        new SortPrefixNoOvc(gen.clone(), group_columns),
+                        group_columns,
+                        agg);
+
+                auto in_sort_ovc = InSortGroupBy(gen.clone(), group_columns, agg);
+
+                auto in_sort_no_ovc = InSortGroupByNoOvc(gen.clone(), group_columns, agg);
+
+
+                auto t0 = now();
+                hash.run();
+                auto hash_duration = since(t0);
+
+                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%zu,%lu\n", "hash", group_columns, zero_prefix, num_rows,
+                        hash.getCount(), hash.getStats().column_comparisons, hash.getStats().rows_written, hash_duration);
+                fflush(results);
+
+                t0 = now();
+                in_stream_scan.run();
+                auto in_stream_scan_duration = since(t0);
+
+                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_stream_scan", group_columns, zero_prefix, num_rows,
+                        in_stream_scan.getCount(),
+                        in_stream_scan.getStats().column_comparisons, in_stream_scan.getStats().rows_written, in_stream_scan_duration);
+
+                t0 = now();
+                in_sort_ovc.run();
+                auto in_sort_ovc_duration = since(t0);
+
+                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_sort_ovc", group_columns, zero_prefix, num_rows,
+                        in_sort_ovc.getCount(),
+                        in_sort_ovc.getStats().column_comparisons + num_rows, in_sort_ovc.getStats().rows_written, in_sort_ovc_duration);
+
+                t0 = now();
+                in_stream_sort_ovc.run();
+                auto in_stream_sort_ovc_duration = since(t0);
+
+                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_stream_sort_ovc", group_columns, zero_prefix,
+                        num_rows, in_stream_sort_ovc.getCount(),
+                        in_stream_sort_ovc.getStats().column_comparisons +
+                        in_stream_sort_ovc.getInput<SortPrefix>()->getStats().column_comparisons +
+                        num_rows,
+                        in_stream_sort_ovc.getInput<SortPrefix>()->getStats().rows_written, in_stream_sort_ovc_duration);
+
+                t0 = now();
+                in_sort_no_ovc.run();
+                auto in_sort_no_ovc_duration = since(t0);
+
+                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_sort_no_ovc", group_columns, zero_prefix, num_rows,
+                        in_sort_no_ovc.getCount(),
+                        in_sort_no_ovc.getStats().column_comparisons, in_sort_no_ovc.getStats().rows_written, in_sort_no_ovc_duration);
+
+                t0 = now();
+                in_stream_sort_no_ovc.run();
+                auto in_stream_sort_no_ovc_duration = since(t0);
+
+                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_stream_sort_no_ovc", group_columns, zero_prefix,
+                        num_rows, in_stream_sort_no_ovc.getCount(),
+                        in_stream_sort_no_ovc.getStats().column_comparisons +
+                        in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().column_comparisons,
+                        in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().rows_written, in_stream_sort_no_ovc_duration);
+
+            }
+        }
+    }
+
+    fclose(results);
+    log_set_quiet(false);
+}
+
+void test_hash_agg() {
+    auto plan = new HashGroupBy(new ZeroPrefixGenerator(4, 100, 0),
+                           2, aggregates::Count(2));
+    plan->run(true);
+    log_info("%lu", plan->getStats().column_comparisons);
+    delete plan;
 }
 
 int main(int argc, char *argv[]) {
@@ -891,11 +1022,23 @@ int main(int argc, char *argv[]) {
     //experiment_group_by();
     //experiment_group_by2();
     //experiment_group_by3();
-    experiment_group_by4();
-
-    //DuplicateGenerator(1 << 10, 1 << 8, 1337).run();
+    //experiment_group_by4();
+    //experiment_group_by5();
 
     //example_stats();
+
+    //test_hash_agg();
+
+    Sort(new HashGroupBy(
+            new VectorScan({
+                                   {0, 0, {0, 1, 5}},
+                                   {0, 1, {0, 1, 5}},
+                                   {0, 2, {1, 2, 1}},
+                                   {0, 3, {1, 3, 4}},
+                                   {0, 4, {1, 3, 7}},
+                                   {0, 3, {2, 7, 2}},
+                                   {0, 4, {2, 7, 9}},
+                           }), 2, aggregates::Count(2))).run(true);
 
     log_info("elapsed=%lums", since(start));
 
