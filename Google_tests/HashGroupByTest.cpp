@@ -74,7 +74,7 @@ TEST_F(HashGroupByTest, TwoColumnsSimple) {
                                    {0, 0, {2, 7, 2}},
                            })
     );
-    plan->run();
+    plan->run(true);
     ASSERT_TRUE(plan->isEqual());
     delete plan;
 }

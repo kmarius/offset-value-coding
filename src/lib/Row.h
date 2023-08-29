@@ -276,8 +276,7 @@ namespace std {
     struct hash<ovc::Row> {
         std::size_t operator()(const ovc::Row &p) const noexcept {
             ovc::row_num_calls_to_hash++;
-            return p.key >> 8 | ((p.key & 0xFF) << (sizeof p.key - 8));
-            // return p.key >> 8;
+            return p.key;
         }
     };
 }

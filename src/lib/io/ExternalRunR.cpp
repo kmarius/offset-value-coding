@@ -10,13 +10,14 @@ namespace ovc::io {
 
     }
 
-    ExternalRunR::ExternalRunR(const std::string &path,
+    ExternalRunR::ExternalRunR(std::string path,
                                BufferManager &buffer_manager, bool no_throw) : path_(path), offset(0),
                                                                                buffer(nullptr),
                                                                                buffer_manager(&buffer_manager),
                                                                                rows(0),
                                                                                cur(0),
                                                                                prev(nullptr) {
+        log_trace("opening %s", path.c_str());
         fd = open(path.c_str(), O_RDONLY
                                 #ifdef USE_O_DIRECT
                                 | O_DIRECT
@@ -40,6 +41,10 @@ namespace ovc::io {
         } else {
             buffer_manager.read(fd, nullptr, offset);
         }
+    }
+
+    bool ExternalRunR::definitelyEmpty() const {
+        return rows == RUN_EMPTY;
     }
 
     ExternalRunR::~ExternalRunR() {
@@ -71,7 +76,7 @@ namespace ovc::io {
             rows = *(size_t *) buffer;
             cur = 0;
 
-            // we currently never save isEmpty pages
+            // we currently never save empty pages
             if (unlikely(rows == 0)) {
                 log_error("Empty page in %s", path().c_str());
                 rows = RUN_EMPTY;

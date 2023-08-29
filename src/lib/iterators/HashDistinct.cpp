@@ -4,7 +4,8 @@
 
 namespace ovc::iterators {
 
-    HashDistinct::HashDistinct(Iterator *input) : UnaryIterator(input), partition(nullptr), bufferManager(4), duplicates(0), set(32, std::hash<Row>(), RowEqual(&stats)), stats() {
+    HashDistinct::HashDistinct(Iterator *input) : UnaryIterator(input), partition(nullptr), bufferManager(4),
+                                                  duplicates(0), set(32, std::hash<Row>(), RowEqual(&stats)), stats() {
         output_is_unique = true;
         output_is_hashed = true;
     }
@@ -21,8 +22,10 @@ namespace ovc::iterators {
             partitioner.put(row);
         }
         partitioner.finalize();
-        partitions = partitioner.getPartitions();
-        partition = new ExternalRunR(partitions.back(), bufferManager, true);
+        partitions = partitioner.getPartitionPaths();
+        if (!partitions.empty()) {
+            partition = new ExternalRunR(partitions.back(), bufferManager, true);
+        }
 
         stats.rows_written = partitioner.getStats().rows_written;
     }
@@ -32,7 +35,7 @@ namespace ovc::iterators {
             stats.rows_read++;
             auto pair = set.insert(*row);
             if (pair.second) {
-                // element was actually i<1nserted
+                // element was actually inserted
                 // maye return a pointer to the element in the set?
                 return row;
             }

@@ -38,6 +38,14 @@ namespace ovc::io {
         // add offset in the file
         size_t offset;
 
+        // did we spill to disk?
+        bool did_spill;
+
+        // lazy open the file when we write the first buffer page
+        bool lazy_open;
+
+        void _open();
+
         void flush(int index);
 
         void submit_write(int index);
@@ -47,7 +55,7 @@ namespace ovc::io {
         void write_to_buffer(void *data, size_t size);
 
     public:
-        explicit ExternalRunW(const std::string &path, BufferManager &buffer_manager);
+        explicit ExternalRunW(std::string path, BufferManager &buffer_manager, bool lazy_open = false);
 
         explicit ExternalRunW();
 
@@ -77,5 +85,32 @@ namespace ovc::io {
          * Flush all buffer and close the file. This function is automatically called on destruction.
          */
         void finalize();
+
+        void discard();
+
+        bool didSpill() const {
+            return did_spill;
+        }
+
+        Row *begin_page() {
+            return reinterpret_cast<Row *>(buffers[current]->data + sizeof(size_t));
+        }
+
+        const Row *end_page() {
+            return reinterpret_cast<Row *>(buffers[current]->data + sizes[current]);
+        }
+
+        // assume keys are hash values and compare fully using by prefix
+        template<typename Equal>
+        Row *probe_page(const Row *row, Equal &eq) {
+            Row *it = begin_page();
+            const Row *end = end_page();
+            for (; it < end; it++) {
+                if (row->key == it->key && eq(*row, *it)) {
+                    return it;
+                }
+            }
+            return nullptr;
+        };
     };
 }

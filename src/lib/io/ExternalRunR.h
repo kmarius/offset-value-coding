@@ -15,13 +15,13 @@ namespace ovc::io {
         Buffer *buffer;
         Buffer *prev;
         size_t offset;  // offset in the file
-        size_t rows;  // rows in current buffer
-        size_t cur;  // current index in the buffer
+        size_t rows;    // rows in current buffer
+        size_t cur;     // current index in the buffer
 
         BufferManager *buffer_manager;
 
     public:
-        ExternalRunR(const std::string &path, BufferManager &buffer_manager, bool no_throw = false);
+        ExternalRunR(std::string path, BufferManager &buffer_manager, bool no_throw = false);
 
         ExternalRunR();
 
@@ -32,6 +32,8 @@ namespace ovc::io {
          * @return The path_sync to the run.
          */
         const std::string &path() const;
+
+        bool definitelyEmpty() const;
 
         /**
          * Read the next row from the run. Only isValid until the second-next call of next()
@@ -48,6 +50,7 @@ namespace ovc::io {
          * Finalizes and removes the file.
          */
         void remove();
+
     };
 
 }

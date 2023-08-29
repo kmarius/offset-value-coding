@@ -93,4 +93,32 @@ namespace ovc::aggregates {
     private:
         const int group_columns;
     };
+
+
+    struct Max {
+        Max(int groupColumns, int aggColumn) : group_columns(groupColumns), agg_column(aggColumn) {}
+
+        Max() = delete;
+
+        void init(Row &row) const {
+            row.columns[group_columns] = row.columns[agg_column];
+            for (int i = group_columns + 1; i < ROW_ARITY; i++) {
+                row.columns[i] = 0;
+            }
+        }
+
+        void merge(Row &acc, const Row &row) const {
+            if (acc.columns[group_columns] < row.columns[group_columns]) {
+                acc.columns[group_columns] = row.columns[group_columns];
+            }
+        }
+
+        void finalize(Row &row) const {
+            // nothing
+        }
+
+    private:
+        const int group_columns;
+        const int agg_column;
+    };
 }

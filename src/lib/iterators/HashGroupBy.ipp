@@ -24,8 +24,12 @@ namespace ovc::iterators {
             partitioner.put(row);
         }
         partitioner.finalize();
-        partitions = partitioner.getPartitions();
-        rows = process_partition(partitions.back());
+        partitions = partitioner.getPartitionPaths();
+        log_info("partitions: %d", partitions.size());
+        if (!partitions.empty()) {
+            rows = process_partition(partitions.back());
+            log_info("rows: %d", rows.size());
+        }
         input_->close();
 
         stats.rows_written += partitioner.getStats().rows_written;
@@ -56,6 +60,7 @@ namespace ovc::iterators {
                 return nullptr;
             }
             rows = process_partition(partitions.back());
+            log_info("rows: %lu", rows.size());
         }
 
         count++;
@@ -64,29 +69,32 @@ namespace ovc::iterators {
 
     template<typename Aggregate>
     std::vector<Row> HashGroupBy<Aggregate>::process_partition(const std::string &path) {
+        log_info("processing partition %s", path.c_str());
 
+        auto eq = RowEqualPrefix(group_columns, &stats);
         ExternalRunR part(path, bufferManager, true);
+        if (part.definitelyEmpty()) {
+            return {};
+        }
 
-        auto accs = std::unordered_set<Row, std::hash<Row>, RowEqualPrefix>(128, std::hash<Row>(), RowEqualPrefix(group_columns, &stats));
+        Partitioner partitioner(1 << RUN_IDX_BITS);
 
         for (Row *row; (row = part.read());) {
+            log_info("read: %s", row->c_str());
             stats.rows_read++;
-            auto tup = accs.find(*row);
-            if (tup == accs.end()) {
-                accs.insert(*row);
-            } else {
-                // find returns a const reference, but we do not actually change the "key" on aggregate merge
-                agg.merge(* (Row *) &*tup, *row);
-            }
+            partitioner.putEarlyAggregate(row, agg, eq);
         }
 
         part.remove();
 
-        auto res = std::vector<Row>();
-        for (auto &it: accs) {
-            agg.finalize(* (Row *) &it);
-            res.push_back(it);
+        auto res = partitioner.finalizeEarlyAggregate(agg);
+
+        std::vector<std::string> new_partitions = partitioner.getPartitionPaths();
+        for (auto &p: partitions) {
+            new_partitions.push_back(p);
         }
+        partitions = new_partitions;
+        log_trace("partitions remaining: %lu", partitions.size() - 1);
 
         return res;
     }

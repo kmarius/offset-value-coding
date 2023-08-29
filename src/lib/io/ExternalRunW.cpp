@@ -1,4 +1,6 @@
 #include "ExternalRunW.h"
+
+#include <utility>
 #include "lib/defs.h"
 #include "lib/log.h"
 #include "lib/utils.h"
@@ -9,12 +11,10 @@ namespace ovc::io {
 
     }
 
-    ExternalRunW::ExternalRunW(const std::string &path, BufferManager &buffer_manager) :
-            current(0), rows(0), rows_total(0), offset(0), path_(path), buffer_manager(&buffer_manager) {
-
-        fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC
-                                #ifdef USE_O_DIRECT
-                                | O_DIRECT
+    void ExternalRunW::_open() {
+        fd = open(path().c_str(), O_WRONLY | O_CREAT | O_TRUNC
+                                  #ifdef USE_O_DIRECT
+                                  | O_DIRECT
 #endif
                 , 0644);
 
@@ -22,7 +22,7 @@ namespace ovc::io {
         if (fd < 0 && errno == EINVAL) {
             /* O_DIRECT is not supported in e.g. tempfs */
             log_info("open failed with EINVAL, retrying without O_DIRECT");
-            fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            fd = open(path().c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
         }
 #endif
 
@@ -33,6 +33,17 @@ namespace ovc::io {
         if (io_uring_queue_init(2, &ring, 0) < 0) {
             throw std::runtime_error("error initializing io_uring");
         }
+    }
+
+    ExternalRunW::ExternalRunW(std::string path, BufferManager &buffer_manager, bool lazy_open) :
+            buffers(), sizes(), ready(), current(0), rows(0), rows_total(0), offset(0), path_(std::move(path)),
+            buffer_manager(&buffer_manager), did_spill(false), lazy_open(lazy_open), ring() {
+
+        if (!lazy_open) {
+            _open();
+        } else {
+            fd = -1;
+        };
 
         buffers[0] = buffer_manager.take();
         buffers[1] = buffer_manager.take();
@@ -52,7 +63,6 @@ namespace ovc::io {
     }
 
     void ExternalRunW::add(Row &row) {
-        assert(fd > 0);
         write_to_buffer(&row, sizeof(Row));
         rows++;
         rows_total++;
@@ -110,6 +120,10 @@ namespace ovc::io {
     }
 
     void ExternalRunW::flush(int index) {
+        if (lazy_open && fd == -1) {
+            _open();
+        }
+        did_spill = true;
         submit_write(index);
 #ifndef SYNC_IO
 #else
@@ -122,7 +136,7 @@ namespace ovc::io {
     }
 
     void ExternalRunW::finalize() {
-        if (fd > 0) {
+        if (fd > 0 || lazy_open) {
             log_trace("finalizing %s (fd=%d)", path_.c_str(), fd);
             if (rows > 0) {
                 flush(current);
@@ -132,11 +146,32 @@ namespace ovc::io {
 
             io_uring_queue_exit(&ring);
             close(fd);
-
-            buffer_manager->give(buffers[0]);
-            buffer_manager->give(buffers[1]);
-
             fd = -1;
+            lazy_open = false;
         }
+        buffer_manager->give(buffers[0]);
+        buffer_manager->give(buffers[1]);
+        buffers[0] = nullptr;
+        buffers[1] = nullptr;
+    }
+
+
+    void ExternalRunW::discard() {
+        //log_trace("discarding %s (fd=%d)", path_.c_str(), fd);
+        if (fd > 0) {
+            //wait_for_write_completion(current);
+            //wait_for_write_completion(current^1);
+
+            io_uring_queue_exit(&ring);
+            close(fd);
+            fd = -1;
+
+            ::remove(path().c_str());
+        }
+        buffer_manager->give(buffers[0]);
+        buffer_manager->give(buffers[1]);
+        buffers[0] = nullptr;
+        buffers[1] = nullptr;
+        lazy_open = false;
     }
 }

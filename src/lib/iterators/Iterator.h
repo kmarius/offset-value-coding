@@ -112,6 +112,7 @@ namespace ovc::iterators {
          * @param path The path_sync of the file.
          */
         void write(const std::string &path);
+
         struct iter {
             using iterator_category = std::input_iterator_tag;
             using difference_type = std::ptrdiff_t;

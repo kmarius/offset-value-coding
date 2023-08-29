@@ -1,6 +1,5 @@
 #pragma once
 
-
 // Use O_DIRECT to add through operating system caches
 #define USE_O_DIRECT
 

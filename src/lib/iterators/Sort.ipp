@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib/utils.h"
 #include "lib/Row.h"
 #include "Sort.h"
 #include "lib/PriorityQueue.h"
@@ -15,11 +16,6 @@
 #define SORTER_WORKSPACE_CAPACITY (QUEUE_CAPACITY * SORT_INITIAL_RUNS)
 
 namespace ovc::iterators {
-
-    static std::string new_run_path() {
-        static int i = 0;
-        return std::string(BASEDIR "/run_" + std::to_string(i++) + ".dat");
-    }
 
     template<bool DISTINCT, bool USE_OVC, typename Compare, typename Aggregate, bool DO_AGGREGATE>
     Sorter<DISTINCT, USE_OVC, Compare, Aggregate, DO_AGGREGATE>::Sorter(const Compare &cmp, const Aggregate &agg) :
@@ -222,7 +218,7 @@ namespace ovc::iterators {
 
         runs_generated++;
 
-        log_trace("generate_initial_runs: %lu memory_runs generated, last one has offset: %lu", runs_generated,
+        log_trace("generate_initial_runs: %lu memory_runs generated, last one has size: %lu", runs_generated,
                   memory_runs.back().size());
         log_trace("%lu rows processed", rows_processed);
 
@@ -242,7 +238,7 @@ namespace ovc::iterators {
             return;
         }
 
-        std::string path = new_run_path();
+        std::string path= generate_path();
         io::ExternalRunW run(path, buffer_manager);
 
 #ifndef NDEBUG
@@ -338,7 +334,7 @@ namespace ovc::iterators {
         log_trace("merging %lu external runs", QUEUE_CAPACITY);
         insert_external_runs(fan_in);
 
-        std::string path = new_run_path();
+        std::string path = generate_path();
         io::ExternalRunW run(path, buffer_manager);
 
 #ifndef NDEBUG

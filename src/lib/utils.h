@@ -1,8 +1,11 @@
 #pragma once
 
 #include <chrono>
+#include <string>
 
 namespace ovc {
+    std::string generate_path();
+
     template<
             class result_t   = std::chrono::milliseconds,
             class clock_t    = std::chrono::steady_clock,
