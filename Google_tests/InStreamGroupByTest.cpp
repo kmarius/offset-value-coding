@@ -25,7 +25,7 @@ protected:
 TEST_F(InStreamGroupByTest, EmptyTest) {
     auto *plan = new AssertEqual(
             new InStreamGroupBy(
-                    new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(new ZeroSuffixGenerator(0, 0, 0), RowCmpPrefix{4}),
+                    new SortBase<false, true, RowCmpPrefix>(new ZeroSuffixGenerator(0, 0, 0), RowCmpPrefix{4}),
                     4,
                     aggregates::Count(1)),
             new VectorScan({})
@@ -37,7 +37,7 @@ TEST_F(InStreamGroupByTest, EmptyTest) {
 
 TEST_F(InStreamGroupByTest, OneColumnSimple) {
     auto *plan = new AssertEqual(
-            new InStreamGroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(
+            new InStreamGroupBy(new SortBase<false, true, RowCmpPrefix>(
                     new VectorScan({
                                            {0, 0, {0, 1}},
                                            {0, 1, {0, 2}},
@@ -60,7 +60,7 @@ TEST_F(InStreamGroupByTest, OneColumnSimple) {
 
 TEST_F(InStreamGroupByTest, TwoColumnsSimple) {
     auto *plan = new AssertEqual(
-            new InStreamGroupBy(new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(
+            new InStreamGroupBy(new SortBase<false, true, RowCmpPrefix>(
                     new VectorScan({
                                            {0, 0, {0, 1, 5}},
                                            {0, 1, {0, 1, 5}},
@@ -87,7 +87,7 @@ TEST_F(InStreamGroupByTest, DoesntLoseRows) {
     int group_columns = 2;
 
     auto *plan = new InStreamGroupBy(
-            new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(
+            new SortBase<false, true, RowCmpPrefix>(
                     new ZeroSuffixGenerator(num_rows, 32, 5),
                     RowCmpPrefix(group_columns)),
             group_columns,
@@ -107,7 +107,7 @@ TEST_F(InStreamGroupByTest, DoesntLoseRows2) {
     int group_columns = 4;
 
     auto *plan = new InStreamGroupBy(
-            new SortBase<DistinctOff, OvcOn, RowCmpPrefix>(new ZeroSuffixGenerator(num_rows, 32, 3),
+            new SortBase<false, true, RowCmpPrefix>(new ZeroSuffixGenerator(num_rows, 32, 3),
                                                            RowCmpPrefix(group_columns)),
             group_columns,
             aggregates::Count(group_columns));

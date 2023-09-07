@@ -97,7 +97,7 @@ namespace ovc {
         Row *pop_safe(Index run_index);
 
         struct iterator_stats &getStats() {
-            return stats;
+            return *stats;
         }
 
         friend std::ostream &operator<<(std::ostream &o, const PriorityQueueBase<USE_OVC, Compare> &pq) {
@@ -121,7 +121,7 @@ namespace ovc {
         size_t capacity_;
         Node *heap;
         WorkspaceItem *workspace;
-        struct iterator_stats stats;
+        iterator_stats *stats;
         Compare cmp;
     };
 

@@ -12,7 +12,7 @@ namespace ovc::iterators {
     public:
         explicit AssertSortedUnique(Iterator *input) : UnaryIterator(input),
                                                        prev({0}), has_prev(false), is_sorted(true),
-                                                       count_(0) {};
+                                                       count_(0), cmp() {};
 
         void open() override {
             Iterator::open();
@@ -26,7 +26,7 @@ namespace ovc::iterators {
                 return nullptr;
             }
 
-            if (has_prev && is_sorted && !prev.less(*row)) {
+            if (has_prev && is_sorted && cmp(prev, *row) >= 0) {
                 log_error("input_ not is_sorted: prev: %s", prev.c_str());
                 log_error("                      cur:  %s", row->c_str());
                 is_sorted = false;
@@ -61,5 +61,6 @@ namespace ovc::iterators {
         bool has_prev;
         bool is_sorted;
         size_t count_;
+        RowCmp cmp;
     };
 }

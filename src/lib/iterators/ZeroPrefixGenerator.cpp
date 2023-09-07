@@ -20,8 +20,8 @@ namespace ovc::iterators {
 
         for (int i = prefix; i < ROW_ARITY; i++) {
             buf.columns[i] = dist(rng) % upper;
-            buf.tid++;
         }
+        buf.tid++;
         return &buf;
     }
 }

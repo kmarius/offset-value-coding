@@ -1,13 +1,14 @@
 #pragma once
 
 #include "Iterator.h"
+#include "../Row.h"
 
 namespace ovc::iterators {
 
     class OVCApplier : public UnaryIterator {
     public:
-        explicit OVCApplier(Iterator *input) : UnaryIterator(input), prev_({0}) {
-            assert(input->outputIsSorted());
+        explicit OVCApplier(Iterator *input, int prefix = ROW_ARITY)
+                : UnaryIterator(input), prev(), prefix(prefix), has_prev(false), stats() {
             output_is_sorted = true;
             output_has_ovc = true;
             output_is_unique = input->outputIsUnique();
@@ -18,8 +19,13 @@ namespace ovc::iterators {
             if (row == nullptr) {
                 return nullptr;
             }
-            prev_.cmp__(*row, row->key);
-            prev_ = *row;
+            if (has_prev) {
+                row->setOVC(prev, prefix, &stats);
+            } else {
+                row->setOVCInitial(prefix);
+                has_prev = true;
+            }
+            prev = *row;
             return row;
         };
 
@@ -38,7 +44,15 @@ namespace ovc::iterators {
             input_->close();
         };
 
+        void accumulateStats(iterator_stats &stats) override {
+            UnaryIterator::accumulateStats(stats);
+            stats.add(this->stats);
+        }
+
     private:
-        Row prev_;
+        Row prev;
+        int prefix;
+        bool has_prev;
+        struct iterator_stats stats;
     };
 }

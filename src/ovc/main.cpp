@@ -20,9 +20,12 @@
 #include "lib/iterators/Multiplier.h"
 #include "lib/iterators/ApproximateDuplicateGenerator.h"
 #include "lib/iterators/InSortGroupBy.h"
-#include "lib/iterators/InSortDistinct.h"
+#include "lib/iterators/SortDistinct.h"
 #include "lib/iterators/HashGroupBy.h"
 #include "lib/iterators/DuplicateGenerator.h"
+#include "lib/iterators/AssertCorrectOVC.h"
+#include "lib/iterators/OVCApplier.h"
+#include "lib/iterators/AssertEqual.h"
 
 #include <vector>
 
@@ -200,8 +203,8 @@ void comparison_distinct() {
             size_t num_rows = i * 100000;
 
             auto gen = new ZeroPrefixGenerator(num_rows, 100, prefix, 1337);
-            auto sort = new InSortDistinct(gen->clone());
-            auto sort_no_ovc = new InSortDistinctNoOvc(gen->clone());
+            auto sort = new SortDistinct(gen->clone());
+            auto sort_no_ovc = new SortDistinctNoOvc(gen->clone());
             auto hash = new HashDistinct(gen);
 
             sort->run();
@@ -306,21 +309,100 @@ void test_join_tiny() {
 }
 
 void test_merge_join() {
-    unsigned upper = 128;
     unsigned join_columns = 2;
-    unsigned num_rows = 10000;
 
-    auto *left = new Sort(new ZeroPrefixGenerator(num_rows, upper));
-    auto *right = new Sort(new ZeroPrefixGenerator(num_rows, upper));
+    auto *left = new SortPrefix(new VectorScan({
+                                                       {0, 0, {1, 2, 123}},
+                                                       {0, 0, {1, 2, 124}},
+                                                       {0, 0, {1, 4, 125}},
+                                               }), join_columns);
+    auto *right = new SortPrefix(new VectorScan({
+                                                        {0, 0, {1, 2, 11}},
+                                                        {0, 0, {1, 3, 12}},
+                                                        {0, 0, {1, 4, 13}},
+                                                }), join_columns);
     auto *join = new LeftSemiJoin(left, right, join_columns);
 
-    auto expected = (unsigned) (1.0 * num_rows * (1.0 - pow(1 - 1.0 / pow(upper, join_columns), num_rows)));
-    log_info("expecting approx. %u results", expected);
-
-    join->run();
+    join->run(true);
     delete join;
 }
 
+void test_merge_join2() {
+    unsigned upper = 64;
+    unsigned join_columns = 2;
+    unsigned num_rows_left = 1000;
+    unsigned num_rows_right = 10000;
+
+    auto left_rows = SortBase<true, true, RowCmpPrefix>(new ZeroPrefixGenerator(num_rows_left, upper),
+                                                        RowCmpPrefix(join_columns)).collect();
+    num_rows_left = left_rows.size();
+
+    auto *left = new SortPrefix(new ZeroPrefixGenerator(num_rows_right, upper), join_columns);
+    auto *right = new VectorScan(left_rows);
+    auto *join = new LeftSemiJoin(left, right, join_columns);
+
+    auto expected = (unsigned) (1.0 * num_rows_left * (1.0 - pow(1 - 1.0 / pow(upper, join_columns), num_rows_right)));
+    auto expected2 = (unsigned) (1.0 * num_rows_right * (1.0 - pow(1 - 1.0 / pow(upper, join_columns), num_rows_left)));
+
+    auto joined = join->collect();
+
+    auto joined_distinct = SortBase<true, true, RowCmpPrefix>(new VectorScan(joined),
+                                                              RowCmpPrefix(join_columns)).collect();
+    log_info("%u rows left", num_rows_left);
+    log_info("%u rows after join", joined.size());
+    log_info("%u rows distinct after join", joined_distinct.size());
+    log_info("%u rows expected", expected);
+    log_info("%u rows expected2", expected2);
+
+    //VectorScan(joined_distinct).run(true);
+
+    delete join;
+}
+
+void test_merge_join3() {
+    unsigned upper = 64;
+    unsigned join_columns = 2;
+    unsigned num_rows_left = 1000;
+    unsigned num_rows_right = 10000;
+
+    auto right_rows = SortBase<true, true, RowCmpPrefix>(new ZeroPrefixGenerator(num_rows_left, upper),
+                                                         RowCmpPrefix(join_columns)).collect();
+    num_rows_left = right_rows.size();
+
+    auto gen = new ZeroPrefixGenerator(num_rows_right, upper);
+
+    auto *left = new SortPrefix(gen->clone(), join_columns);
+    auto *right = new VectorScan(right_rows);
+    auto *join = new LeftSemiJoin(left, right, join_columns);
+
+    auto *left2 = new VectorScan(right_rows);
+    auto *right2 = new SortPrefix(gen, join_columns);
+    auto *join2 = new LeftSemiJoinNoOVC(left2, right2, join_columns);
+
+    join->run();
+    join2->run();
+
+    delete join;
+}
+
+void test_merge_join4() {
+    unsigned upper = 8;
+    unsigned join_columns = 4;
+    unsigned num_rows_left = 128;
+    unsigned num_rows_right = 1024;
+
+    auto right_rows = SortBase<true, true, RowCmpPrefix>(new ZeroPrefixGenerator(num_rows_left, upper),
+                                                         RowCmpPrefix(join_columns)).collect();
+
+    auto gen = new ZeroPrefixGenerator(num_rows_right, upper);
+
+    auto *left = new AssertCorrectOVC(new SortPrefix(gen->clone(), join_columns), join_columns);
+    auto *right = new AssertCorrectOVC(new VectorScan(right_rows), join_columns);
+    auto a = AssertCorrectOVC(new LeftSemiJoin(left, right, join_columns), join_columns);
+    a.run(true);
+    log_info("%d", a.isCorrect());
+    log_info("%lu", a.getInput<LeftSemiJoin>()->getStats().column_comparisons);
+}
 
 void compare_joins() {
     int upper = 128;
@@ -430,7 +512,7 @@ void example_duplicate_generation() {
     int num_unique = 4;
     int mult = 4;
     auto *shuf = new Shuffle(new Multiplier(new ZeroPrefixGenerator(num_unique, 1024, prefix), mult));
-    auto *plan = new InSortDistinct(shuf);
+    auto *plan = new SortDistinct(shuf);
     plan->run(true);
     log_info("%lu", shuf->getCount());
     delete plan;
@@ -445,8 +527,8 @@ void experiment_sort_distinct() {
         auto unique = (i + 1) * (1.0 / num_experiments);
         auto *gen = new ApproximateDuplicateGenerator(num_rows, unique, 0, 0, 1337);
 
-        auto *plan_ovc = new InSortDistinct(gen->clone());
-        auto *plan_no_ovc = new InSortDistinctNoOvc(gen->clone());
+        auto *plan_ovc = new SortDistinct(gen->clone());
+        auto *plan_no_ovc = new SortDistinctNoOvc(gen->clone());
 
         plan_ovc->run();
         plan_no_ovc->run();
@@ -772,7 +854,8 @@ void experiment_group_by4() {
 
     const char *results_path = "results5_1m_4k.csv";
     FILE *results = fopen(results_path, "w");
-    fprintf(results, "experiment,group_columns,zero_prefix,input_size,output_size,column_comparisons,rows_written,duration\n");
+    fprintf(results,
+            "experiment,group_columns,zero_prefix,input_size,output_size,column_comparisons,rows_written,duration\n");
 
     for (int group_columns = 0; group_columns < ROW_ARITY - 1; group_columns++) {
         for (int zero_prefix = 0; zero_prefix < group_columns - 1; zero_prefix++) {
@@ -811,16 +894,19 @@ void experiment_group_by4() {
                 auto hash_duration = since(t0);
 
                 fprintf(results, "%s,%d,%d,%d,%lu,%lu,%zu,%lu\n", "hash", group_columns, zero_prefix, num_rows,
-                        hash.getCount(), hash.getStats().column_comparisons, hash.getStats().rows_written, hash_duration);
+                        hash.getCount(), hash.getStats().column_comparisons, hash.getStats().rows_written,
+                        hash_duration);
                 fflush(results);
 
                 t0 = now();
                 in_stream_scan.run();
                 auto in_stream_scan_duration = since(t0);
 
-                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_stream_scan", group_columns, zero_prefix, num_rows,
+                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_stream_scan", group_columns, zero_prefix,
+                        num_rows,
                         in_stream_scan.getCount(),
-                        in_stream_scan.getStats().column_comparisons, in_stream_scan.getStats().rows_written, in_stream_scan_duration);
+                        in_stream_scan.getStats().column_comparisons, in_stream_scan.getStats().rows_written,
+                        in_stream_scan_duration);
 
                 t0 = now();
                 in_sort_ovc.run();
@@ -828,7 +914,8 @@ void experiment_group_by4() {
 
                 fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_sort_ovc", group_columns, zero_prefix, num_rows,
                         in_sort_ovc.getCount(),
-                        in_sort_ovc.getStats().column_comparisons + num_rows, in_sort_ovc.getStats().rows_written, in_sort_ovc_duration);
+                        in_sort_ovc.getStats().column_comparisons + num_rows, in_sort_ovc.getStats().rows_written,
+                        in_sort_ovc_duration);
 
                 t0 = now();
                 in_stream_sort_ovc.run();
@@ -839,15 +926,18 @@ void experiment_group_by4() {
                         in_stream_sort_ovc.getStats().column_comparisons +
                         in_stream_sort_ovc.getInput<SortPrefix>()->getStats().column_comparisons +
                         num_rows,
-                        in_stream_sort_ovc.getInput<SortPrefix>()->getStats().rows_written, in_stream_sort_ovc_duration);
+                        in_stream_sort_ovc.getInput<SortPrefix>()->getStats().rows_written,
+                        in_stream_sort_ovc_duration);
 
                 t0 = now();
                 in_sort_no_ovc.run();
                 auto in_sort_no_ovc_duration = since(t0);
 
-                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_sort_no_ovc", group_columns, zero_prefix, num_rows,
+                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_sort_no_ovc", group_columns, zero_prefix,
+                        num_rows,
                         in_sort_no_ovc.getCount(),
-                        in_sort_no_ovc.getStats().column_comparisons, in_sort_no_ovc.getStats().rows_written, in_sort_no_ovc_duration);
+                        in_sort_no_ovc.getStats().column_comparisons, in_sort_no_ovc.getStats().rows_written,
+                        in_sort_no_ovc_duration);
 
                 t0 = now();
                 in_stream_sort_no_ovc.run();
@@ -857,7 +947,8 @@ void experiment_group_by4() {
                         num_rows, in_stream_sort_no_ovc.getCount(),
                         in_stream_sort_no_ovc.getStats().column_comparisons +
                         in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().column_comparisons,
-                        in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().rows_written, in_stream_sort_no_ovc_duration);
+                        in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().rows_written,
+                        in_stream_sort_no_ovc_duration);
 
             }
         }
@@ -875,7 +966,8 @@ void experiment_group_by5() {
 
     const char *results_path = "results_1m_4k.csv";
     FILE *results = fopen(results_path, "w");
-    fprintf(results, "experiment,group_columns,zero_prefix,input_size,output_size,column_comparisons,rows_written,duration\n");
+    fprintf(results,
+            "experiment,group_columns,zero_prefix,input_size,output_size,column_comparisons,rows_written,duration\n");
 
     for (int group_columns = 0; group_columns < ROW_ARITY - 1; group_columns++) {
         for (int zero_prefix = 0; zero_prefix < group_columns - 1; zero_prefix++) {
@@ -916,16 +1008,19 @@ void experiment_group_by5() {
                 auto hash_duration = since(t0);
 
                 fprintf(results, "%s,%d,%d,%d,%lu,%lu,%zu,%lu\n", "hash", group_columns, zero_prefix, num_rows,
-                        hash.getCount(), hash.getStats().column_comparisons, hash.getStats().rows_written, hash_duration);
+                        hash.getCount(), hash.getStats().column_comparisons, hash.getStats().rows_written,
+                        hash_duration);
                 fflush(results);
 
                 t0 = now();
                 in_stream_scan.run();
                 auto in_stream_scan_duration = since(t0);
 
-                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_stream_scan", group_columns, zero_prefix, num_rows,
+                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_stream_scan", group_columns, zero_prefix,
+                        num_rows,
                         in_stream_scan.getCount(),
-                        in_stream_scan.getStats().column_comparisons, in_stream_scan.getStats().rows_written, in_stream_scan_duration);
+                        in_stream_scan.getStats().column_comparisons, in_stream_scan.getStats().rows_written,
+                        in_stream_scan_duration);
 
                 t0 = now();
                 in_sort_ovc.run();
@@ -933,7 +1028,8 @@ void experiment_group_by5() {
 
                 fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_sort_ovc", group_columns, zero_prefix, num_rows,
                         in_sort_ovc.getCount(),
-                        in_sort_ovc.getStats().column_comparisons + num_rows, in_sort_ovc.getStats().rows_written, in_sort_ovc_duration);
+                        in_sort_ovc.getStats().column_comparisons + num_rows, in_sort_ovc.getStats().rows_written,
+                        in_sort_ovc_duration);
 
                 t0 = now();
                 in_stream_sort_ovc.run();
@@ -944,15 +1040,18 @@ void experiment_group_by5() {
                         in_stream_sort_ovc.getStats().column_comparisons +
                         in_stream_sort_ovc.getInput<SortPrefix>()->getStats().column_comparisons +
                         num_rows,
-                        in_stream_sort_ovc.getInput<SortPrefix>()->getStats().rows_written, in_stream_sort_ovc_duration);
+                        in_stream_sort_ovc.getInput<SortPrefix>()->getStats().rows_written,
+                        in_stream_sort_ovc_duration);
 
                 t0 = now();
                 in_sort_no_ovc.run();
                 auto in_sort_no_ovc_duration = since(t0);
 
-                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_sort_no_ovc", group_columns, zero_prefix, num_rows,
+                fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_sort_no_ovc", group_columns, zero_prefix,
+                        num_rows,
                         in_sort_no_ovc.getCount(),
-                        in_sort_no_ovc.getStats().column_comparisons, in_sort_no_ovc.getStats().rows_written, in_sort_no_ovc_duration);
+                        in_sort_no_ovc.getStats().column_comparisons, in_sort_no_ovc.getStats().rows_written,
+                        in_sort_no_ovc_duration);
 
                 t0 = now();
                 in_stream_sort_no_ovc.run();
@@ -962,7 +1061,8 @@ void experiment_group_by5() {
                         num_rows, in_stream_sort_no_ovc.getCount(),
                         in_stream_sort_no_ovc.getStats().column_comparisons +
                         in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().column_comparisons,
-                        in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().rows_written, in_stream_sort_no_ovc_duration);
+                        in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().rows_written,
+                        in_stream_sort_no_ovc_duration);
 
             }
         }
@@ -974,10 +1074,144 @@ void experiment_group_by5() {
 
 void test_hash_agg() {
     auto plan = new HashGroupBy(new ZeroPrefixGenerator(4, 100, 0),
-                           2, aggregates::Count(2));
+                                2, aggregates::Count(2));
     plan->run(true);
     log_info("%lu", plan->getStats().column_comparisons);
     delete plan;
+}
+
+void experiment_joins1() {
+    int num_rows = 1 << 20;
+    int num_experiments = 1;
+
+    log_set_quiet(false);
+
+    const char *results_path = "joins1.csv";
+    //FILE *results = fopen(results_path, "w");
+    FILE *results = stdout;
+    fprintf(results,
+            "experiment,group_columns,zero_prefix,input_size,output_size,column_comparisons,rows_written,duration\n");
+
+    for (int join_columns = 4; join_columns < 5; join_columns++) {
+        for (int zero_prefix = 0; zero_prefix < 1; zero_prefix++) {
+            for (int i = 0; i < num_experiments; i++) {
+                log_set_quiet(false);
+                log_info("join with num_rows=%lu, join_columns=%d, zero_prefix=%d output_size=%lu",
+                         num_rows, join_columns, zero_prefix, num_rows >> i);
+                //log_set_quiet(true);
+
+                auto gen1 = ZeroPrefixGenerator(num_rows, 32, 0, 1337);
+                auto gen2 = ZeroPrefixGenerator(num_rows, 32, 0, 1337 + 1);
+                auto gen3 = ZeroPrefixGenerator(num_rows, 32, 0, 1337 + 2);
+
+                LeftSemiJoin(new SortPrefix(gen1.clone(), join_columns),
+                             new SortPrefix(gen2.clone(), join_columns),
+                             join_columns).run();
+
+                auto plan1 = LeftSemiJoin(
+                        new LeftSemiJoin(new SortPrefix(gen1.clone(), join_columns),
+                                         new SortPrefix(gen2.clone(), join_columns),
+                                         join_columns),
+                        new SortPrefix(gen3.clone(), join_columns),
+                        join_columns
+                );
+
+                auto plan2 = LeftSemiJoin(
+                        new OVCApplier(
+                                new LeftSemiJoin(
+                                        new SortPrefix(gen1.clone(), join_columns),
+                                        new SortPrefix(gen2.clone(), join_columns),
+                                        join_columns),
+                                join_columns),
+                        new SortPrefix(gen3.clone(), join_columns),
+                        join_columns
+                );
+
+                auto plan3 = LeftSemiJoinNoOVC(
+                        new OVCApplier(
+                                new LeftSemiJoin(
+                                        new SortPrefix(gen1.clone(), join_columns),
+                                        new SortPrefix(gen2.clone(), join_columns),
+                                        join_columns),
+                                join_columns),
+                        new SortPrefix(gen3.clone(), join_columns),
+                        join_columns
+                );
+
+                auto plan4 = LeftSemiJoinNoOVC(
+                        new LeftSemiJoinNoOVC(
+                                new SortPrefixNoOvc(gen1.clone(), join_columns),
+                                new SortPrefixNoOvc(gen2.clone(), join_columns),
+                                join_columns),
+                        new SortPrefixNoOvc(gen3.clone(), join_columns),
+                        join_columns
+                );
+
+                {
+                    auto t0 = now();
+                    plan1.run();
+                    auto plan1_duration = since(t0);
+
+                    struct iterator_stats stats = {0};
+                    plan1.accumulateStats(stats);
+
+                    fprintf(results, "%s,%d,%d,%d,%d,%lu,%zu,%lu\n", "plan1", join_columns, zero_prefix, num_rows,
+                            0, stats.column_comparisons,
+                            stats.rows_written,
+                            plan1_duration);
+                    fflush(results);
+                }
+
+                {
+                    auto t0 = now();
+                    plan2.run();
+                    auto plan2_duration = since(t0);
+
+                    struct iterator_stats stats = {0};
+                    plan2.accumulateStats(stats);
+
+                    fprintf(results, "%s,%d,%d,%d,%d,%lu,%zu,%lu\n", "plan2", join_columns, zero_prefix, num_rows,
+                            0, stats.column_comparisons,
+                            stats.rows_written,
+                            plan2_duration);
+                    fflush(results);
+                }
+
+                {
+                    auto t0 = now();
+                    plan3.run();
+                    auto plan3_duration = since(t0);
+
+                    struct iterator_stats stats = {0};
+                    plan3.accumulateStats(stats);
+
+                    fprintf(results, "%s,%d,%d,%d,%d,%lu,%zu,%lu\n", "plan3", join_columns, zero_prefix, num_rows,
+                            0, stats.column_comparisons,
+                            stats.rows_written,
+                            plan3_duration);
+                    fflush(results);
+                }
+
+                {
+                    auto t0 = now();
+                    plan4.run();
+                    auto plan4_duration = since(t0);
+
+                    struct iterator_stats stats = {0};
+                    plan4.accumulateStats(stats);
+
+                    fprintf(results, "%s,%d,%d,%d,%d,%lu,%zu,%lu\n", "plan4", join_columns, zero_prefix, num_rows,
+                            0, stats.column_comparisons,
+                            stats.rows_written,
+                            plan4_duration);
+                    fflush(results);
+                }
+            }
+        }
+    }
+
+    //fclose(results);
+    log_set_quiet(false);
 }
 
 int main(int argc, char *argv[]) {
@@ -1006,7 +1240,10 @@ int main(int argc, char *argv[]) {
 
     //test_generic_priorityqueue();
 
-    // test_merge_join();
+    //test_merge_join();
+    //test_merge_join2();
+    //test_merge_join3();
+    //test_merge_join4();
     //compare_joins();
 
     //test_compare_prefix();
@@ -1029,16 +1266,7 @@ int main(int argc, char *argv[]) {
 
     //test_hash_agg();
 
-    Sort(new HashGroupBy(
-            new VectorScan({
-                                   {0, 0, {0, 1, 5}},
-                                   {0, 1, {0, 1, 5}},
-                                   {0, 2, {1, 2, 1}},
-                                   {0, 3, {1, 3, 4}},
-                                   {0, 4, {1, 3, 7}},
-                                   {0, 3, {2, 7, 2}},
-                                   {0, 4, {2, 7, 9}},
-                           }), 2, aggregates::Count(2))).run(true);
+    //experiment_joins1();
 
     log_info("elapsed=%lums", since(start));
 

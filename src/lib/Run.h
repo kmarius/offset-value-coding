@@ -64,9 +64,10 @@ namespace ovc {
          * Sort the run with quicksort.
          */
         void sort() {
+            RowCmp cmp;
             std::sort(data.begin(), data.end(),
-                      [](const Row *a, const Row *b) -> bool {
-                          return a->less(*b);
+                      [cmp](const Row *a, const Row *b) -> bool {
+                          return cmp(*a, *b) < 0;
                       });
         }
 

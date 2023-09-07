@@ -24,7 +24,7 @@ namespace ovc::iterators {
             if (row == nullptr) {
                 return nullptr;
             }
-            if (is_sorted && row->less(prev)) {
+            if (is_sorted && cmp(*row, prev) < 0) {
                 log_error("input not sorted at %d: prev: %s", count_ + 1, prev.c_str());
                 log_error("                        cur: %s", row->c_str());
                 is_sorted = false;
@@ -57,5 +57,6 @@ namespace ovc::iterators {
         Row prev;
         bool is_sorted;
         size_t count_;
+        RowCmp cmp;
     };
 }

@@ -11,12 +11,6 @@
 
 namespace ovc::iterators {
 
-    const bool DistinctOff = false;
-    const bool DistinctOn = true;
-
-    const bool OvcOff = false;
-    const bool OvcOn = true;
-
     template<bool DISTINCT, bool USE_OVC, typename Compare = RowCmp, typename Aggregate = aggregates::Null, bool DO_AGGREGATE = false>
     struct Sorter {
         Compare cmp;
@@ -129,30 +123,36 @@ namespace ovc::iterators {
             return sorter.queue.getStats();
         }
 
+        void accumulateStats(iterator_stats &stats) override {
+            UnaryIterator::accumulateStats(stats);
+            stats.add(sorter.queue.getStats());
+        }
+
         unsigned long getCount() const {
             return count;
         }
 
+    protected:
+        iterator_stats stats;
     private:
         Sorter<DISTINCT, USE_OVC, Compare> sorter;
         unsigned long count;
     };
 
-    typedef SortBase<DistinctOff, OvcOn> Sort;
-    typedef SortBase<DistinctOff, OvcOff> SortNoOvc;
+    typedef SortBase<false, true> Sort;
+    typedef SortBase<false, false> SortNoOvc;
 
     class SortPrefix : public SortBase<false, true, RowCmpPrefix> {
     public:
         SortPrefix(Iterator *input, int sort_prefix)
-                : SortBase<false, true, RowCmpPrefix>(input, RowCmpPrefix(sort_prefix)) {};
+                : SortBase<false, true, RowCmpPrefix>(input, RowCmpPrefix(sort_prefix, &stats)) {};
     };
 
     class SortPrefixNoOvc : public SortBase<false, false, RowCmpPrefix> {
     public:
         SortPrefixNoOvc(Iterator *input, int sort_prefix)
-                : SortBase<false, false, RowCmpPrefix>(input, RowCmpPrefix(sort_prefix)) {};
+                : SortBase<false, false, RowCmpPrefix>(input, RowCmpPrefix(sort_prefix, &stats)) {};
     };
-
 }
 
 #include "Sort.ipp"

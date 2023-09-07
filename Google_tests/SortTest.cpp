@@ -30,9 +30,10 @@ protected:
         auto gen = new IncreasingRangeGenerator(num_rows, 100, SEED, true);
         auto rows = IncreasingRangeGenerator(num_rows, 100, SEED, true).collect();
         auto sorted = new AssertSorted(new Sort(gen));
+        RowCmp cmp;
         std::sort(rows.begin(), rows.end(),
-                  [](const Row &a, const Row &b) -> bool {
-                      return a.less(b);
+                  [cmp](const Row &a, const Row &b) -> bool {
+                      return cmp(a, b) < 0;
                   });
         auto *plan = new AssertEqual(sorted, new VectorScan(rows));
         plan->run();
@@ -46,9 +47,10 @@ protected:
         auto gen = new IncreasingRangeGenerator(num_rows, 100, SEED, true);
         auto rows = IncreasingRangeGenerator(num_rows, 100, SEED, true).collect();
         auto sorted = new AssertSorted(new SortNoOvc(gen));
+        RowCmp cmp;
         std::sort(rows.begin(), rows.end(),
-                  [](const Row &a, const Row &b) -> bool {
-                      return a.less(b);
+                  [cmp](const Row &a, const Row &b) -> bool {
+                      return cmp(a, b) < 0;
                   });
         auto *plan = new AssertEqual(sorted, new VectorScan(rows));
         plan->run();

@@ -20,7 +20,7 @@ namespace ovc::iterators {
             }
             left->close();
             partitioner.finalize();
-            left_partitions = partitioner.getPartitions();
+            left_partitions = partitioner.getPartitionPaths();
         }
 
         {
@@ -33,7 +33,7 @@ namespace ovc::iterators {
             }
             right->close();
             partitioner.finalize();
-            right_partitions = partitioner.getPartitions();
+            right_partitions = partitioner.getPartitionPaths();
         };
 
         assert(left_partitions.size() == right_partitions.size());

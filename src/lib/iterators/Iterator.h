@@ -113,6 +113,9 @@ namespace ovc::iterators {
          */
         void write(const std::string &path);
 
+        virtual void accumulateStats(struct iterator_stats &stats) {
+        }
+
         struct iter {
             using iterator_category = std::input_iterator_tag;
             using difference_type = std::ptrdiff_t;
@@ -203,6 +206,10 @@ namespace ovc::iterators {
             return reinterpret_cast<T *>(input_);
         }
 
+        void accumulateStats(iterator_stats &stats) override {
+            input_->accumulateStats(stats);
+        }
+
     protected:
         Iterator *input_;
     };
@@ -214,6 +221,21 @@ namespace ovc::iterators {
         ~BinaryIterator() override {
             delete left;
             delete right;
+        }
+
+        template<class T>
+        T *getLeftInput() {
+            return reinterpret_cast<T *>(left);
+        }
+
+        template<class T>
+        T *getRightInput() {
+            return reinterpret_cast<T *>(right);
+        }
+
+        void accumulateStats(iterator_stats &stats) override {
+            left->accumulateStats(stats);
+            right->accumulateStats(stats);
         }
 
     protected:

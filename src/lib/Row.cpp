@@ -20,16 +20,6 @@ namespace ovc {
         return stream;
     }
 
-    bool Row::equals(const Row &row) const {
-        for (int i = 0; i < ROW_ARITY; i++) {
-            if (columns[i] != row.columns[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-
 /*
  * https://en.m.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
  */

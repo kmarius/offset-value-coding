@@ -125,7 +125,7 @@ namespace ovc {
                     stats->comparisons_of_actual_rows++;
 
                     OVC ovc;
-                    if (cmp(*ws[index].row, *ws[node.index].row, ovc, NODE_OFFSET(key) + 1, stats) < 0) {
+                    if (cmp(*ws[index].row, *ws[node.index].row, ovc, NODE_OFFSET(key) + 1) < 0) {
                         node.setOvc(ovc);
                         return true;
                     } else {
@@ -284,7 +284,7 @@ namespace ovc {
     void PriorityQueueBase<USE_OVC, Compare>::pass(Index index, Key key) {
         Node candidate(index, key);
         for (Index slot = capacity_ / 2 + index / 2; slot != 0; slot /= 2) {
-            if (heap[slot].less(candidate, cmp, workspace, &stats)) {
+            if (heap[slot].less(candidate, cmp, workspace, stats)) {
                 heap[slot].swap(candidate);
             }
         }
