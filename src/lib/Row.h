@@ -111,16 +111,6 @@ namespace ovc {
             return cmp(row, ovc, 0) == 0;
         };
 
-        bool operator==(const Row &other) const {
-            row_num_calls_to_equal++;
-            for (int i = 0; i < ROW_ARITY; i++) {
-                if (columns[i] != other.columns[i]) {
-                    return false;
-                }
-            }
-            return true;
-        };
-
         inline long cmp_impl(const Row &row, OVC &ovc, unsigned int offset, unsigned cmp_columns,
                              struct iterator_stats *stats) const {
             long cmp;
