@@ -24,8 +24,9 @@ namespace ovc::iterators {
         PriorityQueue<USE_OVC, Compare> queue;
         Row prev;
         bool has_prev;
+        iterator_stats *stats;
 
-        explicit Sorter(const Compare &cmp = Compare(), const Aggregate &agg = Aggregate());
+        explicit Sorter(iterator_stats *stats, const Compare &cmp, const Aggregate &agg = Aggregate());
 
         ~Sorter();
 
@@ -92,12 +93,14 @@ namespace ovc::iterators {
     template<bool DISTINCT, bool USE_OVC, typename Compare = RowCmp>
     class SortBase : public UnaryIterator {
     public:
-        SortBase(Iterator *input, const Compare &cmp = Compare())
-                : UnaryIterator(input), sorter(cmp), count(0) {
+        SortBase(Iterator *input, const Compare &cmp)
+                : UnaryIterator(input), sorter(&stats, cmp), count(0) {
             output_has_ovc = USE_OVC;
             output_is_sorted = true;
             output_is_unique = DISTINCT;
         };
+
+        SortBase(Iterator *input) : SortBase(input, Compare(&stats)) {};
 
         void open() {
             Iterator::open();
@@ -120,12 +123,12 @@ namespace ovc::iterators {
         }
 
         struct iterator_stats &getStats() {
-            return sorter.queue.getStats();
+            return stats;
         }
 
         void accumulateStats(iterator_stats &stats) override {
             UnaryIterator::accumulateStats(stats);
-            stats.add(sorter.queue.getStats());
+            stats.add(getStats());
         }
 
         unsigned long getCount() const {

@@ -105,7 +105,7 @@ namespace ovc {
         }
 
         // sets ovc of the loser w.r.t. the winner
-        inline bool less(Node &node, Compare &cmp, WorkspaceItem *ws, struct iterator_stats *stats = nullptr) {
+        inline bool less(Node &node, Compare &cmp, WorkspaceItem *ws, struct iterator_stats *stats) {
             stats->comparisons++;
 
             if constexpr (!USE_OVC) {
@@ -152,8 +152,8 @@ namespace ovc {
     };
 
     template<bool USE_OVC, typename Compare>
-    PriorityQueueBase<USE_OVC, Compare>::PriorityQueueBase(size_t capacity, const Compare &cmp)
-            : capacity_(capacity), size_(0), cmp(cmp), stats() {
+    PriorityQueueBase<USE_OVC, Compare>::PriorityQueueBase(size_t capacity, iterator_stats *stats, const Compare &cmp)
+            : capacity_(capacity), size_(0), cmp(cmp), stats(stats) {
         assert(std::__popcount(capacity) == 1);
         assert(PRIORITYQUEUE_CAPACITY >= (1 << RUN_IDX_BITS) - 3);
         workspace = new WorkspaceItem[capacity];

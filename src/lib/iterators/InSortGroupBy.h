@@ -10,7 +10,7 @@ namespace ovc::iterators {
     class InSortGroupByBase : public UnaryIterator {
     public:
         explicit InSortGroupByBase(Iterator *input, int groupColumns, const Aggregate &agg)
-                : UnaryIterator(input), sorter(RowCmpPrefix(groupColumns), agg), count(0) {
+                : UnaryIterator(input), sorter(&stats, RowCmpPrefix(groupColumns), agg), count(0) {
             output_has_ovc = false;
             output_is_sorted = false;
             output_is_unique = true;
@@ -37,7 +37,7 @@ namespace ovc::iterators {
         }
 
         struct iterator_stats &getStats() {
-            return sorter.queue.getStats();
+            return stats;
         }
 
         unsigned long getCount() const {
@@ -47,6 +47,7 @@ namespace ovc::iterators {
     private:
         Sorter<false, USE_OVC, RowCmpPrefix, Aggregate, true> sorter;
         unsigned long count;
+        iterator_stats stats;
     };
 
     template<typename Aggregate>

@@ -24,7 +24,7 @@ namespace ovc {
     class PriorityQueueBase {
     public:
 
-        PriorityQueueBase(size_t capacity, const Compare &cmp = Compare());
+        PriorityQueueBase(size_t capacity, iterator_stats *stats, const Compare &cmp = Compare());
 
         ~PriorityQueueBase();
 
@@ -96,10 +96,6 @@ namespace ovc {
 
         Row *pop_safe(Index run_index);
 
-        struct iterator_stats &getStats() {
-            return *stats;
-        }
-
         friend std::ostream &operator<<(std::ostream &o, const PriorityQueueBase<USE_OVC, Compare> &pq) {
             for (size_t i = 0; i < pq.capacity(); i++) {
                 if (i > 0) {
@@ -113,6 +109,9 @@ namespace ovc {
             return o;
         }
 
+    protected:
+        iterator_stats *stats;
+
     private:
         struct WorkspaceItem;
         struct Node;
@@ -121,7 +120,6 @@ namespace ovc {
         size_t capacity_;
         Node *heap;
         WorkspaceItem *workspace;
-        iterator_stats *stats;
         Compare cmp;
     };
 
@@ -129,7 +127,9 @@ namespace ovc {
     class PriorityQueue : public PriorityQueueBase<USE_OVC, Compare> {
 
     public:
-        explicit PriorityQueue(size_t capacity, const Compare &less = Compare()) : PriorityQueueBase<USE_OVC, Compare>(capacity, less) {};
+        explicit PriorityQueue(size_t capacity, iterator_stats *stats, const Compare &less = Compare())
+                : PriorityQueueBase<USE_OVC, Compare>(capacity, stats, less) {
+        };
 
         template<class T = void>
         inline void push(Row *row, Index run_index, T *udata = nullptr) {
@@ -200,7 +200,7 @@ namespace ovc {
             Row *res = this->pop(MERGE_RUN_IDX);
             Row *next = run->read();
 
-            this->getStats().rows_read++;
+            this->stats->rows_read++;
 
             if (likely(next != nullptr)) {
                 push(next, MERGE_RUN_IDX, run);

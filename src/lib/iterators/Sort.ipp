@@ -18,15 +18,16 @@
 namespace ovc::iterators {
 
     template<bool DISTINCT, bool USE_OVC, typename Compare, typename Aggregate, bool DO_AGGREGATE>
-    Sorter<DISTINCT, USE_OVC, Compare, Aggregate, DO_AGGREGATE>::Sorter(const Compare &cmp, const Aggregate &agg) :
+    Sorter<DISTINCT, USE_OVC, Compare, Aggregate, DO_AGGREGATE>::Sorter(iterator_stats *stats, const Compare &cmp, const Aggregate &agg) :
             cmp(cmp),
             agg(agg),
-            queue(QUEUE_CAPACITY, cmp),
+            queue(QUEUE_CAPACITY, stats, cmp),
             buffer_manager(1024),
             workspace(new Row[SORTER_WORKSPACE_CAPACITY]),
-            workspace_size(0) {
+            workspace_size(0),
+            stats(stats) {
     }
-
+    
     template<bool DISTINCT, bool USE_OVC, typename Compare, typename Aggregate, bool DO_AGGREGATE>
     Sorter<DISTINCT, USE_OVC, Compare, Aggregate, DO_AGGREGATE>::~Sorter() {
         cleanup();
@@ -268,10 +269,10 @@ namespace ovc::iterators {
                         queue.pop_memory();
                     }
                     run.add(*row1);
-                    queue.getStats().rows_written++;
+                    stats->rows_written++;
                 } else {
                     run.add(*row1);
-                    queue.getStats().rows_written++;
+                    stats->rows_written++;
                     row1 = run.back();
                     while (!queue.isEmpty() && equals(row1, queue.top())) {
                         agg.merge(*row1, *queue.top());
@@ -281,13 +282,13 @@ namespace ovc::iterators {
             } else if constexpr (DISTINCT) {
                 if constexpr (USE_OVC) {
                     run.add(*row1);
-                    queue.getStats().rows_written++;
+                    stats->rows_written++;
                     while (!queue.isEmpty() && queue.top_ovc() == 0) {
                         queue.pop_memory();
                     }
                 } else {
                     run.add(*row1);
-                    queue.getStats().rows_written++;
+                    stats->rows_written++;
                     row1 = run.back();
                     while (!queue.isEmpty() && equals(row1, queue.top())) {
                         queue.pop_memory();
@@ -295,7 +296,7 @@ namespace ovc::iterators {
                 }
             } else {
                 run.add(*row1);
-                queue.getStats().rows_written++;
+                stats->rows_written++;
             }
             assert(queue.isCorrect());
         }
@@ -356,44 +357,44 @@ namespace ovc::iterators {
             }
 #endif
             Row *row = queue.pop_external();
-            queue.getStats().rows_read++;
+            stats->rows_read++;
             if constexpr (DO_AGGREGATE) {
                 run.add(*row);;
-                queue.getStats().rows_written++;
+                stats->rows_written++;
                 row = run.back();
                 if (USE_OVC) {
                     while (!queue.isEmpty() && queue.top_ovc() == 0) {
                         agg.merge(*row, *queue.top());
                         queue.pop_external();
-                        queue.getStats().rows_read++;
+                        stats->rows_read++;
                     }
                 } else {
                     while (!queue.isEmpty() && equals(row, queue.top())) {
                         agg.merge(*row, *queue.top());
                         queue.pop_external();
-                        queue.getStats().rows_read++;
+                        stats->rows_read++;
                     }
                 }
             } else if constexpr (DISTINCT) {
                 if constexpr (USE_OVC) {
                     run.add(*row);;
-                    queue.getStats().rows_written++;
+                    stats->rows_written++;
                     while (!queue.isEmpty() && queue.top_ovc() == 0) {
                         queue.pop_external();
-                        queue.getStats().rows_read++;
+                        stats->rows_read++;
                     }
                 } else {
                     run.add(*row);;
-                    queue.getStats().rows_written++;
+                    stats->rows_written++;
                     row = run.back();
                     while (!queue.isEmpty() && equals(row, queue.top())) {
                         queue.pop_external();
-                        queue.getStats().rows_read++;
+                        stats->rows_read++;
                     }
                 }
             } else {
                 run.add(*row);;
-                queue.getStats().rows_written++;
+                stats->rows_written++;
             }
         }
 
