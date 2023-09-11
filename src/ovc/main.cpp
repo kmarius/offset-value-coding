@@ -1266,7 +1266,7 @@ int main(int argc, char *argv[]) {
 
     //test_hash_agg();
 
-    //experiment_joins1();
+    experiment_joins1();
 
     log_info("elapsed=%lums", since(start));
 

@@ -94,7 +94,7 @@ namespace ovc::iterators {
     class SortBase : public UnaryIterator {
     public:
         SortBase(Iterator *input, const Compare &cmp)
-                : UnaryIterator(input), sorter(&stats, cmp), count(0) {
+                : UnaryIterator(input), sorter(&stats, cmp), count(0), stats() {
             output_has_ovc = USE_OVC;
             output_is_sorted = true;
             output_is_unique = DISTINCT;
