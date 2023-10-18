@@ -20,12 +20,15 @@ namespace ovc::iterators {
         void close() override;
 
     private:
+        RowEqualPrefixNoOVC cmp;
         unsigned join_columns;
+        std::vector<std::vector<Row>> set;
         std::vector<std::string> left_partitions;
         std::vector<std::string> right_partitions;
         io::ExternalRunR *left_partition;
         io::ExternalRunR *right_partition;
         io::BufferManager bufferManager;
-        std::unordered_set<Row, std::hash<Row>, RowEqualPrefix> set;
+
+        bool nextPart();
     };
 }

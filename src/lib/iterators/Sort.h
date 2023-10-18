@@ -94,19 +94,16 @@ namespace ovc::iterators {
     class SortBase : public UnaryIterator {
     public:
         SortBase(Iterator *input, const Compare &cmp)
-                : UnaryIterator(input), sorter(&stats, cmp), count(0), stats() {
-            output_has_ovc = USE_OVC;
-            output_is_sorted = true;
-            output_is_unique = DISTINCT;
+                : UnaryIterator(input), sorter(&stats, cmp), count(0), stats_disabled(false) {
         };
 
         SortBase(Iterator *input) : SortBase(input, Compare(&stats)) {};
 
         void open() {
             Iterator::open();
-            input_->open();
-            sorter.consume(input_);
-            input_->close();
+            input->open();
+            sorter.consume(input);
+            input->close();
         }
 
         Row *next() {
@@ -122,39 +119,47 @@ namespace ovc::iterators {
             sorter.cleanup();
         }
 
-        struct iterator_stats &getStats() {
-            return stats;
+        SortBase *disableStats(bool disable = true) {
+            stats_disabled = disable;
+            return this;
         }
 
         void accumulateStats(iterator_stats &stats) override {
             UnaryIterator::accumulateStats(stats);
-            stats.add(getStats());
+            if (!stats_disabled) {
+                stats.add(getStats());
+            }
         }
 
         unsigned long getCount() const {
             return count;
         }
 
-    protected:
-        iterator_stats stats;
     private:
         Sorter<DISTINCT, USE_OVC, Compare> sorter;
         unsigned long count;
+        bool stats_disabled;
     };
 
     typedef SortBase<false, true> Sort;
     typedef SortBase<false, false> SortNoOvc;
 
-    class SortPrefix : public SortBase<false, true, RowCmpPrefix> {
+    class SortPrefix : public SortBase<false, true, RowCmpPrefixNoOVC> {
     public:
         SortPrefix(Iterator *input, int sort_prefix)
-                : SortBase<false, true, RowCmpPrefix>(input, RowCmpPrefix(sort_prefix, &stats)) {};
+                : SortBase<false, true, RowCmpPrefixNoOVC>(input, RowCmpPrefixNoOVC(sort_prefix, &this->stats)) {};
     };
 
-    class SortPrefixNoOvc : public SortBase<false, false, RowCmpPrefix> {
+    class SortDistinctPrefix : public SortBase<true, true, RowCmpPrefixNoOVC> {
     public:
-        SortPrefixNoOvc(Iterator *input, int sort_prefix)
-                : SortBase<false, false, RowCmpPrefix>(input, RowCmpPrefix(sort_prefix, &stats)) {};
+        SortDistinctPrefix(Iterator *input, int sort_prefix)
+                : SortBase<true, true, RowCmpPrefixNoOVC>(input, RowCmpPrefixNoOVC(sort_prefix, &this->stats)) {};
+    };
+
+    class SortPrefixNoOVC : public SortBase<false, false, RowCmpPrefixNoOVC> {
+    public:
+        SortPrefixNoOVC(Iterator *input, int sort_prefix)
+                : SortBase<false, false, RowCmpPrefixNoOVC>(input, RowCmpPrefixNoOVC(sort_prefix, &this->stats)) {};
     };
 }
 

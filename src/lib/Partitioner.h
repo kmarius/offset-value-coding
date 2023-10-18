@@ -65,6 +65,21 @@ namespace ovc {
         };
 
         /**
+         * Insert only if it is not already contained in the current page
+         */
+        template<typename Equal>
+        bool putDistinct(Row *row, Equal &eq) {
+            auto hash = row->key;
+            row->key = (hash << 8) | (hash >> ((8 * sizeof hash) - 8));
+            auto &part = partitions[hash % num_partitions];
+            if (part.probe_page(row, eq)) {
+                return false;
+            }
+            part.add(*row);
+            return true;
+        };
+
+        /**
          * Finalize only buckets that have spilled to disk. Returns a vector of the rows that were not spilled.
          */
         template<typename Aggregate>
@@ -90,17 +105,44 @@ namespace ovc {
             partitions.clear();
             return rows;
         }
+        /**
+         * Finalize only buckets that have spilled to disk. Returns a vector of the rows that were not spilled.
+         */
+        std::vector<Row> finalizeDistinct() {
+            std::vector<Row> rows;
+            std::vector<std::string> paths;
+            for (auto &partition: partitions) {
+                if (partition.didSpill()) {
+                    stats.rows_written += partition.size();
+                    partition.finalize();
+                    paths.push_back(partition.path());
+                } else {
+                    // collect in-memory rows
+                    const Row *end = partition.end_page();
+                    for (Row *it = partition.begin_page(); it < end; it++) {
+                        rows.push_back(*it);
+                    }
+                    partition.discard();
+                }
+            }
+            this->paths = paths;
+            partitions.clear();
+            return rows;
+        }
 
         /**
          * Finalize all buckets.
          */
-        void finalize() {
+        void finalize(bool keep = false) {
             if (!finalized) {
                 finalized = true;
                 std::vector<std::string> newPaths;
                 for (auto &partition: partitions) {
                     if (partition.size() == 0) {
                         partition.discard();
+                        if (keep) {
+                            newPaths.push_back(partition.path());
+                        }
                     } else {
                         newPaths.push_back(partition.path());
                         partition.finalize();

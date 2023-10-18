@@ -3,8 +3,8 @@
 #include "lib/iterators/VectorScan.h"
 #include "lib/iterators/AssertEqual.h"
 #include "lib/log.h"
-#include "lib/iterators/ZeroSuffixGenerator.h"
 #include "lib/iterators/Sort.h"
+#include "lib/iterators/RowGenerator.h"
 
 #include <gtest/gtest.h>
 
@@ -24,7 +24,7 @@ protected:
 
 TEST_F(InSortGroupByTest, EmptyTest) {
     auto *plan = new AssertEqual(
-            new InSortGroupBy(new ZeroSuffixGenerator(0, 0, 0), 1, aggregates::Count(1)),
+            new InSortGroupBy(new RowGenerator(0, 0, 0), 1, aggregates::Count(1)),
             new VectorScan({})
     );
     plan->run();
@@ -83,7 +83,7 @@ TEST_F(InSortGroupByTest, DoesntLoseRows) {
     unsigned num_rows = 100000;
     int group_columns = 2;
 
-    auto *plan = new InSortGroupBy(new ZeroSuffixGenerator(num_rows, 32, 5), group_columns,
+    auto *plan = new InSortGroupBy(new RowGenerator(num_rows, 32, 5), group_columns,
                                    aggregates::Count(group_columns));
     plan->open();
     unsigned count = 0;
@@ -99,7 +99,7 @@ TEST_F(InSortGroupByTest, DoesntLoseRows2) {
     unsigned num_rows = 100000;
     int group_columns = 4;
 
-    auto *plan = new InSortGroupBy(new ZeroSuffixGenerator(num_rows, 32, 3), group_columns,
+    auto *plan = new InSortGroupBy(new RowGenerator(num_rows, 32, 3), group_columns,
                                    aggregates::Count(group_columns));
     plan->open();
     unsigned count = 0;
@@ -163,7 +163,7 @@ TEST_F(InSortGroupByTest, DoesntLoseRowsNoOVC) {
     unsigned num_rows = 100000;
     int group_columns = 2;
 
-    auto *plan = new InSortGroupByNoOvc(new ZeroSuffixGenerator(num_rows, 32, 5),
+    auto *plan = new InSortGroupByNoOvc(new RowGenerator(num_rows, 32, 5),
                                         group_columns,
                                         aggregates::Count(group_columns));
     plan->open();
@@ -180,7 +180,7 @@ TEST_F(InSortGroupByTest, DoesntLoseRows2NoOVC) {
     unsigned num_rows = 100000;
     int group_columns = 4;
 
-    auto *plan = new InSortGroupByNoOvc(new ZeroSuffixGenerator(num_rows, 32, 3),
+    auto *plan = new InSortGroupByNoOvc(new RowGenerator(num_rows, 32, 3),
                                         group_columns,
                                         aggregates::Count(group_columns));
     plan->open();

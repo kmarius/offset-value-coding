@@ -4,62 +4,78 @@
 
 namespace ovc::iterators {
 
-    HashDistinct::HashDistinct(Iterator *input) : UnaryIterator(input), partition(nullptr), bufferManager(4),
-                                                  duplicates(0), set(32, std::hash<Row>(), RowEqual(&stats)), stats() {
-        output_is_unique = true;
-        output_is_hashed = true;
+    HashDistinct::HashDistinct(Iterator *input, int prefix) : UnaryIterator(input), bufferManager(4),
+                                                  duplicates(0), prefix(prefix), ind(0) {
     }
 
     void HashDistinct::open() {
         Iterator::open();
-        input_->open();
+        input->open();
 
         Partitioner partitioner(1 << RUN_IDX_BITS);
 
         // fill and probe external hashmap
-        for (Row *row; (row = input_->next()); input_->free()) {
-            row->setHash();
+        for (Row *row; (row = input->next()); input->free()) {
+            row->setHash(prefix);
             partitioner.put(row);
         }
         partitioner.finalize();
+
         partitions = partitioner.getPartitionPaths();
         if (!partitions.empty()) {
-            partition = new ExternalRunR(partitions.back(), bufferManager, true);
+            rows = process_partition(partitions.back());
         }
+        input->close();
 
         stats.rows_written = partitioner.getStats().rows_written;
     }
 
     Row *HashDistinct::next() {
-        for (Row *row; (row = next_from_part());) {
-            stats.rows_read++;
-            auto pair = set.insert(*row);
-            if (pair.second) {
-                // element was actually inserted
-                // maye return a pointer to the element in the set?
-                return row;
-            }
-            duplicates++;
-        }
-        return nullptr;
-    }
-
-    Row *HashDistinct::next_from_part() {
-        if (partition == nullptr) {
+        if (partitions.empty()) {
             return nullptr;
         }
-        Row *row;
-        while ((row = partition->read()) == nullptr) {
-            partition->remove();
-            delete partition;
+
+        if (ind >= rows.size()) {
+            rows = {};
+            ind = 0;
+        }
+
+        while (rows.empty()) {
             partitions.pop_back();
-            set.clear();
             if (partitions.empty()) {
-                partition = nullptr;
                 return nullptr;
             }
-            partition = new ExternalRunR(partitions.back(), bufferManager, true);
+            rows = process_partition(partitions.back());
         }
-        return row;
+
+        count++;
+        return &rows[ind++];
+    }
+
+    std::vector<Row> HashDistinct::process_partition(const std::string &path) {
+        auto eq = RowEqualPrefixNoOVC(prefix, &stats);
+        ExternalRunR part(path, bufferManager, true);
+        if (part.definitelyEmpty()) {
+            return {};
+        }
+
+        Partitioner partitioner(1 << RUN_IDX_BITS);
+
+        for (Row *row; (row = part.read());) {
+            stats.rows_read++;
+            partitioner.putDistinct(row, eq);
+        }
+
+        part.remove();
+
+        auto res = partitioner.finalizeDistinct();
+
+        std::vector<std::string> new_partitions = partitioner.getPartitionPaths();
+        for (auto &p: partitions) {
+            new_partitions.push_back(p);
+        }
+        partitions = new_partitions;
+
+        return res;
     }
 }

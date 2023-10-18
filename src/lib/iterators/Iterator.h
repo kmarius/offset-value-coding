@@ -17,9 +17,7 @@ namespace ovc::iterators {
     class Iterator {
     public:
 
-        Iterator() : status(Unopened),
-                     output_has_ovc(false), output_is_hashed(false), output_is_sorted(false),
-                     output_is_unique(false) {};
+        Iterator() : status(Unopened) {};
 
         virtual ~Iterator() {
             assert(status != Opened);
@@ -63,38 +61,6 @@ namespace ovc::iterators {
         };
 
         /**
-         * Check if the output of this iterator is sorted.
-         * @return true, if the output is sorted.
-         */
-        bool outputIsSorted() const {
-            return output_is_sorted;
-        }
-
-        /**
-         * Check if the output of this iterator has OVCs
-         * @return true, if the output has OVCs
-         */
-        bool outputHasOVC() const {
-            return output_has_ovc;
-        }
-
-        /**
-         * Check if the output of this iterator is hashed.
-         * @return true, if the output is hashed.
-         */
-        bool outputIsHashed() const {
-            return output_is_hashed;
-        }
-
-        /**
-         * Check if the output of this iterator is unique.
-         * @return true, if the output is unique.
-         */
-        bool outputIsUnique() const {
-            return output_is_unique;
-        }
-
-        /**
          * Run the iterator and optionally print all rows.
          * @param print true if output should be printed
          */
@@ -107,13 +73,18 @@ namespace ovc::iterators {
         std::vector<Row> collect();
 
         /**
-         * Consume all input_ and add it into a run in a file at the given path_sync.
+         * Consume all input and add it into a run in a file at the given path_sync.
          * Must be called on an unopened Iterator.
          * @param path The path_sync of the file.
          */
         void write(const std::string &path);
 
-        virtual void accumulateStats(struct iterator_stats &stats) {
+        iterator_stats &getStats() {
+            return stats;
+        }
+
+        virtual void accumulateStats(struct iterator_stats &acc) {
+            acc.add(stats);
         }
 
         struct iter {
@@ -132,7 +103,7 @@ namespace ovc::iterators {
                 }
             }
 
-            // we can not copy this iterat because the destructor must only be called once
+            // we can not copy this iter because the destructor must only be called once
             iter(const iter &it) = delete;
 
             ~iter() {
@@ -179,11 +150,8 @@ namespace ovc::iterators {
         }
 
     protected:
+        iterator_stats stats;
         IteratorStatus status = Unopened;
-        bool output_is_sorted;
-        bool output_has_ovc;
-        bool output_is_hashed;
-        bool output_is_unique;
     };
 
     class Generator : public Iterator {
@@ -195,23 +163,24 @@ namespace ovc::iterators {
 
     class UnaryIterator : public Iterator {
     public:
-        explicit UnaryIterator(Iterator *input) : input_(input) {}
+        explicit UnaryIterator(Iterator *input) : input(input) {}
 
         ~UnaryIterator() override {
-            delete input_;
+            delete input;
         }
 
         template<class T>
         T *getInput() {
-            return reinterpret_cast<T *>(input_);
+            return reinterpret_cast<T *>(input);
         }
 
-        void accumulateStats(iterator_stats &stats) override {
-            input_->accumulateStats(stats);
+        void accumulateStats(iterator_stats &acc) override {
+            input->accumulateStats(acc);
+            acc.add(stats);
         }
 
     protected:
-        Iterator *input_;
+        Iterator *input;
     };
 
     class BinaryIterator : public Iterator {
@@ -233,9 +202,10 @@ namespace ovc::iterators {
             return reinterpret_cast<T *>(right);
         }
 
-        void accumulateStats(iterator_stats &stats) override {
-            left->accumulateStats(stats);
-            right->accumulateStats(stats);
+        void accumulateStats(iterator_stats &acc) override {
+            left->accumulateStats(acc);
+            right->accumulateStats(acc);
+            stats.add(stats);
         }
 
     protected:

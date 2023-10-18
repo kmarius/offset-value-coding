@@ -28,25 +28,6 @@ namespace ovc {
 
     typedef uint32_t ovc_type_t;
 
-    struct iterator_stats {
-        size_t comparisons;
-        size_t comparisons_equal_key;
-        size_t comparisons_of_actual_rows;
-        size_t column_comparisons;
-        size_t rows_written;
-        size_t rows_read;
-
-        iterator_stats() = default;
-
-        void add(const struct iterator_stats &stats) {
-            comparisons += stats.comparisons;
-            comparisons_equal_key += stats.comparisons_equal_key;
-            comparisons_of_actual_rows += stats.comparisons_of_actual_rows;
-            column_comparisons += stats.column_comparisons;
-            rows_written += stats.rows_written;
-            rows_read += stats.rows_read;
-        }
-    };
 
 // statistics: number of times hash was called
     extern unsigned long row_num_calls_to_hash;
@@ -191,13 +172,13 @@ namespace ovc {
         }
     };
 
-    struct RowCmpPrefix {
+    struct RowCmpPrefixNoOVC {
         const int prefix;
         struct iterator_stats *stats;
     public:
-        RowCmpPrefix() = delete;
+        RowCmpPrefixNoOVC() = delete;
 
-        explicit RowCmpPrefix(int prefix, iterator_stats *stats = nullptr) : prefix(prefix), stats(stats) {};
+        explicit RowCmpPrefixNoOVC(int prefix, iterator_stats *stats = nullptr) : prefix(prefix), stats(stats) {};
 
         int operator()(const Row &lhs, const Row &rhs, OVC &ovc, unsigned offset) const {
             return lhs.cmp_impl(rhs, ovc, offset, prefix, stats);
@@ -245,14 +226,14 @@ namespace ovc {
         }
     };
 
-    struct RowEqualPrefix {
+    struct RowEqualPrefixNoOVC {
         const int prefix;
         struct iterator_stats *stats;
     public:
-        RowEqualPrefix() = delete;
+        RowEqualPrefixNoOVC() = delete;
 
-        explicit RowEqualPrefix(const int prefix, struct iterator_stats *stats = nullptr) : prefix(prefix),
-                                                                                            stats(stats) {}
+        explicit RowEqualPrefixNoOVC(const int prefix, struct iterator_stats *stats = nullptr)
+                : prefix(prefix), stats(stats) {}
 
         int operator()(const Row &lhs, const Row &rhs) const {
             for (int i = 0; i < prefix; i++) {

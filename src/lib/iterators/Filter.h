@@ -13,19 +13,16 @@ namespace ovc::iterators {
         typedef bool (Predicate)(const Row *row);
 
         Filter(Iterator *input, Predicate *pred) : UnaryIterator(input), pred(pred), max_ovc(0) {
-            output_is_sorted = input->outputIsSorted();
-            output_is_hashed = input->outputIsHashed();
-            output_is_unique = input->outputIsUnique();
         };
 
         void open() override {
             Iterator::open();
-            input_->open();
+            input->open();
         };
 
         Row *next() override {
             Iterator::next();
-            for (Row *row; (row = input_->next()); input_->free()) {
+            for (Row *row; (row = input->next()); input->free()) {
                 if constexpr (USE_OVC) {
                     if (pred(row)) {
                         if (max_ovc > row->key) {
@@ -48,12 +45,12 @@ namespace ovc::iterators {
 
         void free() override {
             Iterator::free();
-            input_->free();
+            input->free();
         };
 
         void close() override {
             Iterator::close();
-            input_->close();
+            input->close();
         };
 
     private :

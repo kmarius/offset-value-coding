@@ -30,10 +30,8 @@ namespace ovc::iterators {
     void Iterator::write(const std::string &path) {
         ovc::io::BufferManager manager(2);
         ovc::io::ExternalRunW run(path, manager);
-        open();
-        for (Row *row; (row = next()); free()) {
-            run.add(*row);
+        for (auto &row : *this) {
+            run.add(row);
         }
-        close();
     }
 }

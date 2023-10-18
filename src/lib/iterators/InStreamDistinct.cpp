@@ -8,13 +8,11 @@ namespace ovc::iterators {
             : UnaryIterator(input), num_dupes(0), has_prev(false), prev({0}) {
         assert(input->outputIsSorted());
         assert(!USE_OVC || input->outputHasOVC());
-        output_is_unique = true;
-        output_is_sorted = true;
     }
 
     template<bool USE_OVC>
     Row *InStreamDistinctBase<USE_OVC>::next() {
-        for (Row *row; (row = input_->next()); input_->free()) {
+        for (Row *row; (row = input->next()); input->free()) {
             if constexpr (USE_OVC) {
                 // TODO: we can repair OVCs here
                 if (row->key != 0) {

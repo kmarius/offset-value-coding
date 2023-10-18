@@ -6,7 +6,7 @@
 namespace ovc::iterators {
 
 /**
- * Checks if the input_ is ascending and therefore sorted.
+ * Checks if the input is ascending and therefore sorted.
  */
     class AssertSorted : public UnaryIterator {
     public:
@@ -15,12 +15,12 @@ namespace ovc::iterators {
 
         void open() override {
             Iterator::open();
-            input_->open();
+            input->open();
         };
 
         Row *next() override {
             Iterator::next();
-            Row *row = input_->next();
+            Row *row = input->next();
             if (row == nullptr) {
                 return nullptr;
             }
@@ -36,12 +36,12 @@ namespace ovc::iterators {
 
         void free() override {
             Iterator::free();
-            input_->free();
+            input->free();
         };
 
         void close() override {
             Iterator::close();
-            input_->close();
+            input->close();
 
         };
 

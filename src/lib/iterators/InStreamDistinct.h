@@ -11,19 +11,19 @@ namespace ovc::iterators {
 
         void open() override {
             Iterator::open();
-            input_->open();
+            input->open();
         }
 
         Row *next() override;
 
         void free() override {
             Iterator::free();
-            input_->free();
+            input->free();
         }
 
         void close() override {
             Iterator::close();
-            input_->close();
+            input->close();
         }
 
         size_t num_dupes;

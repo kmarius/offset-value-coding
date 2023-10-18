@@ -6,7 +6,7 @@
 namespace ovc::iterators {
 
 /**
- * Checks if the input_ is strictly ascending and therefore sorted and uniqe.
+ * Checks if the input is strictly ascending and therefore sorted and uniqe.
  */
     class AssertSortedUnique : public UnaryIterator {
     public:
@@ -16,18 +16,18 @@ namespace ovc::iterators {
 
         void open() override {
             Iterator::open();
-            input_->open();
+            input->open();
         };
 
         Row *next() override {
             Iterator::next();
-            Row *row = input_->next();
+            Row *row = input->next();
             if (row == nullptr) {
                 return nullptr;
             }
 
             if (has_prev && is_sorted && cmp(prev, *row) >= 0) {
-                log_error("input_ not is_sorted: prev: %s", prev.c_str());
+                log_error("input not is_sorted: prev: %s", prev.c_str());
                 log_error("                      cur:  %s", row->c_str());
                 is_sorted = false;
             }
@@ -40,12 +40,12 @@ namespace ovc::iterators {
 
         void free() override {
             Iterator::free();
-            input_->free();
+            input->free();
         };
 
         void close() override {
             Iterator::close();
-            input_->close();
+            input->close();
         };
 
         size_t count() const {

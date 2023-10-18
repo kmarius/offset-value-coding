@@ -9,20 +9,20 @@ namespace ovc::iterators {
 
         void open() override {
             Iterator::open();
-            input_->open();
+            input->open();
         }
 
         Row *next() override {
             Iterator::next();
             if (dupes++ % mult == 0) {
-                row = input_->next();
+                row = input->next();
             }
             return row;
         }
 
         void close() override {
             Iterator::close();
-            input_->close();
+            input->close();
         }
     private:
         int dupes;

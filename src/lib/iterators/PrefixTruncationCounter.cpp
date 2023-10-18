@@ -8,12 +8,13 @@ namespace ovc::iterators {
     }
 
     Row *PrefixTruncationCounter::next() {
-        Row *row = input_->next();
+        Row *row = input->next();
         if (row == nullptr) {
             return nullptr;
         }
         if (has_prev) {
             for (int i = 0; i < ROW_ARITY; i++) {
+                stats.column_comparisons++;
                 count++;
                 if (row->columns[i] != prev.columns[i]) {
                     break;
@@ -27,21 +28,21 @@ namespace ovc::iterators {
     }
 
     unsigned long PrefixTruncationCounter::getColumnComparisons() const {
-        return count;
+        return stats.column_comparisons;
     }
 
     void PrefixTruncationCounter::open() {
         Iterator::open();
-        input_->open();
+        input->open();
     }
 
     void PrefixTruncationCounter::free() {
         Iterator::free();
-        input_->next();
+        input->next();
     }
 
     void PrefixTruncationCounter::close() {
         Iterator::close();
-        input_->close();
+        input->close();
     }
 }

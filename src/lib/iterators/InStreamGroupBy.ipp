@@ -7,22 +7,20 @@ namespace ovc::iterators {
     InStreamGroupByBase<USE_OVC, Aggregate>::InStreamGroupByBase(Iterator *input, int group_columns,
                                                                  const Aggregate &agg) :
             UnaryIterator(input), acc_buf(), output_buf(),
-            group_columns(group_columns), empty(true), agg(agg),
-            stats(), count(0) {
+            group_columns(group_columns), empty(true), agg(agg), count(0) {
         assert(input->outputIsSorted());
         assert(!USE_OVC || input->outputHasOVC());
-        output_is_unique = true;
     }
 
     template<bool USE_OVC, typename Aggregate>
     void InStreamGroupByBase<USE_OVC, Aggregate>::open() {
         Iterator::open();
-        input_->open();
-        Row *row = input_->next();
+        input->open();
+        Row *row = input->next();
         if (row) {
             acc_buf = *row;
             agg.init(acc_buf);
-            input_->free();
+            input->free();
             empty = false;
         }
     }
@@ -35,7 +33,7 @@ namespace ovc::iterators {
             return nullptr;
         }
 
-        for (Row *row; (row = input_->next()) != nullptr; input_->free()) {
+        for (Row *row; (row = input->next()) != nullptr; input->free()) {
             agg.init(*row);
             if constexpr (USE_OVC) {
                 if (row->getOVC().getOffset() < group_columns) {
@@ -44,7 +42,7 @@ namespace ovc::iterators {
 
                     acc_buf = *row;
                     agg.init(acc_buf);
-                    input_->free();
+                    input->free();
 
                     count++;
                     return &output_buf;
@@ -58,7 +56,7 @@ namespace ovc::iterators {
 
                         acc_buf = *row;
                         agg.init(acc_buf);
-                        input_->free();
+                        input->free();
 
                         count++;
                         return &output_buf;

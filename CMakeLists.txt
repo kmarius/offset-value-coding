@@ -45,9 +45,10 @@ add_library(libovc
         src/lib/Row.h
         src/lib/Run.h
         src/lib/utils.h
-        src/lib/iterators/VectorScan.h src/lib/iterators/InStreamDistinct.cpp src/lib/iterators/InStreamDistinct.h src/lib/iterators/AssertSortedUnique.h src/lib/iterators/AssertEqual.h src/lib/iterators/HashDistinct.cpp src/lib/Partitioner.cpp src/lib/Partitioner.h src/lib/iterators/PrefixTruncationCounter.cpp src/lib/iterators/PrefixTruncationCounter.h src/lib/iterators/OVCApplier.h src/lib/iterators/ZeroPrefixGenerator.h src/lib/iterators/ZeroPrefixGenerator.cpp src/lib/iterators/Sort.ipp src/lib/iterators/InStreamGroupBy.ipp src/lib/iterators/InStreamGroupBy.h src/lib/iterators/ZeroSuffixGenerator.cpp src/lib/iterators/ZeroSuffixGenerator.h src/lib/iterators/HashGroupBy.ipp src/lib/iterators/HashGroupBy.h src/lib/iterators/Shuffle.cpp src/lib/iterators/Shuffle.h src/lib/PriorityQueue.ipp src/lib/iterators/LeftSemiJoin.h src/lib/iterators/LeftSemiHashJoin.cpp src/lib/iterators/LeftSemiHashJoin.h src/lib/iterators/Multiplier.h src/lib/iterators/Counter.h src/lib/iterators/DuplicateGenerator.h src/lib/iterators/ApproximateDuplicateGenerator.h src/lib/iterators/InSortGroupBy.h src/lib/aggregates.h src/lib/iterators/SortDistinct.h
+        src/lib/iterators/VectorScan.h src/lib/iterators/InStreamDistinct.cpp src/lib/iterators/InStreamDistinct.h src/lib/iterators/AssertSortedUnique.h src/lib/iterators/AssertEqual.h src/lib/iterators/HashDistinct.cpp src/lib/Partitioner.cpp src/lib/Partitioner.h src/lib/iterators/PrefixTruncationCounter.cpp src/lib/iterators/PrefixTruncationCounter.h src/lib/iterators/OVCApplier.h src/lib/iterators/RowGenerator.h src/lib/iterators/RowGenerator.cpp src/lib/iterators/Sort.ipp src/lib/iterators/InStreamGroupBy.ipp src/lib/iterators/InStreamGroupBy.h src/lib/iterators/HashGroupBy.ipp src/lib/iterators/HashGroupBy.h src/lib/iterators/Shuffle.cpp src/lib/iterators/Shuffle.h src/lib/PriorityQueue.ipp src/lib/iterators/LeftSemiJoin.h src/lib/iterators/LeftSemiHashJoin.cpp src/lib/iterators/LeftSemiHashJoin.h src/lib/iterators/Multiplier.h src/lib/iterators/DuplicateGenerator.h src/lib/iterators/ApproximateDuplicateGenerator.h src/lib/iterators/InSortGroupBy.h src/lib/aggregates.h src/lib/iterators/SortDistinct.h
         src/lib/utils.cpp
-        src/lib/iterators/AssertCorrectOVC.h)
+        src/lib/iterators/AssertCorrectOVC.h
+        src/lib/iterators/Transposer.h)
 target_link_libraries(libovc uring)
 
 add_executable(ovc src/ovc/main.cpp)

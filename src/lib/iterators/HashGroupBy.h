@@ -17,10 +17,6 @@ namespace ovc::iterators {
 
         void close() override;
 
-        struct iterator_stats &getStats() {
-            return stats;
-        }
-
         unsigned long getCount() const {
             return count;
         }
@@ -33,7 +29,6 @@ namespace ovc::iterators {
         std::vector<Row> rows;
         unsigned long ind;
         unsigned long count;
-        struct iterator_stats stats;
 
         std::vector<Row> process_partition(const std::string &path);
     };

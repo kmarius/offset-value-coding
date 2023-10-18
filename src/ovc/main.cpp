@@ -9,9 +9,8 @@
 #include "lib/iterators/PrefixTruncationCounter.h"
 #include "lib/iterators/InStreamDistinct.h"
 #include "lib/iterators/AssertSorted.h"
-#include "lib/iterators/ZeroPrefixGenerator.h"
+#include "lib/iterators/RowGenerator.h"
 #include "lib/iterators/InStreamGroupBy.h"
-#include "lib/iterators/ZeroSuffixGenerator.h"
 #include "lib/iterators/Shuffle.h"
 #include "lib/iterators/Scan.h"
 #include "lib/iterators/VectorScan.h"
@@ -26,6 +25,7 @@
 #include "lib/iterators/AssertCorrectOVC.h"
 #include "lib/iterators/OVCApplier.h"
 #include "lib/iterators/AssertEqual.h"
+#include "lib/iterators/Transposer.h"
 
 #include <vector>
 
@@ -172,7 +172,7 @@ void comparison_sort() {
         fprintf(file, "n,nxk,trunc,sort,sort_no_ovc\n");
         for (size_t i = 1; i <= 10; i++) {
             size_t num_rows = i * 100000;
-            auto *gen = new ZeroPrefixGenerator(num_rows, 100, prefix, 1337);
+            auto *gen = new RowGenerator(num_rows, 100, prefix, 1337);
             auto sort = new Sort(gen->clone());
             auto trunc = new PrefixTruncationCounter(sort);
 
@@ -202,7 +202,7 @@ void comparison_distinct() {
         for (size_t i = 1; i <= 10; i++) {
             size_t num_rows = i * 100000;
 
-            auto gen = new ZeroPrefixGenerator(num_rows, 100, prefix, 1337);
+            auto gen = new RowGenerator(num_rows, 100, prefix, 1337);
             auto sort = new SortDistinct(gen->clone());
             auto sort_no_ovc = new SortDistinctNoOvc(gen->clone());
             auto hash = new HashDistinct(gen);
@@ -250,21 +250,21 @@ void example_count_column_comparisons() {
 
 void example_group_by() {
     auto plan = new InStreamGroupBy(
-            new Sort(new ZeroSuffixGenerator(100000, 128, 6, 1337)),
+            new Sort(new RowGenerator(100000, 128, 0, 1337)),
             1, aggregates::Count(1));
     plan->run(true);
     delete plan;
 }
 
 void external_shuffle() {
-    auto plan = new Shuffle(new Sort(new ZeroPrefixGenerator(4000000, 128)));
+    auto plan = new Shuffle(new Sort(new RowGenerator(4000000, 128)));
     plan->run();
     delete plan;
 }
 
 void compare_generate_vs_scan() {
     size_t num_rows = 17000000;
-    auto gen = ZeroPrefixGenerator(num_rows, 128, 0, 1337);
+    auto gen = RowGenerator(num_rows, 128, 0, 1337);
 
     auto *plan_generate = new Sort(gen.clone());
     gen.write("generated.dat");
@@ -285,8 +285,8 @@ void compare_generate_vs_scan() {
 }
 
 void test_generic_priorityqueue() {
-    RowCmpPrefix cmp(2);
-    auto *plan = new SortBase<true, true, RowCmpPrefix>(new ZeroPrefixGenerator(100, 10), cmp);
+    RowCmpPrefixNoOVC cmp(2);
+    auto *plan = new SortBase<true, true, RowCmpPrefixNoOVC>(new RowGenerator(100, 10), cmp);
     plan->run(true);
     delete plan;
 }
@@ -333,11 +333,11 @@ void test_merge_join2() {
     unsigned num_rows_left = 1000;
     unsigned num_rows_right = 10000;
 
-    auto left_rows = SortBase<true, true, RowCmpPrefix>(new ZeroPrefixGenerator(num_rows_left, upper),
-                                                        RowCmpPrefix(join_columns)).collect();
+    auto left_rows = SortBase<true, true, RowCmpPrefixNoOVC>(new RowGenerator(num_rows_left, upper),
+                                                             RowCmpPrefixNoOVC(join_columns)).collect();
     num_rows_left = left_rows.size();
 
-    auto *left = new SortPrefix(new ZeroPrefixGenerator(num_rows_right, upper), join_columns);
+    auto *left = new SortPrefix(new RowGenerator(num_rows_right, upper), join_columns);
     auto *right = new VectorScan(left_rows);
     auto *join = new LeftSemiJoin(left, right, join_columns);
 
@@ -346,8 +346,8 @@ void test_merge_join2() {
 
     auto joined = join->collect();
 
-    auto joined_distinct = SortBase<true, true, RowCmpPrefix>(new VectorScan(joined),
-                                                              RowCmpPrefix(join_columns)).collect();
+    auto joined_distinct = SortBase<true, true, RowCmpPrefixNoOVC>(new VectorScan(joined),
+                                                                   RowCmpPrefixNoOVC(join_columns)).collect();
     log_info("%u rows left", num_rows_left);
     log_info("%u rows after join", joined.size());
     log_info("%u rows distinct after join", joined_distinct.size());
@@ -365,11 +365,11 @@ void test_merge_join3() {
     unsigned num_rows_left = 1000;
     unsigned num_rows_right = 10000;
 
-    auto right_rows = SortBase<true, true, RowCmpPrefix>(new ZeroPrefixGenerator(num_rows_left, upper),
-                                                         RowCmpPrefix(join_columns)).collect();
+    auto right_rows = SortBase<true, true, RowCmpPrefixNoOVC>(new RowGenerator(num_rows_left, upper),
+                                                              RowCmpPrefixNoOVC(join_columns)).collect();
     num_rows_left = right_rows.size();
 
-    auto gen = new ZeroPrefixGenerator(num_rows_right, upper);
+    auto gen = new RowGenerator(num_rows_right, upper);
 
     auto *left = new SortPrefix(gen->clone(), join_columns);
     auto *right = new VectorScan(right_rows);
@@ -391,10 +391,10 @@ void test_merge_join4() {
     unsigned num_rows_left = 128;
     unsigned num_rows_right = 1024;
 
-    auto right_rows = SortBase<true, true, RowCmpPrefix>(new ZeroPrefixGenerator(num_rows_left, upper),
-                                                         RowCmpPrefix(join_columns)).collect();
+    auto right_rows = SortBase<true, true, RowCmpPrefixNoOVC>(new RowGenerator(num_rows_left, upper),
+                                                              RowCmpPrefixNoOVC(join_columns)).collect();
 
-    auto gen = new ZeroPrefixGenerator(num_rows_right, upper);
+    auto gen = new RowGenerator(num_rows_right, upper);
 
     auto *left = new AssertCorrectOVC(new SortPrefix(gen->clone(), join_columns), join_columns);
     auto *right = new AssertCorrectOVC(new VectorScan(right_rows), join_columns);
@@ -409,8 +409,8 @@ void compare_joins() {
     int join_columns = 3;
     int num_rows = 1000000;
 
-    auto *left = new ZeroPrefixGenerator(num_rows, upper);
-    auto *right = new ZeroPrefixGenerator(num_rows, upper);
+    auto *left = new RowGenerator(num_rows, upper);
+    auto *right = new RowGenerator(num_rows, upper);
 
     auto *merge_join = new LeftSemiJoin(new Sort(left->clone()), new Sort(right->clone()), join_columns);
     auto *hash_join = new LeftSemiHashJoin(left, right, join_columns);
@@ -431,7 +431,7 @@ void compare_joins() {
 }
 
 void test_compare_prefix() {
-    auto *plan = new SortBase<false, true, RowCmpPrefix>(new ZeroPrefixGenerator(10, 128, 1), RowCmpPrefix{2});
+    auto *plan = new SortBase<false, true, RowCmpPrefixNoOVC>(new RowGenerator(10, 128, 1), RowCmpPrefixNoOVC{2});
     plan->run(true);
     delete plan;
 }
@@ -449,10 +449,10 @@ static inline uint64_t hash(uint64_t val) {
     return h;
 }
 
-volatile uint64_t acc = 0;
+volatile uint64_t hash_acc = 0;
 
 void hash_combination() {
-    Row row = ZeroPrefixGenerator(1, 128).collect()[0];
+    Row row = RowGenerator(1, 128).collect()[0];
 
     const int reps = 10000000;
 
@@ -463,7 +463,7 @@ void hash_combination() {
             unsigned long h1 = hash(column);
             h = combine_xor(h, h1);
         }
-        acc ^= h;
+        hash_acc ^= h;
     }
     auto time_xor = since(start);
 
@@ -474,7 +474,7 @@ void hash_combination() {
             unsigned long h1 = hash(column);
             h = combine_complex(h, h1);
         }
-        acc ^= h;
+        hash_acc ^= h;
     }
     auto time_complex = since(start);
 
@@ -485,7 +485,7 @@ void hash_combination() {
             unsigned long h1 = hash(column);
             h = combine_plus(h, h1);
         }
-        acc ^= h;
+        hash_acc ^= h;
     }
     auto time_plus = since(start);
 
@@ -496,7 +496,7 @@ void hash_combination() {
             unsigned long h1 = hash(column);
             h = combine_java(h, h1);
         }
-        acc ^= h;
+        hash_acc ^= h;
     }
     auto time_java = since(start);
 
@@ -511,7 +511,7 @@ void example_duplicate_generation() {
     int prefix = 4;
     int num_unique = 4;
     int mult = 4;
-    auto *shuf = new Shuffle(new Multiplier(new ZeroPrefixGenerator(num_unique, 1024, prefix), mult));
+    auto *shuf = new Shuffle(new Multiplier(new RowGenerator(num_unique, 1024, prefix), mult));
     auto *plan = new SortDistinct(shuf);
     plan->run(true);
     log_info("%lu", shuf->getCount());
@@ -546,7 +546,7 @@ void experiment_sort_distinct() {
 
 void example_in_sort_group_by() {
     auto *plan = new InSortGroupBy(
-            new ZeroSuffixGenerator(10000, 16, 0),
+            new RowGenerator(10000, 16, 0),
             2,
             aggregates::Avg(2, 2)
     );
@@ -554,7 +554,7 @@ void example_in_sort_group_by() {
     delete plan;
 
     auto *plan2 = new InSortGroupBy(
-            new ZeroSuffixGenerator(10000, 16, 0),
+            new RowGenerator(10000, 16, 0),
             2,
             aggregates::Sum(2, 2)
     );
@@ -564,7 +564,7 @@ void example_in_sort_group_by() {
 
 void example_in_sort_group_by_no_ovc() {
     auto *plan = new InSortGroupByNoOvc(
-            new ZeroSuffixGenerator(20, 8, 0),
+            new RowGenerator(20, 8, 0),
             1,
             aggregates::Count(1)
     );
@@ -596,12 +596,12 @@ void experiment_group_by() {
 
         // we only sort by the group-by columns here
         auto *in_stream_sort_ovc = new InStreamGroupBy(
-                new SortBase<false, true, RowCmpPrefix>(gen->clone(), RowCmpPrefix(group_columns)),
+                new SortBase<false, true, RowCmpPrefixNoOVC>(gen->clone(), RowCmpPrefixNoOVC(group_columns)),
                 group_columns,
                 agg);
 
         auto *in_stream_sort_no_ovc = new InStreamGroupByNoOvc(
-                new SortBase<false, false, RowCmpPrefix>(gen->clone(), RowCmpPrefix(group_columns)),
+                new SortBase<false, false, RowCmpPrefixNoOVC>(gen->clone(), RowCmpPrefixNoOVC(group_columns)),
                 group_columns,
                 agg);
 
@@ -629,7 +629,7 @@ void experiment_group_by() {
         in_stream_sort_ovc->run();
         printf("%s,%d,%lu,%lu,%lu\n", "in_stream_sort_ovc", num_rows, in_stream_sort_ovc->getCount(),
                in_stream_sort_ovc->getStats().column_comparisons +
-               in_stream_sort_ovc->getInput<SortBase<false, true, RowCmpPrefix>>()->getStats().column_comparisons,
+               in_stream_sort_ovc->getInput<SortBase<false, true, RowCmpPrefixNoOVC >>()->getStats().column_comparisons,
                in_stream_sort_ovc->getStats().rows_written);
 
         in_sort_no_ovc->run();
@@ -639,8 +639,9 @@ void experiment_group_by() {
         in_stream_sort_no_ovc->run();
         printf("%s,%d,%lu,%lu,%lu\n", "in_stream_sort_no_ovc", num_rows, in_stream_sort_no_ovc->getCount(),
                in_stream_sort_no_ovc->getStats().column_comparisons +
-               in_stream_sort_no_ovc->getInput<SortBase<false, false, RowCmpPrefix>>()->getStats().column_comparisons,
-               in_stream_sort_no_ovc->getInput<SortBase<false, false, RowCmpPrefix>>()->getStats().rows_written);
+               in_stream_sort_no_ovc->getInput<SortBase<false, false,
+                       RowCmpPrefixNoOVC >>()->getStats().column_comparisons,
+               in_stream_sort_no_ovc->getInput<SortBase<false, false, RowCmpPrefixNoOVC >>()->getStats().rows_written);
 
         delete hash;
         delete in_sort_ovc;
@@ -681,12 +682,12 @@ void experiment_group_by2() {
 
         // we only sort by the group-by columns here
         auto *in_stream_sort_ovc = new InStreamGroupBy(
-                new SortBase<false, true, RowCmpPrefix>(gen->clone(), RowCmpPrefix(group_columns)),
+                new SortBase<false, true, RowCmpPrefixNoOVC>(gen->clone(), RowCmpPrefixNoOVC(group_columns)),
                 group_columns,
                 agg);
 
         auto *in_stream_sort_no_ovc = new InStreamGroupByNoOvc(
-                new SortBase<false, false, RowCmpPrefix>(gen->clone(), RowCmpPrefix(group_columns)),
+                new SortBase<false, false, RowCmpPrefixNoOVC>(gen->clone(), RowCmpPrefixNoOVC(group_columns)),
                 group_columns,
                 agg);
 
@@ -718,9 +719,10 @@ void experiment_group_by2() {
         fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu\n", "in_stream_sort_ovc", group_columns, zero_prefix, num_rows,
                 in_stream_sort_ovc->getCount(),
                 in_stream_sort_ovc->getStats().column_comparisons +
-                in_stream_sort_ovc->getInput<SortBase<false, true, RowCmpPrefix>>()->getStats().column_comparisons +
+                in_stream_sort_ovc->getInput<SortBase<false, true,
+                        RowCmpPrefixNoOVC >>()->getStats().column_comparisons +
                 num_rows,
-                in_stream_sort_ovc->getInput<SortBase<false, true, RowCmpPrefix>>()->getStats().rows_written);
+                in_stream_sort_ovc->getInput<SortBase<false, true, RowCmpPrefixNoOVC >>()->getStats().rows_written);
 
         in_sort_no_ovc->run();
         fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu\n", "in_sort_no_ovc", group_columns, zero_prefix, num_rows,
@@ -731,8 +733,9 @@ void experiment_group_by2() {
         fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu\n", "in_stream_sort_no_ovc", group_columns, zero_prefix, num_rows,
                 in_stream_sort_no_ovc->getCount(),
                 in_stream_sort_no_ovc->getStats().column_comparisons +
-                in_stream_sort_no_ovc->getInput<SortBase<false, false, RowCmpPrefix>>()->getStats().column_comparisons,
-                in_stream_sort_no_ovc->getInput<SortBase<false, false, RowCmpPrefix>>()->getStats().rows_written);
+                in_stream_sort_no_ovc->getInput<SortBase<false, false,
+                        RowCmpPrefixNoOVC >>()->getStats().column_comparisons,
+                in_stream_sort_no_ovc->getInput<SortBase<false, false, RowCmpPrefixNoOVC >>()->getStats().rows_written);
 
         delete hash;
         delete in_sort_ovc;
@@ -791,7 +794,7 @@ void experiment_group_by3() {
                         agg);
 
                 auto in_stream_sort_no_ovc = InStreamGroupByNoOvc(
-                        new SortPrefixNoOvc(gen.clone(), group_columns),
+                        new SortPrefixNoOVC(gen.clone(), group_columns),
                         group_columns,
                         agg);
 
@@ -836,8 +839,8 @@ void experiment_group_by3() {
                 fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu\n", "in_stream_sort_no_ovc", group_columns, zero_prefix,
                         num_rows, in_stream_sort_no_ovc.getCount(),
                         in_stream_sort_no_ovc.getStats().column_comparisons +
-                        in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().column_comparisons,
-                        in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().rows_written);
+                        in_stream_sort_no_ovc.getInput<SortPrefixNoOVC>()->getStats().column_comparisons,
+                        in_stream_sort_no_ovc.getInput<SortPrefixNoOVC>()->getStats().rows_written);
             }
         }
     }
@@ -880,7 +883,7 @@ void experiment_group_by4() {
                         agg);
 
                 auto in_stream_sort_no_ovc = InStreamGroupByNoOvc(
-                        new SortPrefixNoOvc(gen.clone(), group_columns),
+                        new SortPrefixNoOVC(gen.clone(), group_columns),
                         group_columns,
                         agg);
 
@@ -946,8 +949,8 @@ void experiment_group_by4() {
                 fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_stream_sort_no_ovc", group_columns, zero_prefix,
                         num_rows, in_stream_sort_no_ovc.getCount(),
                         in_stream_sort_no_ovc.getStats().column_comparisons +
-                        in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().column_comparisons,
-                        in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().rows_written,
+                        in_stream_sort_no_ovc.getInput<SortPrefixNoOVC>()->getStats().column_comparisons,
+                        in_stream_sort_no_ovc.getInput<SortPrefixNoOVC>()->getStats().rows_written,
                         in_stream_sort_no_ovc_duration);
 
             }
@@ -994,7 +997,7 @@ void experiment_group_by5() {
                         agg);
 
                 auto in_stream_sort_no_ovc = InStreamGroupByNoOvc(
-                        new SortPrefixNoOvc(gen.clone(), group_columns),
+                        new SortPrefixNoOVC(gen.clone(), group_columns),
                         group_columns,
                         agg);
 
@@ -1060,8 +1063,8 @@ void experiment_group_by5() {
                 fprintf(results, "%s,%d,%d,%d,%lu,%lu,%lu,%lu\n", "in_stream_sort_no_ovc", group_columns, zero_prefix,
                         num_rows, in_stream_sort_no_ovc.getCount(),
                         in_stream_sort_no_ovc.getStats().column_comparisons +
-                        in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().column_comparisons,
-                        in_stream_sort_no_ovc.getInput<SortPrefixNoOvc>()->getStats().rows_written,
+                        in_stream_sort_no_ovc.getInput<SortPrefixNoOVC>()->getStats().column_comparisons,
+                        in_stream_sort_no_ovc.getInput<SortPrefixNoOVC>()->getStats().rows_written,
                         in_stream_sort_no_ovc_duration);
 
             }
@@ -1073,7 +1076,7 @@ void experiment_group_by5() {
 }
 
 void test_hash_agg() {
-    auto plan = new HashGroupBy(new ZeroPrefixGenerator(4, 100, 0),
+    auto plan = new HashGroupBy(new RowGenerator(4, 100, 0),
                                 2, aggregates::Count(2));
     plan->run(true);
     log_info("%lu", plan->getStats().column_comparisons);
@@ -1082,70 +1085,47 @@ void test_hash_agg() {
 
 void experiment_joins1() {
     int num_rows = 1 << 20;
-    int num_experiments = 1;
+    int num_experiments = 20;
 
-    log_set_quiet(false);
+    log_set_quiet(true);
 
-    const char *results_path = "joins1.csv";
-    //FILE *results = fopen(results_path, "w");
-    FILE *results = stdout;
+    const char *results_path = "joins2.csv";
+    FILE *results = fopen(results_path, "w");
+    //FILE *results = stdout;
     fprintf(results,
-            "experiment,group_columns,zero_prefix,input_size,output_size,column_comparisons,rows_written,duration\n");
+            "experiment,join_columns,zero_prefix,domain,input_size,output_size,inner_join_size,column_comparisons,rows_written,duration,sort_comparisons,apply_comparisons,join1_comparisons,join2_comparisons\n");
 
     for (int join_columns = 4; join_columns < 5; join_columns++) {
         for (int zero_prefix = 0; zero_prefix < 1; zero_prefix++) {
             for (int i = 0; i < num_experiments; i++) {
-                log_set_quiet(false);
+                //log_set_quiet(false);
                 log_info("join with num_rows=%lu, join_columns=%d, zero_prefix=%d output_size=%lu",
                          num_rows, join_columns, zero_prefix, num_rows >> i);
                 //log_set_quiet(true);
 
-                auto gen1 = ZeroPrefixGenerator(num_rows, 32, 0, 1337);
-                auto gen2 = ZeroPrefixGenerator(num_rows, 32, 0, 1337 + 1);
-                auto gen3 = ZeroPrefixGenerator(num_rows, 32, 0, 1337 + 2);
+                auto domain = i + 40;
+                auto gen1 = RowGenerator(num_rows, domain, 0, 1337);
+                auto gen2 = RowGenerator(num_rows, domain, 0, 1337 + 1);
+                auto gen3 = RowGenerator(num_rows, domain, 0, 1337 + 2);
 
-                LeftSemiJoin(new SortPrefix(gen1.clone(), join_columns),
-                             new SortPrefix(gen2.clone(), join_columns),
-                             join_columns).run();
+                auto plan1_sort1 = new SortPrefix(gen1.clone(), join_columns);
+                auto plan1_sort2 = new SortPrefix(gen2.clone(), join_columns);
+                auto plan1_join1 = new LeftSemiJoin(plan1_sort1, plan1_sort2, join_columns);
+                auto plan1_sort3 = new SortPrefix(gen3.clone(), join_columns);
+                auto plan1 = LeftSemiJoin(plan1_join1, plan1_sort3, join_columns);
 
-                auto plan1 = LeftSemiJoin(
-                        new LeftSemiJoin(new SortPrefix(gen1.clone(), join_columns),
-                                         new SortPrefix(gen2.clone(), join_columns),
-                                         join_columns),
-                        new SortPrefix(gen3.clone(), join_columns),
-                        join_columns
-                );
+                auto plan2_sort1 = new SortPrefix(gen1.clone(), join_columns);
+                auto plan2_sort2 = new SortPrefix(gen2.clone(), join_columns);
+                auto plan2_join1 = new LeftSemiJoin(plan2_sort1, plan2_sort2, join_columns);
+                auto plan2_sort3 = new SortPrefix(gen3.clone(), join_columns);
+                auto plan2_applier = new OVCApplier(plan2_join1, join_columns);
+                auto plan2 = LeftSemiJoin(plan2_applier, plan2_sort3, join_columns);
 
-                auto plan2 = LeftSemiJoin(
-                        new OVCApplier(
-                                new LeftSemiJoin(
-                                        new SortPrefix(gen1.clone(), join_columns),
-                                        new SortPrefix(gen2.clone(), join_columns),
-                                        join_columns),
-                                join_columns),
-                        new SortPrefix(gen3.clone(), join_columns),
-                        join_columns
-                );
-
-                auto plan3 = LeftSemiJoinNoOVC(
-                        new OVCApplier(
-                                new LeftSemiJoin(
-                                        new SortPrefix(gen1.clone(), join_columns),
-                                        new SortPrefix(gen2.clone(), join_columns),
-                                        join_columns),
-                                join_columns),
-                        new SortPrefix(gen3.clone(), join_columns),
-                        join_columns
-                );
-
-                auto plan4 = LeftSemiJoinNoOVC(
-                        new LeftSemiJoinNoOVC(
-                                new SortPrefixNoOvc(gen1.clone(), join_columns),
-                                new SortPrefixNoOvc(gen2.clone(), join_columns),
-                                join_columns),
-                        new SortPrefixNoOvc(gen3.clone(), join_columns),
-                        join_columns
-                );
+                auto plan3_sort1 = new SortPrefix(gen1.clone(), join_columns);
+                auto plan3_sort2 = new SortPrefix(gen2.clone(), join_columns);
+                auto plan3_join1 = new LeftSemiJoin(plan3_sort1, plan3_sort2, join_columns);
+                auto plan3_sort3 = new SortPrefix(gen3.clone(), join_columns);
+                auto plan3 = LeftSemiJoinNoOVC(plan3_join1, plan3_sort3, join_columns);
 
                 {
                     auto t0 = now();
@@ -1155,10 +1135,17 @@ void experiment_joins1() {
                     struct iterator_stats stats = {0};
                     plan1.accumulateStats(stats);
 
-                    fprintf(results, "%s,%d,%d,%d,%d,%lu,%zu,%lu\n", "plan1", join_columns, zero_prefix, num_rows,
-                            0, stats.column_comparisons,
+                    fprintf(results, "%s,%d,%d,%d,%d,%ld,%ld,%lu,%zu,%lu,%lu,%d,%lu,%lu\n", "plan1", join_columns,
+                            zero_prefix, domain, num_rows,
+                            plan1.getCount(), plan1.getLeftInput<LeftSemiJoin>()->getCount(), stats.column_comparisons,
                             stats.rows_written,
-                            plan1_duration);
+                            plan1_duration,
+                            plan1_sort1->getStats().column_comparisons + plan1_sort2->getStats().column_comparisons +
+                            plan1_sort3->getStats().column_comparisons,
+                            0,
+                            plan1_join1->getStats().column_comparisons,
+                            plan1.getStats().column_comparisons
+                    );
                     fflush(results);
                 }
 
@@ -1170,10 +1157,19 @@ void experiment_joins1() {
                     struct iterator_stats stats = {0};
                     plan2.accumulateStats(stats);
 
-                    fprintf(results, "%s,%d,%d,%d,%d,%lu,%zu,%lu\n", "plan2", join_columns, zero_prefix, num_rows,
-                            0, stats.column_comparisons,
+                    fprintf(results, "%s,%d,%d,%d,%d,%ld,%ld,%lu,%zu,%lu,%lu,%lu,%lu,%lu\n", "plan2", join_columns,
+                            zero_prefix, domain, num_rows,
+                            plan2.getCount(),
+                            plan2.getLeftInput<OVCApplier>()->getInput<LeftSemiJoin>()->getCount(),
+                            stats.column_comparisons,
                             stats.rows_written,
-                            plan2_duration);
+                            plan2_duration,
+                            plan2_sort1->getStats().column_comparisons + plan2_sort2->getStats().column_comparisons +
+                            plan2_sort3->getStats().column_comparisons,
+                            plan2_applier->getStats().column_comparisons,
+                            plan2_join1->getStats().column_comparisons,
+                            plan2.getStats().column_comparisons
+                    );
                     fflush(results);
                 }
 
@@ -1185,10 +1181,122 @@ void experiment_joins1() {
                     struct iterator_stats stats = {0};
                     plan3.accumulateStats(stats);
 
-                    fprintf(results, "%s,%d,%d,%d,%d,%lu,%zu,%lu\n", "plan3", join_columns, zero_prefix, num_rows,
-                            0, stats.column_comparisons,
+                    fprintf(results, "%s,%d,%d,%d,%d,%ld,%ld,%lu,%zu,%lu,%lu,%d,%lu,%lu\n", "plan3", join_columns,
+                            zero_prefix, domain, num_rows,
+                            plan3.getCount(),
+                            plan3.getLeftInput<LeftSemiJoin>()->getCount(),
+                            stats.column_comparisons,
                             stats.rows_written,
-                            plan3_duration);
+                            plan3_duration,
+                            plan3_sort1->getStats().column_comparisons + plan3_sort2->getStats().column_comparisons +
+                            plan3_sort3->getStats().column_comparisons,
+                            0,
+                            plan3_join1->getStats().column_comparisons,
+                            plan3.getStats().column_comparisons
+                    );
+                    fflush(results);
+                }
+            }
+        }
+    }
+
+    fclose(results);
+    log_set_quiet(false);
+}
+
+void experiment_joins3() {
+    int num_rows = 1 << 20;
+    int num_experiments = 40;
+
+    log_set_quiet(true);
+
+    const char *results_path = "joins3.csv";
+    FILE *results = fopen(results_path, "w");
+    fprintf(results,
+            "experiment,join_columns,zero_prefix,domain,input_size,output_size,column_comparisons,rows_written,duration,apply_comparisons\n");
+
+    for (int join_columns = 4; join_columns < 5; join_columns++) {
+        for (int zero_prefix = 0; zero_prefix < 1; zero_prefix++) {
+            for (int i = 0; i < num_experiments; i++) {
+                //log_set_quiet(false);
+                log_info("join with num_rows=%lu, join_columns=%d, zero_prefix=%d output_size=%lu",
+                         num_rows, join_columns, zero_prefix, num_rows >> i);
+                //log_set_quiet(true);
+
+                auto domain = i + 32;
+                auto gen1 = RowGenerator(num_rows << 2, domain, 0, 1337);
+                auto gen2 = RowGenerator(num_rows, domain, 0, 1337 + 1);
+
+                auto plan1 = LeftSemiJoin(new SortPrefix(gen1.clone(), join_columns),
+                                          new SortPrefix(gen2.clone(), join_columns), join_columns);
+
+                auto plan2 = LeftSemiJoin(new OVCApplier(new SortPrefix(gen1.clone(), join_columns), join_columns),
+                                          new SortPrefix(gen2.clone(), join_columns), join_columns);
+
+                auto plan3 = LeftSemiJoin(new OVCApplier(new SortPrefix(gen1.clone(), join_columns), join_columns),
+                                          new OVCApplier(new SortPrefix(gen2.clone(), join_columns), join_columns),
+                                          join_columns);
+
+                auto plan4 = LeftSemiJoinNoOVC(new SortPrefix(gen1.clone(), join_columns),
+                                               new SortPrefix(gen2.clone(), join_columns), join_columns);
+
+                {
+                    auto t0 = now();
+                    plan1.run();
+                    auto plan1_duration = since(t0);
+
+                    struct iterator_stats stats = {0};
+                    plan1.accumulateStats(stats);
+
+                    fprintf(results, "%s,%d,%d,%d,%d,%ld,%lu,%zu,%lu,%d\n", "plan1", join_columns, zero_prefix, domain,
+                            num_rows,
+                            plan1.getCount(), plan1.getStats().column_comparisons,
+                            stats.rows_written,
+                            plan1_duration,
+                            0
+                    );
+                    fflush(results);
+                }
+
+                {
+                    auto t0 = now();
+                    plan2.run();
+                    auto plan2_duration = since(t0);
+
+                    struct iterator_stats stats = {0};
+                    plan2.accumulateStats(stats);
+
+                    fprintf(results, "%s,%d,%d,%d,%d,%ld,%lu,%zu,%lu,%zu\n", "plan2", join_columns, zero_prefix, domain,
+                            num_rows,
+                            plan2.getCount(),
+                            plan2.getStats().column_comparisons +
+                            plan2.getLeftInput<OVCApplier>()->getStats().column_comparisons,
+                            stats.rows_written,
+                            plan2_duration,
+                            plan2.getLeftInput<OVCApplier>()->getStats().column_comparisons
+                    );
+                    fflush(results);
+                }
+
+                {
+                    auto t0 = now();
+                    plan3.run();
+                    auto plan3_duration = since(t0);
+
+                    struct iterator_stats stats = {0};
+                    plan3.accumulateStats(stats);
+
+                    fprintf(results, "%s,%d,%d,%d,%d,%ld,%lu,%zu,%lu,%zu\n", "plan3", join_columns, zero_prefix, domain,
+                            num_rows,
+                            plan3.getCount(),
+                            plan3.getStats().column_comparisons +
+                            plan3.getLeftInput<OVCApplier>()->getStats().column_comparisons +
+                            plan3.getRightInput<OVCApplier>()->getStats().column_comparisons,
+                            stats.rows_written,
+                            plan3_duration,
+                            plan3.getLeftInput<OVCApplier>()->getStats().column_comparisons +
+                            plan3.getRightInput<OVCApplier>()->getStats().column_comparisons
+                    );
                     fflush(results);
                 }
 
@@ -1200,18 +1308,381 @@ void experiment_joins1() {
                     struct iterator_stats stats = {0};
                     plan4.accumulateStats(stats);
 
-                    fprintf(results, "%s,%d,%d,%d,%d,%lu,%zu,%lu\n", "plan4", join_columns, zero_prefix, num_rows,
-                            0, stats.column_comparisons,
+                    fprintf(results, "%s,%d,%d,%d,%d,%ld,%lu,%zu,%lu,%d\n", "plan4", join_columns, zero_prefix, domain,
+                            num_rows,
+                            plan4.getCount(),
+                            plan4.getStats().column_comparisons,
                             stats.rows_written,
-                            plan4_duration);
+                            plan4_duration,
+                            0
+                    );
                     fflush(results);
                 }
             }
         }
     }
 
-    //fclose(results);
+    fclose(results);
     log_set_quiet(false);
+}
+
+void experiment_plan() {
+    // SELECT B FROM T1 INTERSECT SELECT B FROM T2
+    int intersect_columns = 4;
+
+    auto gen_left = RowGenerator(100, 100);
+    auto gen_right = RowGenerator(100, 100);
+    auto plan1 = LeftSemiJoin(
+            new SortDistinctPrefix(gen_left.clone(), intersect_columns),
+            new SortDistinctPrefix(gen_right.clone(), intersect_columns),
+            intersect_columns
+    );
+
+    auto plan2 = LeftSemiHashJoin(
+            new HashDistinct(gen_left.clone(), intersect_columns),
+            new HashDistinct(gen_right.clone(), intersect_columns),
+            intersect_columns
+    );
+}
+
+void experiment_column_order_sort() {
+    int num_rows = 1 << 20;
+    int sort_columns = ROW_ARITY;
+
+    FILE *results = fopen("column_order_sort.csv", "w");
+    fprintf(results, "num_rows,pos,experiment,column_comparisons\n");
+
+    for (int pos = 0; pos < ROW_ARITY; pos++) {
+        uint8_t bits[] = {1, 1, 1, 1, 1, 1, 1, 1};
+        bits[pos] = 64 - 7 * 1;
+
+        auto gen = RowGenerator(num_rows, bits);
+
+        {
+            auto plan1 = Sort(gen.clone());
+            plan1.run();
+            fprintf(results, "%d,%d,%s,%zu\n", num_rows, pos, "ovc", plan1.getStats().column_comparisons + num_rows);
+        }
+        {
+            auto plan2 = SortNoOvc(gen.clone());
+            plan2.run();
+            fprintf(results, "%d,%d,%s,%zu\n", num_rows, pos, "no_ovc", plan2.getStats().column_comparisons);
+        }
+    }
+    fclose(results);
+}
+
+void experiment_complex() {
+    int num_rows = 1 << 20;
+    int sort_columns = ROW_ARITY;
+
+#define NBITS 6
+#define STR_INDIR(X) #X
+#define STR(X) STR_INDIR(X)
+
+    FILE *results = fopen("complex"
+                          "_" STR(NBITS)
+                          ".csv", "w");
+    fprintf(results, "num_rows,experiment,plan,presorted,column_comparisons,hashes,column_accesses\n");
+
+    uint8_t bits[] = {7, 7, 7, 7, 7, 7, 7, 7};
+    memset(bits, NBITS, sizeof bits);
+
+    int seed = 1337;
+    auto gen1 = RowGenerator(num_rows, bits, seed++);
+    auto gen2 = RowGenerator(num_rows, bits, seed++);
+    auto gen3 = RowGenerator(num_rows, bits, seed++);
+    auto gen4 = RowGenerator(num_rows, bits, seed++);
+    auto gen5 = RowGenerator(num_rows, bits, seed++);
+
+    int first_join_columns = 3;
+    int second_join_columns = 3;
+    int third_join_columns = 3;
+
+    for (int presorted = 0; presorted <= 5; presorted++) {
+        {
+            auto sort = LeftSemiJoin(
+                    new SortPrefix(
+                            new Transposer(
+                                    new LeftSemiJoin(
+                                            new LeftSemiJoin(
+                                                    (new SortPrefix(gen1.clone(), first_join_columns))->disableStats(
+                                                            presorted > 0),
+                                                    (new SortPrefix(gen2.clone(), first_join_columns))->disableStats(
+                                                            presorted > 1),
+                                                    first_join_columns),
+                                            (new SortPrefix(gen3.clone(), first_join_columns))->disableStats(
+                                                    presorted > 2),
+                                            first_join_columns
+                                    ),
+                                    first_join_columns),
+                            third_join_columns),
+                    new SortPrefix(
+                            new Transposer(
+                                    new LeftSemiJoin(
+                                            (new SortPrefix(gen4.clone(), second_join_columns))->disableStats(
+                                                    presorted > 3),
+                                            (new SortPrefix(gen5.clone(), second_join_columns))->disableStats(
+                                                    presorted > 4),
+                                            second_join_columns),
+                                    second_join_columns),
+                            third_join_columns),
+                    third_join_columns
+            );
+            sort.run();
+            struct iterator_stats acc = {};
+            sort.accumulateStats(acc);
+
+            fprintf(results, "%d,%s,%s,%d,%zu,%zu,%zu\n", num_rows, "ovc", "plan1", presorted, acc.column_comparisons,
+                    (size_t) 0,
+                    2 * acc.column_comparisons);
+            fflush(results);
+        }
+        {
+            auto sort = LeftSemiJoin(
+                    new LeftSemiJoin(
+                            new LeftSemiJoin(
+                                    (new SortPrefix(gen1.clone(), first_join_columns))->disableStats(
+                                            presorted > 0),
+                                    (new SortPrefix(gen2.clone(), first_join_columns))->disableStats(
+                                            presorted > 1),
+                                    first_join_columns),
+                            (new SortPrefix(gen3.clone(), first_join_columns))->disableStats(
+                                    presorted > 2),
+                            first_join_columns
+                    ),
+                    new SortPrefix(
+                            new Transposer(
+                                    new LeftSemiJoin((new SortPrefix(gen4.clone(), second_join_columns))->disableStats(
+                                                             presorted > 3),
+                                                     (new SortPrefix(gen5.clone(), second_join_columns))->disableStats(
+                                                             presorted > 4),
+                                                     second_join_columns),
+                                    second_join_columns),
+                            third_join_columns),
+                    third_join_columns
+            );
+            sort.run();
+            struct iterator_stats acc = {};
+            sort.accumulateStats(acc);
+
+            fprintf(results, "%d,%s,%s,%d,%zu,%zu,%zu\n", num_rows, "ovc", "plan2", presorted, acc.column_comparisons,
+                    (size_t) 0,
+                    2 * acc.column_comparisons);
+            fflush(results);
+        }
+        {
+            auto sort = LeftSemiJoin(
+                    new LeftSemiJoin(
+                            new LeftSemiJoin(
+                                    (new SortPrefix(gen1.clone(), first_join_columns))->disableStats(presorted > 0),
+                                    (new SortPrefix(gen2.clone(), first_join_columns))->disableStats(presorted > 1),
+                                    first_join_columns),
+                            (new SortPrefix(gen3.clone(), first_join_columns))->disableStats(presorted > 2),
+                            first_join_columns
+                    ),
+                    new LeftSemiJoin(
+                            (new SortPrefix(gen4.clone(), second_join_columns))->disableStats(presorted > 3),
+                            (new SortPrefix(gen5.clone(), second_join_columns))->disableStats(presorted > 4),
+                            second_join_columns),
+                    second_join_columns
+            );
+            sort.run();
+            struct iterator_stats acc = {};
+            sort.accumulateStats(acc);
+
+            fprintf(results, "%d,%s,%s,%d,%zu,%zu,%zu\n", num_rows, "ovc", "plan3", presorted, acc.column_comparisons,
+                    (size_t) 0,
+                    2 * acc.column_comparisons);
+            fflush(results);
+        }
+
+        {
+            auto sort = LeftSemiJoinNoOVC(
+                    new SortPrefixNoOVC(
+                            new Transposer(
+                                    new LeftSemiJoinNoOVC(
+                                            new LeftSemiJoinNoOVC(
+                                                    (new SortPrefixNoOVC(gen1.clone(), first_join_columns))->disableStats(
+                                                            presorted > 0),
+                                                    (new SortPrefixNoOVC(gen2.clone(), first_join_columns))->disableStats(
+                                                            presorted > 1),
+                                                    first_join_columns),
+                                            (new SortPrefixNoOVC(gen3.clone(), first_join_columns))->disableStats(
+                                                    presorted > 2),
+                                            first_join_columns
+                                    ),
+                                    first_join_columns),
+                            third_join_columns),
+                    new SortPrefixNoOVC(
+                            new Transposer(
+                                    new LeftSemiJoinNoOVC(
+                                            (new SortPrefixNoOVC(gen4.clone(), second_join_columns))->disableStats(
+                                                    presorted > 3),
+                                            (new SortPrefixNoOVC(gen5.clone(), second_join_columns))->disableStats(
+                                                    presorted > 4),
+                                            second_join_columns),
+                                    second_join_columns),
+                            third_join_columns),
+                    third_join_columns
+            );
+            sort.run();
+            struct iterator_stats acc = {};
+            sort.accumulateStats(acc);
+
+            fprintf(results, "%d,%s,%s,%d,%zu,%zu,%zu\n", num_rows, "no_ovc", "plan1", presorted, acc.column_comparisons,
+                    (size_t) 0,
+                    2 * acc.column_comparisons);
+            fflush(results);
+        }
+
+        {
+            auto sort = LeftSemiJoinNoOVC(
+                    new LeftSemiJoinNoOVC(
+                            new LeftSemiJoinNoOVC(
+                                    (new SortPrefixNoOVC(gen1.clone(), first_join_columns))->disableStats(
+                                            presorted > 0),
+                                    (new SortPrefixNoOVC(gen2.clone(), first_join_columns))->disableStats(
+                                            presorted > 1),
+                                    first_join_columns),
+                            (new SortPrefixNoOVC(gen3.clone(), first_join_columns))->disableStats(
+                                    presorted > 2),
+                            first_join_columns
+                    ),
+                    new SortPrefixNoOVC(
+                            new Transposer(
+                                    new LeftSemiJoinNoOVC((new SortPrefixNoOVC(gen4.clone(), second_join_columns))->disableStats(
+                                                             presorted > 3),
+                                                     (new SortPrefixNoOVC(gen5.clone(), second_join_columns))->disableStats(
+                                                             presorted > 4),
+                                                     second_join_columns),
+                                    second_join_columns),
+                            third_join_columns),
+                    third_join_columns
+            );
+            sort.run();
+            struct iterator_stats acc = {};
+            sort.accumulateStats(acc);
+
+            fprintf(results, "%d,%s,%s,%d,%zu,%zu,%zu\n", num_rows, "no_ovc", "plan2", presorted, acc.column_comparisons,
+                    (size_t) 0,
+                    2 * acc.column_comparisons);
+            fflush(results);
+        }
+        {
+            auto sort = LeftSemiJoinNoOVC(
+                    new LeftSemiJoinNoOVC(
+                            new LeftSemiJoinNoOVC(
+                                    (new SortPrefixNoOVC(gen1.clone(), first_join_columns))->disableStats(presorted > 0),
+                                    (new SortPrefixNoOVC(gen2.clone(), first_join_columns))->disableStats(presorted > 1),
+                                    first_join_columns),
+                            (new SortPrefixNoOVC(gen3.clone(), first_join_columns))->disableStats(presorted > 2),
+                            first_join_columns
+                    ),
+                    new LeftSemiJoinNoOVC(
+                            (new SortPrefixNoOVC(gen4.clone(), second_join_columns))->disableStats(presorted > 3),
+                            (new SortPrefixNoOVC(gen5.clone(), second_join_columns))->disableStats(presorted > 4),
+                            second_join_columns),
+                    second_join_columns
+            );
+            sort.run();
+            struct iterator_stats acc = {};
+            sort.accumulateStats(acc);
+
+            fprintf(results, "%d,%s,%s,%d,%zu,%zu,%zu\n", num_rows, "no_ovc", "plan3", presorted, acc.column_comparisons,
+                    (size_t) 0,
+                    2 * acc.column_comparisons);
+            fflush(results);
+        }
+
+        {
+            auto hash = LeftSemiHashJoin(
+                    new Transposer(
+                            new LeftSemiHashJoin(
+                                    new LeftSemiHashJoin(
+                                            gen1.clone(),
+                                            gen2.clone(),
+                                            first_join_columns),
+                                    gen3.clone(),
+                                    first_join_columns
+                            ),
+                            first_join_columns),
+                    new Transposer(
+                            new LeftSemiHashJoin(
+                                    gen4.clone(),
+                                    gen5.clone(),
+                                    second_join_columns),
+                            second_join_columns),
+                    third_join_columns
+            );
+            hash.run();
+
+            struct iterator_stats acc = {};
+            hash.accumulateStats(acc);
+
+            fprintf(results, "%d,%s,%s,%d,%zu,%zu,%zu\n", num_rows, "hash", "plan1", presorted, acc.column_comparisons,
+                    acc.columns_hashed,
+                    2 * acc.column_comparisons + acc.columns_hashed);
+            fflush(results);
+        }
+
+        {
+            auto hash = LeftSemiHashJoin(
+                    new LeftSemiHashJoin(
+                            new LeftSemiHashJoin(
+                                    gen1.clone(),
+                                    gen2.clone(),
+                                    first_join_columns),
+                            gen3.clone(),
+                            first_join_columns
+                    ),
+                    new Transposer(
+                            new LeftSemiHashJoin(
+                                    gen4.clone(),
+                                    gen5.clone(),
+                                    second_join_columns),
+                            second_join_columns),
+                    third_join_columns
+            );
+            hash.run();
+
+            struct iterator_stats acc = {};
+            hash.accumulateStats(acc);
+
+            fprintf(results, "%d,%s,%s,%d,%zu,%zu,%zu\n", num_rows, "hash", "plan2", presorted, acc.column_comparisons,
+                    acc.columns_hashed,
+                    2 * acc.column_comparisons + acc.columns_hashed);
+            fflush(results);
+        }
+        {
+            auto hash = LeftSemiHashJoin(
+                    new LeftSemiHashJoin(
+                            new LeftSemiHashJoin(
+                                    gen1.clone(),
+                                    gen2.clone(),
+                                    first_join_columns),
+                            gen3.clone(),
+                            first_join_columns
+                    ),
+                    new LeftSemiHashJoin(
+                            gen4.clone(),
+                            gen5.clone(),
+                            second_join_columns),
+                    second_join_columns
+            );
+            hash.run();
+
+            struct iterator_stats acc = {};
+            hash.accumulateStats(acc);
+
+            fprintf(results, "%d,%s,%s,%d,%zu,%zu,%zu\n", num_rows, "hash", "plan3", presorted, acc.column_comparisons,
+                    acc.columns_hashed,
+                    2 * acc.column_comparisons + acc.columns_hashed);
+            fflush(results);
+        }
+    }
+
+    fclose(results);
 }
 
 int main(int argc, char *argv[]) {
@@ -1266,7 +1737,14 @@ int main(int argc, char *argv[]) {
 
     //test_hash_agg();
 
-    experiment_joins1();
+
+    //experiment_joins1();
+
+    //experiment_joins3();
+
+    //experiment_column_order_sort();
+
+    experiment_complex();
 
     log_info("elapsed=%lums", since(start));
 
@@ -1274,4 +1752,3 @@ int main(int argc, char *argv[]) {
     log_close();
     return 0;
 }
-

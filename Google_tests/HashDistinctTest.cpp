@@ -1,4 +1,3 @@
-#include "lib/Row.h"
 #include "lib/iterators/HashDistinct.h"
 #include "lib/log.h"
 #include "lib/iterators/AssertSortedUnique.h"

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 // Use O_DIRECT to add through operating system caches
 #define USE_O_DIRECT
 
@@ -33,3 +35,25 @@
 typedef unsigned long Count;
 typedef unsigned long OVC;
 typedef unsigned long Index;
+
+struct iterator_stats {
+    size_t comparisons;
+    size_t comparisons_equal_key;
+    size_t comparisons_of_actual_rows;
+    size_t column_comparisons;
+    size_t columns_hashed;
+    size_t rows_written;
+    size_t rows_read;
+
+    iterator_stats() = default;
+
+    void add(const struct iterator_stats &stats) {
+        comparisons += stats.comparisons;
+        comparisons_equal_key += stats.comparisons_equal_key;
+        comparisons_of_actual_rows += stats.comparisons_of_actual_rows;
+        column_comparisons += stats.column_comparisons;
+        columns_hashed += stats.columns_hashed;
+        rows_written += stats.rows_written;
+        rows_read += stats.rows_read;
+    }
+};

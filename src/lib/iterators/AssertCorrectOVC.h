@@ -8,14 +8,10 @@ namespace ovc::iterators {
     public:
         explicit AssertCorrectOVC(Iterator *input, int prefix = ROW_ARITY)
                 : UnaryIterator(input), prev(), prefix(prefix), correct(true), has_prev(false) {
-            assert(input->outputIsSorted());
-            output_is_sorted = true;
-            output_has_ovc = true;
-            output_is_unique = input->outputIsUnique();
         };
 
         Row *next() override {
-            Row *row = input_->next();
+            Row *row = input->next();
             if (row == nullptr) {
                 return nullptr;
             }
@@ -34,17 +30,17 @@ namespace ovc::iterators {
 
         void open() override {
             Iterator::open();
-            input_->open();
+            input->open();
         };
 
         void free() override {
             Iterator::free();
-            input_->free();
+            input->free();
         };
 
         void close() override {
             Iterator::close();
-            input_->close();
+            input->close();
         };
 
         bool isCorrect() const {

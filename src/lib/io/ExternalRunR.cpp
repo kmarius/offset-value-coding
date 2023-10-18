@@ -56,7 +56,6 @@ namespace ovc::io {
     }
 
     Row *ExternalRunR::read() {
-        assert(fd > 0);
         if (rows == RUN_EMPTY) {
             return nullptr;
         }

@@ -9,7 +9,7 @@ namespace ovc::iterators {
 
     class HashDistinct : public UnaryIterator {
     public :
-        explicit HashDistinct(Iterator *input);
+        explicit HashDistinct(Iterator *input, int prefix = ROW_ARITY);
 
         void open() override;
 
@@ -17,17 +17,14 @@ namespace ovc::iterators {
 
         unsigned duplicates;
 
-        struct iterator_stats getStats() {
-            return stats;
-        }
-
     private:
         std::vector<std::string> partitions;
-        ExternalRunR *partition;
         BufferManager bufferManager;
-        std::unordered_set<Row, std::hash<Row>, RowEqual> set;
-        struct iterator_stats stats;
+        std::vector<Row> rows;
+        unsigned long ind;
+        unsigned long count;
+        int prefix;
 
-        Row *next_from_part();
+        std::vector<Row> process_partition(const std::string &path);
     };
 }

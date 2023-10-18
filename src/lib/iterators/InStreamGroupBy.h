@@ -15,11 +15,7 @@ namespace ovc::iterators {
 
         void close() override {
             Iterator::close();
-            input_->close();
-        }
-
-        struct iterator_stats &getStats() {
-            return stats;
+            input->close();
         }
 
         unsigned long getCount() const {
@@ -33,7 +29,6 @@ namespace ovc::iterators {
         bool empty;
         int group_columns;
         unsigned long count;
-        iterator_stats stats;
     };
 
     template<typename Aggregate>

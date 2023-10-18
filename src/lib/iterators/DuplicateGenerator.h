@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Iterator.h"
-#include "ZeroPrefixGenerator.h"
+#include "RowGenerator.h"
 
 #include <vector>
 
@@ -15,7 +15,7 @@ namespace ovc::iterators {
 
         void open() override {
             Iterator::open();
-            rows = ZeroPrefixGenerator(num_rows / mult, 1 << 15, prefix, seed).collect();
+            rows = RowGenerator(num_rows / mult, 1 << 15, prefix, seed).collect();
         }
 
         Row *next() override {

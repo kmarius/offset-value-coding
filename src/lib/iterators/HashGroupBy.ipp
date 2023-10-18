@@ -7,18 +7,17 @@ namespace ovc::iterators {
 
     template<typename Aggregate>
     HashGroupBy<Aggregate>::HashGroupBy(Iterator *input, int group_columns, const Aggregate &agg)
-            : UnaryIterator(input), group_columns(group_columns), ind(0), agg(agg), count(0), stats() {
-        output_is_unique = true;
+            : UnaryIterator(input), group_columns(group_columns), ind(0), agg(agg), count(0) {
     }
 
     template<typename Aggregate>
     void HashGroupBy<Aggregate>::open() {
         Iterator::open();
-        input_->open();
+        input->open();
 
         Partitioner partitioner(1 << RUN_IDX_BITS);
 
-        for (Row *row; (row = input_->next()); input_->free()) {
+        for (Row *row; (row = input->next()); input->free()) {
             agg.init(*row);
             row->setHash(group_columns);
             partitioner.put(row);
@@ -30,7 +29,7 @@ namespace ovc::iterators {
             rows = process_partition(partitions.back());
             log_info("rows: %d", rows.size());
         }
-        input_->close();
+        input->close();
 
         stats.rows_written += partitioner.getStats().rows_written;
     }
@@ -71,7 +70,7 @@ namespace ovc::iterators {
     std::vector<Row> HashGroupBy<Aggregate>::process_partition(const std::string &path) {
         log_info("processing partition %s", path.c_str());
 
-        auto eq = RowEqualPrefix(group_columns, &stats);
+        auto eq = RowEqualPrefixNoOVC(group_columns, &stats);
         ExternalRunR part(path, bufferManager, true);
         if (part.definitelyEmpty()) {
             return {};
