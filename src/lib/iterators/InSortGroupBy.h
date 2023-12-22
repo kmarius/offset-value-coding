@@ -6,11 +6,11 @@
 
 namespace ovc::iterators {
 
-    template<bool USE_OVC, typename Aggregate>
+    template<bool USE_OVC, typename Aggregate, typename Compare>
     class InSortGroupByBase : public UnaryIterator {
     public:
-        explicit InSortGroupByBase(Iterator *input, int groupColumns, const Aggregate &agg)
-                : UnaryIterator(input), sorter(&stats, RowCmpPrefixNoOVC(groupColumns), agg), count(0) {
+        explicit InSortGroupByBase(Iterator *input, int groupColumns, const Aggregate &agg, const Compare &cmp)
+                : UnaryIterator(input), sorter(&stats, cmp, agg), count(0) {
         }
 
         void open() {
@@ -38,21 +38,24 @@ namespace ovc::iterators {
         }
 
     private:
-        Sorter<false, USE_OVC, RowCmpPrefixNoOVC, Aggregate, true> sorter;
+        Sorter<false, USE_OVC, Compare, Aggregate, true> sorter;
         unsigned long count;
     };
 
     template<typename Aggregate>
-    class InSortGroupBy : public InSortGroupByBase<true, Aggregate> {
+    class InSortGroupBy : public InSortGroupByBase<true, Aggregate, RowCmpPrefixOVC> {
     public:
         InSortGroupBy(Iterator *input, int groupColumns, const Aggregate &agg = Aggregate())
-                : InSortGroupByBase<true, Aggregate>(input, groupColumns, agg) {};
+                : InSortGroupByBase<true, Aggregate, RowCmpPrefixOVC>(input, groupColumns, agg,
+                                                                      RowCmpPrefixOVC(groupColumns, &this->stats)) {};
     };
 
     template<typename Aggregate>
-    class InSortGroupByNoOvc : public InSortGroupByBase<false, Aggregate> {
+    class InSortGroupByNoOvc : public InSortGroupByBase<false, Aggregate, RowCmpPrefixNoOVC> {
     public:
         InSortGroupByNoOvc(Iterator *input, int groupColumns, const Aggregate &agg = Aggregate())
-                : InSortGroupByBase<false, Aggregate>(input, groupColumns, agg) {};
+                : InSortGroupByBase<false, Aggregate, RowCmpPrefixNoOVC>(input, groupColumns, agg,
+                                                                         RowCmpPrefixNoOVC(groupColumns,
+                                                                                           &this->stats)) {};
     };
 }

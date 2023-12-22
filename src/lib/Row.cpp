@@ -31,6 +31,10 @@ namespace ovc {
         return h;
     }
 
+    unsigned long Row::calcHash(int hash_columns) {
+        return hashl((char *) columns, hash_columns * sizeof columns[0]);
+    }
+
     unsigned long Row::setHash(int hash_columns) {
 
         /*

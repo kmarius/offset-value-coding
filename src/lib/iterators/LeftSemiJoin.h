@@ -71,7 +71,7 @@ namespace ovc::iterators {
                     }
                     count++;
 
-                    char buf[128];
+                    //char buf[128];
                     //log_info("%s + %s", row_left->c_str(), row_right->c_str(buf));
 
                     return row_left;

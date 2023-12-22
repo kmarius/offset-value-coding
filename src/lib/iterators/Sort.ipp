@@ -18,7 +18,8 @@
 namespace ovc::iterators {
 
     template<bool DISTINCT, bool USE_OVC, typename Compare, typename Aggregate, bool DO_AGGREGATE>
-    Sorter<DISTINCT, USE_OVC, Compare, Aggregate, DO_AGGREGATE>::Sorter(iterator_stats *stats, const Compare &cmp, const Aggregate &agg) :
+    Sorter<DISTINCT, USE_OVC, Compare, Aggregate, DO_AGGREGATE>::Sorter(iterator_stats *stats, const Compare &cmp,
+                                                                        const Aggregate &agg) :
             cmp(cmp),
             agg(agg),
             queue(QUEUE_CAPACITY, stats, cmp),
@@ -27,7 +28,7 @@ namespace ovc::iterators {
             workspace_size(0),
             stats(stats) {
     }
-    
+
     template<bool DISTINCT, bool USE_OVC, typename Compare, typename Aggregate, bool DO_AGGREGATE>
     Sorter<DISTINCT, USE_OVC, Compare, Aggregate, DO_AGGREGATE>::~Sorter() {
         cleanup();
@@ -74,7 +75,10 @@ namespace ovc::iterators {
             workspace[workspace_size] = *row;
             input->free();
             row = &workspace[workspace_size++];
-            row->key = MAKE_OVC(ROW_ARITY, 0, row->columns[0]);
+            if (USE_OVC) {
+                row->key = MAKE_OVC(ROW_ARITY, 0, row->columns[0]);
+                stats->column_comparisons++;
+            }
             queue.push(row, insert_run_index);
             inserted++;
             rows_processed++;
@@ -105,18 +109,21 @@ namespace ovc::iterators {
             workspace[workspace_size] = *row;
             input->free();
             row = &workspace[workspace_size++];
-            row->key = MAKE_OVC(ROW_ARITY, 0, row->columns[0]);
+            if (USE_OVC) {
+                row->key = MAKE_OVC(ROW_ARITY, 0, row->columns[0]);
+                stats->column_comparisons++;
+            }
 #ifndef NDEBUG
             {
                 if (run.isEmpty()) {
                     prev = {0};
                 }
                 Row *row_ = queue.top();
-                if (cmp(*row_, prev) < 0) {
+                if (cmp.raw(*row_, prev) < 0) {
                     log_error("prev: %s", prev.c_str());
                     log_error("cur:  %s", row_->c_str());
                 }
-                assert(cmp(*row_, prev) >= 0);
+                assert(cmp.raw(*row_, prev) >= 0);
                 prev = *row_;
             }
 #endif
@@ -239,7 +246,7 @@ namespace ovc::iterators {
             return;
         }
 
-        std::string path= generate_path();
+        std::string path = generate_path();
         io::ExternalRunW run(path, buffer_manager);
 
 #ifndef NDEBUG
@@ -252,12 +259,12 @@ namespace ovc::iterators {
 #ifndef NDEBUG
             {
                 Row *row = queue.top();
-                if (cmp(*row, prev) < 0) {
+                if (cmp.raw(*row, prev) < 0) {
                     log_error("SortBase::merge_memory(): not ascending");
                     log_error("SortBase::merge_memory(): prev %s", prev.c_str());
                     log_error("SortBase::merge_memory(): cur  %s", row->c_str());
                 }
-                assert(cmp(*row, prev) >= 0);
+                assert(cmp.raw(*row, prev) >= 0);
                 prev = *row;
             }
 #endif
@@ -332,7 +339,7 @@ namespace ovc::iterators {
 
     template<bool DISTINCT, bool USE_OVC, typename Compare, typename Aggregate, bool DO_AGGREGATE>
     std::string Sorter<DISTINCT, USE_OVC, Compare, Aggregate, DO_AGGREGATE>::merge_external_runs(size_t fan_in) {
-        log_trace("merging %lu external runs", QUEUE_CAPACITY);
+        log_info("merge_external_runs %lu", fan_in);
         insert_external_runs(fan_in);
 
         std::string path = generate_path();
@@ -352,7 +359,7 @@ namespace ovc::iterators {
                     log_error("SortBase::merge_external(): prev %s", prev.c_str());
                     log_error("SortBase::merge_external(): cur  %s", row_->c_str());
                 }
-                assert(cmp(*row_, prev) >= 0);
+                assert(cmp.raw(*row_, prev) >= 0);
                 prev = *row_;
             }
 #endif
@@ -417,6 +424,7 @@ namespace ovc::iterators {
         }
 
         size_t num_runs = external_run_paths.size();
+
         if (num_runs > QUEUE_CAPACITY) {
             // this guarantees maximal fan-in for the later merges
             size_t initial_merge_fan_in = num_runs % (QUEUE_CAPACITY - 1);
@@ -469,13 +477,13 @@ namespace ovc::iterators {
             return nullptr;
         }
 
-        if (cmp(*row, prev) < 0) {
+        if (cmp.raw(*row, prev) < 0) {
             const std::string &run_path = queue.top_path();
             log_error("SortBase::merge_external(): not ascending in run %s", run_path.c_str());
             log_error("SortBase::merge_external(): prev %s", prev.c_str());
             log_error("SortBase::merge_external(): cur  %s", row->c_str());
         }
-        assert(cmp(*row, prev) >= 0);
+        assert(cmp.raw(*row, prev) >= 0);
 
         has_prev = true;
         prev = *row;

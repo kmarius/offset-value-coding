@@ -19,6 +19,10 @@ namespace ovc::iterators {
 
         void close() override;
 
+        unsigned long getCount() {
+            return count;
+        }
+
     private:
         RowEqualPrefixNoOVC cmp;
         unsigned join_columns;
@@ -28,6 +32,7 @@ namespace ovc::iterators {
         io::ExternalRunR *left_partition;
         io::ExternalRunR *right_partition;
         io::BufferManager bufferManager;
+        unsigned long count;
 
         bool nextPart();
     };

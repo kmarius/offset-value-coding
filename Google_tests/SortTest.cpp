@@ -4,6 +4,7 @@
 #include "lib/iterators/VectorScan.h"
 #include "lib/iterators/Sort.h"
 #include "lib/iterators/AssertEqual.h"
+#include "lib/iterators/RowGeneratorWithDomains.h"
 
 #include <gtest/gtest.h>
 
@@ -27,10 +28,10 @@ protected:
     }
 
     void testSorted(size_t num_rows) {
-        auto gen = new IncreasingRangeGenerator(num_rows, 100, SEED, true);
-        auto rows = IncreasingRangeGenerator(num_rows, 100, SEED, true).collect();
+        auto gen = new RowGeneratorWithDomains(num_rows, 100, 0, SEED);
+        auto rows = RowGeneratorWithDomains(num_rows, 100, 0, SEED).collect();
         auto sorted = new AssertSorted(new Sort(gen));
-        RowCmp cmp;
+        RowCmpOVC cmp;
         std::sort(rows.begin(), rows.end(),
                   [cmp](const Row &a, const Row &b) -> bool {
                       return cmp(a, b) < 0;
@@ -44,10 +45,10 @@ protected:
     }
 
     void testSortedNoOvc(size_t num_rows) {
-        auto gen = new IncreasingRangeGenerator(num_rows, 100, SEED, true);
-        auto rows = IncreasingRangeGenerator(num_rows, 100, SEED, true).collect();
+        auto gen = new RowGeneratorWithDomains(num_rows, 100, 0, SEED);
+        auto rows = RowGeneratorWithDomains(num_rows, 100, 0, SEED).collect();
         auto sorted = new AssertSorted(new SortNoOvc(gen));
-        RowCmp cmp;
+        RowCmpOVC cmp;
         std::sort(rows.begin(), rows.end(),
                   [cmp](const Row &a, const Row &b) -> bool {
                       return cmp(a, b) < 0;

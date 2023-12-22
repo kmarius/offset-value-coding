@@ -5,7 +5,7 @@ namespace ovc::iterators {
 
     LeftSemiHashJoin::LeftSemiHashJoin(Iterator *left, Iterator *right, int joinColumns)
             : BinaryIterator(left, right), join_columns(joinColumns), left_partition(nullptr), right_partition(nullptr),
-              bufferManager(8), cmp(joinColumns, &stats) {
+              bufferManager(8), cmp(joinColumns, &stats), count(0) {
         set.reserve(256);
         for (int i = 0; i < 256; i++) {
             set.emplace_back();
@@ -93,6 +93,7 @@ namespace ovc::iterators {
             uint64_t hash = row_left->key % 256;
             for (auto &row : set[hash]) {
                 if (row_left->key == row.key && cmp(*row_left, row)) {
+                    count++;
                     return row_left;
                 }
             }

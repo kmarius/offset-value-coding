@@ -20,6 +20,7 @@ namespace ovc::iterators {
                 row->setOVC(prev, prefix, &stats);
             } else {
                 row->setOVCInitial(ROW_ARITY);
+                stats.column_comparisons++;
                 has_prev = true;
             }
             prev = *row;

@@ -24,10 +24,8 @@ namespace ovc::iterators {
         }
         partitioner.finalize();
         partitions = partitioner.getPartitionPaths();
-        log_info("partitions: %d", partitions.size());
         if (!partitions.empty()) {
             rows = process_partition(partitions.back());
-            log_info("rows: %d", rows.size());
         }
         input->close();
 
@@ -59,7 +57,6 @@ namespace ovc::iterators {
                 return nullptr;
             }
             rows = process_partition(partitions.back());
-            log_info("rows: %lu", rows.size());
         }
 
         count++;
@@ -68,7 +65,6 @@ namespace ovc::iterators {
 
     template<typename Aggregate>
     std::vector<Row> HashGroupBy<Aggregate>::process_partition(const std::string &path) {
-        log_info("processing partition %s", path.c_str());
 
         auto eq = RowEqualPrefixNoOVC(group_columns, &stats);
         ExternalRunR part(path, bufferManager, true);
@@ -79,7 +75,6 @@ namespace ovc::iterators {
         Partitioner partitioner(1 << RUN_IDX_BITS);
 
         for (Row *row; (row = part.read());) {
-            log_info("read: %s", row->c_str());
             stats.rows_read++;
             partitioner.putEarlyAggregate(row, agg, eq);
         }
@@ -93,7 +88,6 @@ namespace ovc::iterators {
             new_partitions.push_back(p);
         }
         partitions = new_partitions;
-        log_trace("partitions remaining: %lu", partitions.size() - 1);
 
         return res;
     }

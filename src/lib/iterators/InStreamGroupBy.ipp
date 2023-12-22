@@ -8,8 +8,6 @@ namespace ovc::iterators {
                                                                  const Aggregate &agg) :
             UnaryIterator(input), acc_buf(), output_buf(),
             group_columns(group_columns), empty(true), agg(agg), count(0) {
-        assert(input->outputIsSorted());
-        assert(!USE_OVC || input->outputHasOVC());
     }
 
     template<bool USE_OVC, typename Aggregate>

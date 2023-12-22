@@ -4,7 +4,6 @@ namespace ovc::iterators {
 
     PrefixTruncationCounter::PrefixTruncationCounter(Iterator *input) : UnaryIterator(input),
                                                                         count(0), prev({0}), has_prev(false) {
-        assert(input->outputIsSorted());
     }
 
     Row *PrefixTruncationCounter::next() {

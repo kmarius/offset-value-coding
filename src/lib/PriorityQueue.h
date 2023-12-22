@@ -123,11 +123,11 @@ namespace ovc {
         Compare cmp;
     };
 
-    template<bool USE_OVC, typename Compare = RowCmp>
+    template<bool USE_OVC, typename Compare = RowCmpOVC>
     class PriorityQueue : public PriorityQueueBase<USE_OVC, Compare> {
 
     public:
-        explicit PriorityQueue(size_t capacity, iterator_stats *stats, const Compare &less = Compare())
+        PriorityQueue(size_t capacity, iterator_stats *stats, const Compare &less = Compare())
                 : PriorityQueueBase<USE_OVC, Compare>(capacity, stats, less) {
         };
 
@@ -146,7 +146,10 @@ namespace ovc {
         }
 
         inline void push_external(io::ExternalRunR &run) {
-            push(run.read(), MERGE_RUN_IDX, &run);
+            Row *row = run.read();
+            if (row) {
+                push(row, MERGE_RUN_IDX, &run);
+            }
         }
 
         /**

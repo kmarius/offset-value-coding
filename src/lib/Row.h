@@ -70,9 +70,13 @@ namespace ovc {
         long calcOVC(const Row &base, int prefix = ROW_ARITY, struct iterator_stats *stats = nullptr) const {
             int offset = 0;
             long cmp;
-            for (; offset < prefix && (cmp = columns[offset] - base.columns[offset]) == 0; offset++) {
+            for (; offset < prefix; offset++) {
+                cmp = columns[offset] - base.columns[offset];
                 if (stats) {
                     stats->column_comparisons++;
+                }
+                if (cmp) {
+                    break;
                 }
             }
             if (offset >= prefix) {
@@ -87,37 +91,41 @@ namespace ovc {
 
         unsigned long setHash(int hash_columns = ROW_ARITY);
 
+        unsigned long calcHash(int hash_columns = ROW_ARITY);
+
         bool equals(const Row &row) const {
-            OVC ovc;
-            return cmp(row, ovc, 0) == 0;
+            return cmp(row, nullptr, 0) == 0;
         };
 
-        inline long cmp_impl(const Row &row, OVC &ovc, unsigned int offset, unsigned cmp_columns,
+        inline long cmp_impl(const Row &row, OVC *ovc, unsigned int offset, unsigned cmp_columns,
                              struct iterator_stats *stats) const {
             long cmp;
 
-            for (; offset < cmp_columns && (cmp = columns[offset] - row.columns[offset]) == 0; offset++) {
+            for (; offset < cmp_columns; offset++) {
+                cmp = columns[offset] - row.columns[offset];
                 if (stats) {
                     stats->column_comparisons++;
+                }
+                if (cmp) {
+                    break;
                 }
             }
 
             if (offset >= cmp_columns) {
                 // rows are equal
-                ovc = 0;
+                if (ovc) {
+                    *ovc = 0;
+                }
                 return 0;
             }
-
-            if (stats) {
-                stats->column_comparisons++;
-            }
-
-            if (cmp < 0) {
-                // we are smaller
-                ovc = MAKE_OVC(ROW_ARITY, offset, row.columns[offset]);
-            } else {
-                // we are larger
-                ovc = MAKE_OVC(ROW_ARITY, offset, columns[offset]);
+            if (ovc) {
+                if (cmp < 0) {
+                    // we are smaller
+                    *ovc = MAKE_OVC(ROW_ARITY, offset, row.columns[offset]);
+                } else {
+                    // we are larger
+                    *ovc = MAKE_OVC(ROW_ARITY, offset, columns[offset]);
+                }
             }
             return cmp;
         }
@@ -130,7 +138,7 @@ namespace ovc {
          * @return
          */
         inline long
-        cmp(const Row &row, OVC &ovc, unsigned int offset = 0, struct iterator_stats *stats = nullptr) const {
+        cmp(const Row &row, OVC *ovc = nullptr, unsigned int offset = 0, struct iterator_stats *stats = nullptr) const {
             return cmp_impl(row, ovc, offset, ROW_ARITY, stats);
         }
 
@@ -157,21 +165,6 @@ namespace ovc {
         friend std::ostream &operator<<(std::ostream &stream, const Row &row);
     } Row;
 
-    struct RowCmp {
-        iterator_stats *stats;
-    public:
-        explicit RowCmp(iterator_stats *stats = nullptr) : stats(stats) {}
-
-        int operator()(const Row &lhs, const Row &rhs, OVC &ovc, unsigned offset) const {
-            return lhs.cmp(rhs, ovc, offset, stats);
-        }
-
-        int operator()(const Row &lhs, const Row &rhs) const {
-            OVC ovc;
-            return lhs.cmp(rhs, ovc, 0, nullptr);
-        }
-    };
-
     struct RowCmpPrefixNoOVC {
         const int prefix;
         struct iterator_stats *stats;
@@ -180,13 +173,16 @@ namespace ovc {
 
         explicit RowCmpPrefixNoOVC(int prefix, iterator_stats *stats = nullptr) : prefix(prefix), stats(stats) {};
 
-        int operator()(const Row &lhs, const Row &rhs, OVC &ovc, unsigned offset) const {
+        int operator()(const Row &lhs, const Row &rhs, OVC *ovc, unsigned offset) const {
             return lhs.cmp_impl(rhs, ovc, offset, prefix, stats);
         }
 
         int operator()(const Row &lhs, const Row &rhs) const {
-            OVC ovc;
-            return lhs.cmp_impl(rhs, ovc, 0, prefix, stats);
+            return lhs.cmp_impl(rhs, nullptr, 0, prefix, stats);
+        }
+
+        long raw(Row &lhs, Row &rhs) const {
+            return lhs.cmp_impl(rhs, nullptr, 0, prefix, nullptr);
         }
     };
 
@@ -213,7 +209,7 @@ namespace ovc {
                 int offset = lhs.getOVC().getOffset() + 1;
 
                 OVC ovc;
-                cmp = lhs.cmp_impl(rhs, ovc, offset, prefix, stats);
+                cmp = lhs.cmp_impl(rhs, &ovc, offset, prefix, stats);
 
                 if (cmp <= 0) {
                     rhs.key = ovc;
@@ -224,6 +220,21 @@ namespace ovc {
             }
             return cmp;
         }
+
+        long raw(Row &lhs, Row &rhs) const {
+            return lhs.cmp_impl(rhs, nullptr, 0, prefix, nullptr);
+        }
+    };
+
+    struct RowCmpOVC : public RowCmpPrefixOVC {
+    public:
+        explicit RowCmpOVC(iterator_stats *stats = nullptr) : RowCmpPrefixOVC(ROW_ARITY, stats) {}
+    };
+
+
+    struct RowCmpNoOVC : public RowCmpPrefixNoOVC {
+    public:
+        explicit RowCmpNoOVC(iterator_stats *stats = nullptr) : RowCmpPrefixNoOVC(ROW_ARITY, stats) {}
     };
 
     struct RowEqualPrefixNoOVC {

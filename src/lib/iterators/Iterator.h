@@ -17,7 +17,7 @@ namespace ovc::iterators {
     class Iterator {
     public:
 
-        Iterator() : status(Unopened) {};
+        Iterator() : status(Unopened), stats() {};
 
         virtual ~Iterator() {
             assert(status != Opened);
@@ -169,7 +169,7 @@ namespace ovc::iterators {
             delete input;
         }
 
-        template<class T>
+        template<class T = Iterator>
         T *getInput() {
             return reinterpret_cast<T *>(input);
         }
@@ -205,7 +205,7 @@ namespace ovc::iterators {
         void accumulateStats(iterator_stats &acc) override {
             left->accumulateStats(acc);
             right->accumulateStats(acc);
-            stats.add(stats);
+            acc.add(stats);
         }
 
     protected:

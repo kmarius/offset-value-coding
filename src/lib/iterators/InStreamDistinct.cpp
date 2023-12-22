@@ -6,8 +6,6 @@ namespace ovc::iterators {
     template<bool USE_OVC>
     InStreamDistinctBase<USE_OVC>::InStreamDistinctBase(Iterator *const input)
             : UnaryIterator(input), num_dupes(0), has_prev(false), prev({0}) {
-        assert(input->outputIsSorted());
-        assert(!USE_OVC || input->outputHasOVC());
     }
 
     template<bool USE_OVC>

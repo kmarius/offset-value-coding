@@ -114,8 +114,7 @@ namespace ovc {
                     return key < node.key;
                 }
                 stats->comparisons_of_actual_rows++;
-                OVC ovc;
-                return ws[index].row->cmp(*ws[node.index].row, ovc, 0, stats) < 0;
+                return ws[index].row->cmp(*ws[node.index].row, nullptr, 0, stats) < 0;
             } else {
                 if (key == node.key) {
                     stats->comparisons_equal_key++;
@@ -124,12 +123,11 @@ namespace ovc {
                     }
                     stats->comparisons_of_actual_rows++;
 
-                    OVC ovc;
-                    if (cmp(*ws[index].row, *ws[node.index].row, ovc, NODE_OFFSET(key) + 1) < 0) {
-                        node.setOvc(ovc);
+                    if (cmp(*ws[index].row, *ws[node.index].row) <= 0) {
+                        node.setOvc(ws[node.index].row->key);
                         return true;
                     } else {
-                        setOvc(ovc);
+                        setOvc(ws[index].row->key);
                         return false;
                     }
                 }
@@ -171,10 +169,16 @@ namespace ovc {
                 if (!heap[j].isValid()) {
                     continue;
                 }
+                long c;
                 if (heap[j].key <= heap[i].key &&
-                    cmp(*workspace[heap[j].index].row, *workspace[heap[i].index].row) < 0) {
+                    (c = cmp.raw(*workspace[heap[i].index].row, *workspace[heap[j].index].row)) > 0) {
 #ifndef NDEBUG
-                    log_error("Element at position %lu is not smaller than the one in position %lu", i, j);
+
+                    log_error("Element at position %lu is not smaller than the one in position %lu, cmp=%lu", i, j, c
+                    );
+                    log_error("position %d: sortkey=%lu %s", i, heap[i].key, workspace[heap[i].index].row->c_str());
+                    log_error("position %d: sortkey=%lu %s", j, heap[j].key, workspace[heap[j].index].row->c_str());
+
                     // TODO: log the queue here
 #endif
                     return false;
@@ -189,7 +193,6 @@ namespace ovc {
         delete[] workspace;
         delete[] heap;
     }
-
 
     template<bool USE_OVC, typename Compare>
     Row *PriorityQueueBase<USE_OVC, Compare>::pop_safe(Index run_index) {
