@@ -69,14 +69,14 @@ namespace ovc::iterators {
         Row *row;
 
         for (; queue.size() < queue.capacity() && (row = input->next());) {
-            if (DO_AGGREGATE) {
+            if constexpr (DO_AGGREGATE) {
                 agg.init(*row);
             }
             workspace[workspace_size] = *row;
             input->free();
             row = &workspace[workspace_size++];
-            if (USE_OVC) {
-                row->key = MAKE_OVC(ROW_ARITY, 0, row->columns[0]);
+            if constexpr (USE_OVC) {
+                row->key = cmp.makeOVC(ROW_ARITY, 0, row);
                 stats->column_comparisons++;
             }
             queue.push(row, insert_run_index);
@@ -103,14 +103,14 @@ namespace ovc::iterators {
 #endif
 
         for (; (row = input->next());) {
-            if (DO_AGGREGATE) {
+            if constexpr (DO_AGGREGATE) {
                 agg.init(*row);
             }
             workspace[workspace_size] = *row;
             input->free();
             row = &workspace[workspace_size++];
-            if (USE_OVC) {
-                row->key = MAKE_OVC(ROW_ARITY, 0, row->columns[0]);
+            if constexpr (USE_OVC) {
+                row->key = cmp.makeOVC(ROW_ARITY, 0, row);
                 stats->column_comparisons++;
             }
 #ifndef NDEBUG

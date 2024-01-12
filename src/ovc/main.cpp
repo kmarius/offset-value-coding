@@ -1049,6 +1049,10 @@ int main(int argc, char *argv[]) {
     //experiment_complex3();
     //experiment_complex4_param();
 
+    auto gen = RowGenerator(16, 16);
+    auto sort = Sort2<true, true, CmpColumnListOVC>(gen.clone(), CmpColumnListOVC({7}));
+    sort.run(true);
+
     log_info("elapsed=%lums", since(start));
     log_info("fin");
     log_close();
