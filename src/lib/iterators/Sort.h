@@ -148,6 +148,12 @@ namespace ovc::iterators {
         Sort(Iterator *input) : SortBase<false, true, RowCmpOVC>(input, RowCmpOVC(&this->stats)) {}
     };
 
+    template<bool DISTINCT, bool USE_OVC, typename Compare>
+    class Sort2 : public SortBase<DISTINCT, USE_OVC, Compare> {
+    public:
+        Sort2(Iterator *input, const Compare &cmp) : SortBase<DISTINCT, USE_OVC, Compare>(input, cmp.addStats(&this->stats)) {}
+    };
+
     class SortPrefix : public SortBase<false, true, RowCmpPrefixOVC> {
     public:
         SortPrefix(Iterator *input, int sort_prefix)

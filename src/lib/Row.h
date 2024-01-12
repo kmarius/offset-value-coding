@@ -4,6 +4,7 @@
 #include <cassert>
 #include <vector>
 #include <cstdint>
+#include <cstring>
 
 #include "defs.h"
 #include "log.h"
@@ -226,16 +227,67 @@ namespace ovc {
         }
     };
 
+    struct CmpColumnListNoOVC {
+        uint8_t columns[ROW_ARITY];
+        int length;
+        struct iterator_stats *stats;
+    private:
+        CmpColumnListNoOVC() : columns(), length(0), stats(nullptr) {};
+
+    public:
+        CmpColumnListNoOVC addStats(struct iterator_stats *stats) const {
+            CmpColumnListNoOVC cmp;
+            cmp.stats = stats;
+            cmp.length = length;
+            mempcpy(cmp.columns, columns, length * sizeof *columns);
+            return cmp;
+        }
+
+        explicit CmpColumnListNoOVC(std::initializer_list<uint8_t> columns, iterator_stats *stats = nullptr)
+                : length(columns.size()), stats(stats) {
+            assert(columns.size() <= ROW_ARITY);
+            int i = 0;
+            for (auto col: columns) {
+                this->columns[i++] = col;
+            }
+        };
+
+        long operator()(Row &lhs, Row &rhs) const {
+            for (int i = 0; i < length; i++) {
+                if (stats) {
+                    stats->column_comparisons++;
+                }
+                uint8_t ind = columns[i];
+                long cmp = (long) lhs.columns[ind] - (long) rhs.columns[ind];
+                if (cmp != 0) {
+                    return cmp;
+                }
+            }
+            return 0;
+        }
+
+        long raw(Row &lhs, Row &rhs) const {
+            for (int i = 0; i < length; i++) {
+                uint8_t ind = columns[i];
+                long cmp = (long) lhs.columns[ind] - (long) rhs.columns[ind];
+                if (cmp != 0) {
+                    return cmp;
+                }
+            }
+            return 0;
+        }
+    };
+
     struct RowCmpOVC : public RowCmpPrefixOVC {
     public:
         explicit RowCmpOVC(iterator_stats *stats = nullptr) : RowCmpPrefixOVC(ROW_ARITY, stats) {}
     };
 
-
     struct RowCmpNoOVC : public RowCmpPrefixNoOVC {
     public:
         explicit RowCmpNoOVC(iterator_stats *stats = nullptr) : RowCmpPrefixNoOVC(ROW_ARITY, stats) {}
     };
+
 
     struct RowEqualPrefixNoOVC {
         const int prefix;

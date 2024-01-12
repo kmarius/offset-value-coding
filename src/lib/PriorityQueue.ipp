@@ -114,7 +114,7 @@ namespace ovc {
                     return key < node.key;
                 }
                 stats->comparisons_of_actual_rows++;
-                return ws[index].row->cmp(*ws[node.index].row, nullptr, 0, stats) < 0;
+                return cmp(*ws[index].row, *ws[node.index].row) < 0;
             } else {
                 if (key == node.key) {
                     stats->comparisons_equal_key++;
