@@ -52,7 +52,10 @@ add_library(libovc
         src/lib/iterators/RowGeneratorWithDomains.cpp
         src/lib/iterators/RowGeneratorWithDomains.h
         src/lib/iterators/UniqueRowGenerator.cpp
-        src/lib/iterators/UniqueRowGenerator.h)
+        src/lib/iterators/UniqueRowGenerator.h
+        src/lib/iterators/SegmentedSort.ipp
+        src/lib/iterators/SegmentedSort.h
+        src/lib/iterators/AssertCount.h)
 target_link_libraries(libovc uring)
 
 add_executable(ovc src/ovc/main.cpp)

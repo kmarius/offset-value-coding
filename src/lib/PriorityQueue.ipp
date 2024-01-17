@@ -179,6 +179,8 @@ namespace ovc {
                     log_error("position %d: sortkey=%lu %s", i, heap[i].key, workspace[heap[i].index].row->c_str());
                     log_error("position %d: sortkey=%lu %s", j, heap[j].key, workspace[heap[j].index].row->c_str());
 
+                    log_error("\n%s", to_string().c_str());
+
                     // TODO: log the queue here
 #endif
                     return false;
@@ -231,6 +233,7 @@ namespace ovc {
 
     template<bool USE_OVC, typename Compare>
     size_t PriorityQueueBase<USE_OVC, Compare>::top_run_idx() {
+        assert(!isEmpty());
         return heap[0].run_index();
     }
 

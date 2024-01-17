@@ -22,7 +22,7 @@
 // This currently controls how many bits we use to store the run index in the key in the priority queue
 // which at the same time controls the fan-in of the merge
 // TODO: we should decouple this from the queue size
-#define RUN_IDX_BITS 8
+#define RUN_IDX_BITS 3
 
 #define PRIORITYQUEUE_CAPACITY (1 << RUN_IDX_BITS)
 

@@ -5,6 +5,9 @@ namespace ovc::iterators {
 
     RowGeneratorWithDomains::RowGeneratorWithDomains(unsigned long num_rows, unsigned long seed, void *dummy)
             : Generator(), num_rows(num_rows), buf({0}), domains() {
+        for (int i = 0; i < ROW_ARITY; i++) {
+            domains[i] = 1;
+        }
         std::random_device dev;
         seed = seed == (unsigned long) -1 ? dev() : seed;
         this->seed = seed;

@@ -44,7 +44,7 @@ protected:
     void testInStreamDistinctNoOvc(size_t num_rows) {
         auto *plan = new AssertSortedUnique(
                 new InStreamDistinctNoOvc(
-                        new SortNoOvc(
+                        new SortNoOVC(
                                 new RowGeneratorWithDomains(num_rows, 100, 0, SEED))));
         plan->run();
         ASSERT_TRUE(plan->isSortedAndUnique());

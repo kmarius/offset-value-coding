@@ -49,7 +49,7 @@ namespace ovc {
         };
 
         /**
-         * Perform early aggregation in the buffer page of the corresponding bucket that is held in memory.
+         * Perform early aggregation in the buffer page of the corresponding bucket that is prev in memory.
          */
         template<typename Aggregate, typename Equal>
         void putEarlyAggregate(Row *row, Aggregate &agg, Equal &eq) {

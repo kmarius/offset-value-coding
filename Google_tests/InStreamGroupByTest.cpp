@@ -25,7 +25,7 @@ protected:
 TEST_F(InStreamGroupByTest, EmptyTest) {
     auto *plan = new AssertEqual(
             new InStreamGroupBy(
-                    new SortBase<false, true, RowCmpPrefixNoOVC>(new RowGenerator(0, 0, 0), RowCmpPrefixNoOVC{4}),
+                    new SortBase<false, true, CmpPrefixNoOVC>(new RowGenerator(0, 0, 0), CmpPrefixNoOVC{4}),
                     4,
                     aggregates::Count(1)),
             new VectorScan({})
@@ -87,9 +87,9 @@ TEST_F(InStreamGroupByTest, DoesntLoseRows) {
     int group_columns = 2;
 
     auto *plan = new InStreamGroupBy(
-            new SortBase<false, true, RowCmpPrefixNoOVC>(
+            new SortBase<false, true, CmpPrefixNoOVC>(
                     new RowGenerator(num_rows, 32, 5),
-                    RowCmpPrefixNoOVC(group_columns)),
+                    CmpPrefixNoOVC(group_columns)),
             group_columns,
             aggregates::Count(group_columns));
     plan->open();
@@ -107,8 +107,8 @@ TEST_F(InStreamGroupByTest, DoesntLoseRows2) {
     int group_columns = 4;
 
     auto *plan = new InStreamGroupBy(
-            new SortBase<false, true, RowCmpPrefixNoOVC>(new RowGenerator(num_rows, 32, 3),
-                                                         RowCmpPrefixNoOVC(group_columns)),
+            new SortBase<false, true, CmpPrefixNoOVC>(new RowGenerator(num_rows, 32, 3),
+                                                      CmpPrefixNoOVC(group_columns)),
             group_columns,
             aggregates::Count(group_columns));
     plan->open();

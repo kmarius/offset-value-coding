@@ -141,7 +141,7 @@ namespace ovc::iterators {
         bool stats_disabled;
     };
 
-    typedef SortBase<false, false> SortNoOvc;
+    typedef SortBase<false, false, CmpNoOVC> SortNoOVC;
 
     class Sort : public SortBase<false, true, RowCmpOVC> {
     public:
@@ -167,16 +167,16 @@ namespace ovc::iterators {
     };
 
     // TODO: doesnt work, investigate at some point
-    class SortDistinctPrefixNoOVC : public SortBase<true, true, RowCmpPrefixNoOVC> {
+    class SortDistinctPrefixNoOVC : public SortBase<true, true, CmpPrefixNoOVC> {
     public:
         SortDistinctPrefixNoOVC(Iterator *input, int sort_prefix)
-                : SortBase<true, true, RowCmpPrefixNoOVC>(input, RowCmpPrefixNoOVC(sort_prefix, &this->stats)) {};
+                : SortBase<true, true, CmpPrefixNoOVC>(input, CmpPrefixNoOVC(sort_prefix, &this->stats)) {};
     };
 
-    class SortPrefixNoOVC : public SortBase<false, false, RowCmpPrefixNoOVC> {
+    class SortPrefixNoOVC : public SortBase<false, false, CmpPrefixNoOVC> {
     public:
         SortPrefixNoOVC(Iterator *input, int sort_prefix)
-                : SortBase<false, false, RowCmpPrefixNoOVC>(input, RowCmpPrefixNoOVC(sort_prefix, &this->stats)) {};
+                : SortBase<false, false, CmpPrefixNoOVC>(input, CmpPrefixNoOVC(sort_prefix, &this->stats)) {};
     };
 }
 

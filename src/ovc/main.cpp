@@ -28,6 +28,7 @@
 #include "lib/iterators/Transposer.h"
 #include "lib/iterators/RowGeneratorWithDomains.h"
 #include "lib/iterators/UniqueRowGenerator.h"
+#include "lib/iterators/SegmentedSort.h"
 
 #include <vector>
 
@@ -468,7 +469,7 @@ void experiment_column_order_sort() {
             fprintf(results, "%d,%d,%s,%zu\n", num_rows, pos, "ovc", plan1.getStats().column_comparisons + num_rows);
         }
         {
-            auto plan2 = SortNoOvc(gen.clone());
+            auto plan2 = SortNoOVC(gen.clone());
             plan2.run();
             fprintf(results, "%d,%d,%s,%zu\n", num_rows, pos, "no_ovc", plan2.getStats().column_comparisons);
         }
@@ -1035,6 +1036,7 @@ void experiment_complex4_param() {
 int main(int argc, char *argv[]) {
     log_open(LOG_TRACE);
     log_set_quiet(false);
+    log_set_level(LOG_TRACE);
     log_set_level(LOG_INFO);
     log_info("start", "");
 
@@ -1049,8 +1051,14 @@ int main(int argc, char *argv[]) {
     //experiment_complex3();
     //experiment_complex4_param();
 
-    auto gen = RowGenerator(16, 16);
-    auto sort = Sort2<true, true, CmpColumnListOVC>(gen.clone(), CmpColumnListOVC({7}));
+    //auto gen = RowGenerator(4, 2, 0, 1337);
+
+    auto sort = SegmentedSortNoOVC(
+            new SortPrefixNoOVC(new RowGeneratorWithDomains(1000, {10, 10, 1, 1, 1, 4, 4}, 1337), 2),
+            CmpColumnListNoOVC({6, 5}),
+            EqColumnListNoOVC({0, 1})
+    );
+
     sort.run(true);
 
     log_info("elapsed=%lums", since(start));

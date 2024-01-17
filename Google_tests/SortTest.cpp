@@ -31,7 +31,7 @@ protected:
         auto gen = new RowGeneratorWithDomains(num_rows, 100, 0, SEED);
         auto rows = RowGeneratorWithDomains(num_rows, 100, 0, SEED).collect();
         auto sorted = new AssertSorted(new Sort(gen));
-        RowCmpOVC cmp;
+        CmpNoOVC cmp;
         std::sort(rows.begin(), rows.end(),
                   [cmp](const Row &a, const Row &b) -> bool {
                       return cmp(a, b) < 0;
@@ -39,7 +39,7 @@ protected:
         auto *plan = new AssertEqual(sorted, new VectorScan(rows));
         plan->run();
         ASSERT_TRUE(sorted->isSorted());
-        ASSERT_EQ(sorted->count(), num_rows);
+        ASSERT_EQ(sorted->getCount(), num_rows);
         ASSERT_TRUE(plan->isEqual());
         delete plan;
     }
@@ -47,8 +47,8 @@ protected:
     void testSortedNoOvc(size_t num_rows) {
         auto gen = new RowGeneratorWithDomains(num_rows, 100, 0, SEED);
         auto rows = RowGeneratorWithDomains(num_rows, 100, 0, SEED).collect();
-        auto sorted = new AssertSorted(new SortNoOvc(gen));
-        RowCmpOVC cmp;
+        auto sorted = new AssertSorted(new SortNoOVC(gen));
+        CmpNoOVC cmp;
         std::sort(rows.begin(), rows.end(),
                   [cmp](const Row &a, const Row &b) -> bool {
                       return cmp(a, b) < 0;
@@ -56,7 +56,7 @@ protected:
         auto *plan = new AssertEqual(sorted, new VectorScan(rows));
         plan->run();
         ASSERT_TRUE(sorted->isSorted());
-        ASSERT_EQ(sorted->count(), num_rows);
+        ASSERT_EQ(sorted->getCount(), num_rows);
         ASSERT_TRUE(plan->isEqual());
         delete plan;
     }
@@ -66,7 +66,7 @@ TEST_F(SortTest, EmptyTest) {
     auto *plan = new AssertSorted(new VectorScan({}));
     plan->run();
     ASSERT_TRUE(plan->isSorted());
-    ASSERT_EQ(plan->count(), 0);
+    ASSERT_EQ(plan->getCount(), 0);
     delete plan;
 }
 
