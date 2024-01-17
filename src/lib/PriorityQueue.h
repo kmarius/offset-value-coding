@@ -123,7 +123,7 @@ namespace ovc {
         Compare cmp;
     };
 
-    template<bool USE_OVC, typename Compare = RowCmpOVC>
+    template<bool USE_OVC, typename Compare = CmpOVC>
     class PriorityQueue : public PriorityQueueBase<USE_OVC, Compare> {
 
     public:

@@ -37,7 +37,7 @@ TEST_F(InStreamGroupByTest, EmptyTest) {
 
 TEST_F(InStreamGroupByTest, OneColumnSimple) {
     auto *plan = new AssertEqual(
-            new InStreamGroupBy(new SortBase<false, true, RowCmpPrefixOVC>(
+            new InStreamGroupBy(new SortBase<false, true, CmpPrefixOVC>(
                     new VectorScan({
                                            {0, 0, {0, 1}},
                                            {0, 1, {0, 2}},
@@ -46,7 +46,7 @@ TEST_F(InStreamGroupByTest, OneColumnSimple) {
                                            {0, 4, {1, 5}},
                                            {0, 3, {2, 6}},
                                            {0, 4, {2, 7}},
-                                   }), RowCmpPrefixOVC(1)), 1, aggregates::Count(1)),
+                                   }), CmpPrefixOVC(1)), 1, aggregates::Count(1)),
             new VectorScan({
                                    {0, 0, {0, 2}},
                                    {0, 0, {1, 3}},
@@ -60,7 +60,7 @@ TEST_F(InStreamGroupByTest, OneColumnSimple) {
 
 TEST_F(InStreamGroupByTest, TwoColumnsSimple) {
     auto *plan = new AssertEqual(
-            new InStreamGroupBy(new SortBase<false, true, RowCmpPrefixOVC>(
+            new InStreamGroupBy(new SortBase<false, true, CmpPrefixOVC>(
                     new VectorScan({
                                            {0, 0, {0, 1, 5}},
                                            {0, 1, {0, 1, 5}},
@@ -69,7 +69,7 @@ TEST_F(InStreamGroupByTest, TwoColumnsSimple) {
                                            {0, 4, {1, 3, 7}},
                                            {0, 3, {2, 7, 2}},
                                            {0, 4, {2, 7, 9}},
-                                   }), RowCmpPrefixOVC{2}), 2, aggregates::Count(2)),
+                                   }), CmpPrefixOVC{2}), 2, aggregates::Count(2)),
             new VectorScan({
                                    {0, 0, {0, 1, 2}},
                                    {0, 0, {1, 2, 1}},

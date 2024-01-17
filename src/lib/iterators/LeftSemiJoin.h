@@ -105,10 +105,10 @@ namespace ovc::iterators {
         long count;
     };
 
-    class LeftSemiJoin : public LeftSemiJoinBase<true, RowCmpPrefixOVC> {
+    class LeftSemiJoin : public LeftSemiJoinBase<true, CmpPrefixOVC> {
     public:
         LeftSemiJoin(Iterator *left, Iterator *right, unsigned join_columns)
-                : LeftSemiJoinBase<true, RowCmpPrefixOVC>(left, right, join_columns) {}
+                : LeftSemiJoinBase<true, CmpPrefixOVC>(left, right, join_columns) {}
     };
 
     class LeftSemiJoinNoOVC : public LeftSemiJoinBase<false, CmpPrefixNoOVC> {

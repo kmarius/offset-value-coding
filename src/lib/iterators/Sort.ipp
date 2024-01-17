@@ -459,7 +459,7 @@ namespace ovc::iterators {
                 }
             } else {
                 while ((row = queue.pop_external())) {
-                    if (has_prev && row->equals(prev)) {
+                    if (has_prev && (cmp.raw(*row, prev) == 0)) {
                         if (queue.isEmpty()) {
                             row = nullptr;
                             break;

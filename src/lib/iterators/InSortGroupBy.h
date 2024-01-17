@@ -43,11 +43,11 @@ namespace ovc::iterators {
     };
 
     template<typename Aggregate>
-    class InSortGroupBy : public InSortGroupByBase<true, Aggregate, RowCmpPrefixOVC> {
+    class InSortGroupBy : public InSortGroupByBase<true, Aggregate, CmpPrefixOVC> {
     public:
         InSortGroupBy(Iterator *input, int groupColumns, const Aggregate &agg = Aggregate())
-                : InSortGroupByBase<true, Aggregate, RowCmpPrefixOVC>(input, groupColumns, agg,
-                                                                      RowCmpPrefixOVC(groupColumns, &this->stats)) {};
+                : InSortGroupByBase<true, Aggregate, CmpPrefixOVC>(input, groupColumns, agg,
+                                                                   CmpPrefixOVC(groupColumns, &this->stats)) {};
     };
 
     template<typename Aggregate>

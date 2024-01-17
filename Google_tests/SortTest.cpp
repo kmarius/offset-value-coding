@@ -37,7 +37,7 @@ protected:
                       return cmp(a, b) < 0;
                   });
         auto *plan = new AssertEqual(sorted, new VectorScan(rows));
-        plan->run();
+        plan->run(true);
         ASSERT_TRUE(sorted->isSorted());
         ASSERT_EQ(sorted->getCount(), num_rows);
         ASSERT_TRUE(plan->isEqual());

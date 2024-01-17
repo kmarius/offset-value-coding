@@ -180,8 +180,6 @@ namespace ovc {
                     log_error("position %d: sortkey=%lu %s", j, heap[j].key, workspace[heap[j].index].row->c_str());
 
                     log_error("\n%s", to_string().c_str());
-
-                    // TODO: log the queue here
 #endif
                     return false;
                 }

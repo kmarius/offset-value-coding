@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
             continue;
         }
         prev = *row;
-        ovc::RowCmpOVC cmp;
+        ovc::CmpOVC cmp;
 
         int count;
         for (count = 1; (row = run.read()) != nullptr; count++, prev = *row) {

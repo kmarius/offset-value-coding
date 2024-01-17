@@ -90,58 +90,13 @@ namespace ovc {
             return MAKE_OVC(ROW_ARITY, offset, columns[offset]);
         }
 
+        bool equals(const Row &row) {
+            return memcmp(columns, row.columns, sizeof columns) == 0;
+        }
+
         unsigned long setHash(int hash_columns = ROW_ARITY);
 
         unsigned long calcHash(int hash_columns = ROW_ARITY);
-
-        bool equals(const Row &row) const {
-            return cmp(row, nullptr, 0) == 0;
-        };
-
-        inline long cmp_impl(const Row &row, OVC *ovc, unsigned int offset, unsigned cmp_columns,
-                             struct iterator_stats *stats) const {
-            long cmp;
-
-            for (; offset < cmp_columns; offset++) {
-                cmp = columns[offset] - row.columns[offset];
-                if (stats) {
-                    stats->column_comparisons++;
-                }
-                if (cmp) {
-                    break;
-                }
-            }
-
-            if (offset >= cmp_columns) {
-                // rows are equal
-                if (ovc) {
-                    *ovc = 0;
-                }
-                return 0;
-            }
-            if (ovc) {
-                if (cmp < 0) {
-                    // we are smaller
-                    *ovc = MAKE_OVC(ROW_ARITY, offset, row.columns[offset]);
-                } else {
-                    // we are larger
-                    *ovc = MAKE_OVC(ROW_ARITY, offset, columns[offset]);
-                }
-            }
-            return cmp;
-        }
-
-
-        /**
-         * cmp semantics, writes the OVC of the loser w.r.t the winner to the provided address
-         * @param row
-         * @param ovc
-         * @return
-         */
-        inline long
-        cmp(const Row &row, OVC *ovc = nullptr, unsigned int offset = 0, struct iterator_stats *stats = nullptr) const {
-            return cmp_impl(row, ovc, offset, ROW_ARITY, stats);
-        }
 
         /**
          * Get a string representation (in a statically allocated buffer).
@@ -191,7 +146,7 @@ namespace ovc {
             }
         };
 
-        explicit CmpColumnListNoOVC(uint8_t *cols, int n, iterator_stats *stats = nullptr)
+        CmpColumnListNoOVC(const uint8_t *cols, int n, iterator_stats *stats = nullptr)
                 : length(n), stats(stats) {
             assert(n <= ROW_ARITY);
             for (int i = 0; i < n; i++) {
@@ -264,6 +219,14 @@ namespace ovc {
             return cmp;
         }
 
+        CmpColumnListOVC(const uint8_t *cols, int n, iterator_stats *stats = nullptr)
+        : length(n), stats(stats) {
+            assert(n <= ROW_ARITY);
+            for (int i = 0; i < n; i++) {
+                columns[i] = cols[i];
+            }
+        };
+
         inline unsigned long makeOVC(long arity, long offset, const Row *row) const {
             return MAKE_OVC(arity, offset, row->columns[columns[offset]]);
         }
@@ -278,7 +241,7 @@ namespace ovc {
         };
 
         long operator()(Row &lhs, Row &rhs) const {
-            long cmp = lhs.key - rhs.key;
+            long cmp = (long) lhs.key - (long) rhs.key;
             if (cmp == 0) {
                 if (lhs.key == 0) {
                     // equality, no need to go on
@@ -288,7 +251,7 @@ namespace ovc {
                 // if i > prefix, rows are equal
                 int i = lhs.getOVC().getOffset() + 1;
                 for (; i < length; i++) {
-                    cmp = lhs.columns[columns[i]] - rhs.columns[columns[i]];
+                    cmp = (long) lhs.columns[columns[i]] - (long) rhs.columns[columns[i]];
                     if (stats) {
                         stats->column_comparisons++;
                     }
@@ -313,89 +276,34 @@ namespace ovc {
             return cmp;
         }
 
-        long raw(Row &lhs, Row &rhs) const {
-            long cmp = lhs.key - rhs.key;
-            if (cmp == 0) {
-                if (lhs.key == 0) {
-                    // equality, no need to go on
-                    return 0;
-                }
-
-                // if offset > prefix, rows are equal
-                int offset = lhs.getOVC().getOffset() + 1;
-
-                for (; offset < length; offset++) {
-                    cmp = lhs.columns[offset] - rhs.columns[offset];
-                    if (cmp) {
-                        break;
-                    }
-                }
-
-                if (offset >= length) {
-                    // rows are equal
-                    rhs.key = 0;
-                    return 0;
-                }
-
-                if (cmp <= 0) {
-                    rhs.key = MAKE_OVC(ROW_ARITY, offset, rhs.columns[offset]);
-                }
-                if (cmp > 0) {
-                    lhs.key = MAKE_OVC(ROW_ARITY, offset, lhs.columns[offset]);
+        long raw(const Row &lhs, const Row &rhs) const {
+            for (int i = 0; i < length; i++) {
+                uint8_t ind = columns[i];
+                long cmp = (long) lhs.columns[ind] - (long) rhs.columns[ind];
+                if (cmp != 0) {
+                    return cmp;
                 }
             }
-            return cmp;
+            return 0;
         }
     };
 
-
-    // Compares two rows both having offset value codes relative to the same base row.
-    // Sets the offset value code of the loser (bigger row) relative to the winner (smaller row).
-    // If the rows are equal, the offset value code of the right row is set to 0.
-    struct RowCmpPrefixOVC {
-        const int prefix;
-        struct iterator_stats *stats;
+    struct CmpPrefixOVC : public CmpColumnListOVC {
     public:
-        RowCmpPrefixOVC() = delete;
+        CmpPrefixOVC() = delete;
 
-        explicit RowCmpPrefixOVC(int prefix, iterator_stats *stats = nullptr) : prefix(prefix), stats(stats) {};
-
-        inline unsigned long makeOVC(long arity, long offset, const Row *row) const {
-            return MAKE_OVC(arity, offset, row->columns[offset]);
-        }
-
-        long operator()(Row &lhs, Row &rhs) const {
-            long cmp = lhs.key - rhs.key;
-            if (cmp == 0) {
-                if (lhs.key == 0) {
-                    // equality, no need to go on
-                    return 0;
-                }
-
-                // if offset > prefix, rows are equal
-                int offset = lhs.getOVC().getOffset() + 1;
-
-                OVC ovc;
-                cmp = lhs.cmp_impl(rhs, &ovc, offset, prefix, stats);
-
-                if (cmp <= 0) {
-                    rhs.key = ovc;
-                }
-                if (cmp > 0) {
-                    lhs.key = ovc;
-                }
+        explicit CmpPrefixOVC(int prefix, iterator_stats *stats = nullptr)
+                : CmpColumnListOVC(nullptr, 0, stats) {
+            length = prefix;
+            for (int i = 0; i < prefix; i++) {
+                columns[i] = i;
             }
-            return cmp;
-        }
-
-        long raw(Row &lhs, Row &rhs) const {
-            return lhs.cmp_impl(rhs, nullptr, 0, prefix, nullptr);
-        }
+        };
     };
 
-    struct RowCmpOVC : public RowCmpPrefixOVC {
+    struct CmpOVC : public CmpPrefixOVC {
     public:
-        explicit RowCmpOVC(iterator_stats *stats = nullptr) : RowCmpPrefixOVC(ROW_ARITY, stats) {}
+        explicit CmpOVC(iterator_stats *stats = nullptr) : CmpPrefixOVC(ROW_ARITY, stats) {}
     };
 
     struct RowEqualPrefixNoOVC {

@@ -11,7 +11,7 @@
 
 namespace ovc::iterators {
 
-    template<bool DISTINCT, bool USE_OVC, typename Compare = RowCmpOVC, typename Aggregate = aggregates::Null, bool DO_AGGREGATE = false>
+    template<bool DISTINCT, bool USE_OVC, typename Compare = CmpOVC, typename Aggregate = aggregates::Null, bool DO_AGGREGATE = false>
     struct Sorter {
         Compare cmp;
         Aggregate agg;
@@ -90,7 +90,7 @@ namespace ovc::iterators {
         void insert_external_runs(size_t fan_in);
     };
 
-    template<bool DISTINCT, bool USE_OVC, typename Compare = RowCmpOVC>
+    template<bool DISTINCT, bool USE_OVC, typename Compare = CmpOVC>
     class SortBase : public UnaryIterator {
     public:
         SortBase(Iterator *input, const Compare &cmp)
@@ -143,9 +143,9 @@ namespace ovc::iterators {
 
     typedef SortBase<false, false, CmpNoOVC> SortNoOVC;
 
-    class Sort : public SortBase<false, true, RowCmpOVC> {
+    class Sort : public SortBase<false, true, CmpOVC> {
     public:
-        Sort(Iterator *input) : SortBase<false, true, RowCmpOVC>(input, RowCmpOVC(&this->stats)) {}
+        Sort(Iterator *input) : SortBase<false, true, CmpOVC>(input, CmpOVC(&this->stats)) {}
     };
 
     template<bool DISTINCT, bool USE_OVC, typename Compare>
@@ -154,16 +154,16 @@ namespace ovc::iterators {
         Sort2(Iterator *input, const Compare &cmp) : SortBase<DISTINCT, USE_OVC, Compare>(input, cmp.addStats(&this->stats)) {}
     };
 
-    class SortPrefix : public SortBase<false, true, RowCmpPrefixOVC> {
+    class SortPrefix : public SortBase<false, true, CmpPrefixOVC> {
     public:
         SortPrefix(Iterator *input, int sort_prefix)
-                : SortBase<false, true, RowCmpPrefixOVC>(input, RowCmpPrefixOVC(sort_prefix, &this->stats)) {};
+                : SortBase<false, true, CmpPrefixOVC>(input, CmpPrefixOVC(sort_prefix, &this->stats)) {};
     };
 
-    class SortDistinctPrefix : public SortBase<true, true, RowCmpPrefixOVC> {
+    class SortDistinctPrefix : public SortBase<true, true, CmpPrefixOVC> {
     public:
         SortDistinctPrefix(Iterator *input, int sort_prefix)
-                : SortBase<true, true, RowCmpPrefixOVC>(input, RowCmpPrefixOVC(sort_prefix, &this->stats)) {};
+                : SortBase<true, true, CmpPrefixOVC>(input, CmpPrefixOVC(sort_prefix, &this->stats)) {};
     };
 
     // TODO: doesnt work, investigate at some point

@@ -75,8 +75,8 @@ namespace ovc {
          * Check if the run is sorted.
          * @return True if the run is sorted. False otherwise.
          */
-         template<typename Compare = RowCmpOVC>
-        bool isSorted(const Compare &cmp = RowCmpOVC{}) {
+         template<typename Compare = CmpOVC>
+        bool isSorted(const Compare &cmp = CmpOVC{}) {
             for (int i = 1; i < data.size(); i++) {
                 if (cmp.raw(*data[i], *data[i - 1]) < 0) {
                     return false;
@@ -100,20 +100,6 @@ namespace ovc {
         Row *back() {
             assert(data.size() > 0);
             return data.back();
-        }
-
-        /**
-         * Set the offset value codes in a sorted run.
-         */
-        void setOvcs() {
-            if (!data.empty()) {
-                data[0]->key = DOMAIN * ROW_ARITY + data[0]->columns[0];
-                for (size_t i = 1; i < data.size(); i++) {
-                    OVC ovc;
-                    data[i]->cmp(*data[i + 1], &ovc);
-                    data[i + 1]->key = ovc;
-                }
-            }
         }
     };
 }
