@@ -352,15 +352,15 @@ namespace ovc::iterators {
         while (!queue.isEmpty()) {
 #ifndef NDEBUG
             {
-                Row *row_ = queue.top();
-                const std::string &run_path = queue.top_path();
-                if (cmp(*row_, prev) < 0) {
+                Row *top = queue.top();
+                if (cmp.raw(*top, prev) < 0) {
+                    const std::string &run_path = queue.top_path();
                     log_error("SortBase::merge_external(): not ascending in run %s", run_path.c_str());
                     log_error("SortBase::merge_external(): prev %s", prev.c_str());
-                    log_error("SortBase::merge_external(): cur  %s", row_->c_str());
+                    log_error("SortBase::merge_external(): cur  %s", top->c_str());
                 }
-                assert(cmp.raw(*row_, prev) >= 0);
-                prev = *row_;
+                assert(cmp.raw(*top, prev) >= 0);
+                prev = *top;
             }
 #endif
             Row *row = queue.pop_external();

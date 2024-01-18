@@ -3,6 +3,7 @@
 #include "Iterator.h"
 #include "Sort.h"
 #include "lib/aggregates.h"
+#include "lib/comparators.h"
 
 namespace ovc::iterators {
 

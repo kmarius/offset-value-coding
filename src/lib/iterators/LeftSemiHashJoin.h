@@ -4,6 +4,7 @@
 #include "Iterator.h"
 #include "lib/io/BufferManager.h"
 #include "lib/io/ExternalRunR.h"
+#include "lib/comparators.h"
 
 namespace ovc::iterators {
     class LeftSemiHashJoin : public BinaryIterator {
@@ -24,7 +25,7 @@ namespace ovc::iterators {
         }
 
     private:
-        RowEqualPrefixNoOVC cmp;
+        comparators::EqPrefixNoOVC cmp;
         unsigned join_columns;
         std::vector<std::vector<Row>> set;
         std::vector<std::string> left_partitions;

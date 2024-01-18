@@ -2,6 +2,7 @@
 #include "HashGroupBy.h"
 #include "lib/Partitioner.h"
 #include "lib/log.h"
+#include "lib/comparators.h"
 
 namespace ovc::iterators {
 
@@ -66,7 +67,7 @@ namespace ovc::iterators {
     template<typename Aggregate>
     std::vector<Row> HashGroupBy<Aggregate>::process_partition(const std::string &path) {
 
-        auto eq = RowEqualPrefixNoOVC(group_columns, &stats);
+        auto eq = comparators::EqPrefixNoOVC(group_columns, &stats);
         ExternalRunR part(path, bufferManager, true);
         if (part.definitelyEmpty()) {
             return {};

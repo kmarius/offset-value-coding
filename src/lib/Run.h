@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "Row.h"
+#include "comparators.h"
 
 /**
  * This in-memory run holds _pointers_ to rows, which, of course, should outlive this run.
@@ -64,7 +65,7 @@ namespace ovc {
          * Sort the run with quicksort.
          */
         void sort() {
-            CmpNoOVC cmp;
+            comparators::CmpNoOVC cmp;
             std::sort(data.begin(), data.end(),
                       [cmp](const Row *a, const Row *b) -> bool {
                           return cmp(*a, *b) < 0;
@@ -75,8 +76,8 @@ namespace ovc {
          * Check if the run is sorted.
          * @return True if the run is sorted. False otherwise.
          */
-         template<typename Compare = CmpOVC>
-        bool isSorted(const Compare &cmp = CmpOVC{}) {
+         template<typename Compare = comparators::CmpOVC>
+        bool isSorted(const Compare &cmp = comparators::CmpOVC{}) {
             for (int i = 1; i < data.size(); i++) {
                 if (cmp.raw(*data[i], *data[i - 1]) < 0) {
                     return false;

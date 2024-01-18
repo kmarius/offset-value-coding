@@ -2,6 +2,7 @@
 
 #include "Iterator.h"
 #include "lib/log.h"
+#include "lib/comparators.h"
 
 namespace ovc::iterators {
 
@@ -57,6 +58,6 @@ namespace ovc::iterators {
         Row prev;
         bool is_sorted;
         size_t count;
-        CmpNoOVC cmp;
+        comparators::CmpNoOVC cmp;
     };
 }

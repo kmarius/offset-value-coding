@@ -10,6 +10,7 @@
 #include <queue>
 
 namespace ovc::iterators {
+    using namespace ovc::comparators;
 
     template<bool DISTINCT, bool USE_OVC, typename Compare = CmpOVC, typename Aggregate = aggregates::Null, bool DO_AGGREGATE = false>
     struct Sorter {
@@ -145,13 +146,25 @@ namespace ovc::iterators {
 
     class Sort : public SortBase<false, true, CmpOVC> {
     public:
-        Sort(Iterator *input) : SortBase<false, true, CmpOVC>(input, CmpOVC(&this->stats)) {}
+        explicit Sort(Iterator *input) : SortBase<false, true, CmpOVC>(input, CmpOVC(&this->stats)) {}
     };
 
     template<bool DISTINCT, bool USE_OVC, typename Compare>
     class Sort2 : public SortBase<DISTINCT, USE_OVC, Compare> {
     public:
         Sort2(Iterator *input, const Compare &cmp) : SortBase<DISTINCT, USE_OVC, Compare>(input, cmp.addStats(&this->stats)) {}
+    };
+
+    class SortDistinct : public SortBase<true, true, CmpOVC> {
+    public:
+        explicit SortDistinct(Iterator *input)
+                : SortBase<true, true, CmpOVC>(input, CmpOVC(&this->stats)) {};
+    };
+
+    class SortDistinctNoOVC : public SortBase<true, false, CmpNoOVC> {
+    public:
+        explicit SortDistinctNoOVC(Iterator *input)
+                : SortBase<true, false, CmpNoOVC>(input, CmpNoOVC(&this->stats)) {};
     };
 
     class SortPrefix : public SortBase<false, true, CmpPrefixOVC> {
@@ -181,3 +194,4 @@ namespace ovc::iterators {
 }
 
 #include "Sort.ipp"
+#include "lib/comparators.h"

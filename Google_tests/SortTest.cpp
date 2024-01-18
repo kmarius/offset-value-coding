@@ -5,6 +5,7 @@
 #include "lib/iterators/Sort.h"
 #include "lib/iterators/AssertEqual.h"
 #include "lib/iterators/RowGeneratorWithDomains.h"
+#include "lib/comparators.h"
 
 #include <gtest/gtest.h>
 

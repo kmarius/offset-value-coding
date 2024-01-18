@@ -39,9 +39,9 @@ namespace ovc::iterators {
     };
 
     template<typename Aggregate>
-    class InStreamGroupByNoOvc : public InStreamGroupByBase<false, Aggregate> {
+    class InStreamGroupByNoOVC : public InStreamGroupByBase<false, Aggregate> {
     public:
-        InStreamGroupByNoOvc(Iterator *input, int groupColumns, const Aggregate &agg = Aggregate())
+        InStreamGroupByNoOVC(Iterator *input, int groupColumns, const Aggregate &agg = Aggregate())
                 : InStreamGroupByBase<false, Aggregate>(input, groupColumns, agg) {};
     };
 }

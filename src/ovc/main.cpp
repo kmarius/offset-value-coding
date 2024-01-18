@@ -16,19 +16,16 @@
 #include "lib/iterators/VectorScan.h"
 #include "lib/iterators/LeftSemiJoin.h"
 #include "lib/iterators/LeftSemiHashJoin.h"
-#include "lib/iterators/Multiplier.h"
 #include "lib/iterators/ApproximateDuplicateGenerator.h"
-#include "lib/iterators/InSortGroupBy.h"
-#include "lib/iterators/SortDistinct.h"
 #include "lib/iterators/HashGroupBy.h"
 #include "lib/iterators/DuplicateGenerator.h"
-#include "lib/iterators/AssertCorrectOVC.h"
 #include "lib/iterators/OVCApplier.h"
-#include "lib/iterators/AssertEqual.h"
 #include "lib/iterators/Transposer.h"
 #include "lib/iterators/RowGeneratorWithDomains.h"
 #include "lib/iterators/UniqueRowGenerator.h"
 #include "lib/iterators/SegmentedSort.h"
+#include "lib/comparators.h"
+#include "lib/iterators/InSortGroupBy.h"
 
 #include <vector>
 
@@ -61,7 +58,7 @@ void experiment_groupby() {
 
                 auto hash = HashGroupBy(gen.clone(), group_columns, agg);
 
-                auto in_stream_scan = InStreamGroupByNoOvc(new Sort(gen.clone()), group_columns, agg);
+                auto in_stream_scan = InStreamGroupByNoOVC(new Sort(gen.clone()), group_columns, agg);
 
                 // we only sort by the group-by columns here
                 auto in_stream_sort_ovc = InStreamGroupBy(
@@ -69,7 +66,7 @@ void experiment_groupby() {
                         group_columns,
                         agg);
 
-                auto in_stream_sort_no_ovc = InStreamGroupByNoOvc(
+                auto in_stream_sort_no_ovc = InStreamGroupByNoOVC(
                         new SortPrefixNoOVC(gen.clone(), group_columns),
                         group_columns,
                         agg);
@@ -819,7 +816,7 @@ void experiment_complex2() {
             group_columns,
             aggregates::Count(group_columns));
 
-    auto plan_sort = InStreamGroupByNoOvc(
+    auto plan_sort = InStreamGroupByNoOVC(
             new LeftSemiJoin(
                     new SortPrefix(gen1.clone(), group_columns),
                     new SortPrefix(gen2.clone(), group_columns),
@@ -926,7 +923,7 @@ void experiment_complex4() {
             group_columns,
             aggregates::Count(group_columns));
 
-    auto plan_sort = InStreamGroupByNoOvc(
+    auto plan_sort = InStreamGroupByNoOVC(
             new LeftSemiJoinNoOVC(
                     new SortPrefix(gen1.clone(), group_columns),
                     new SortPrefix(gen2.clone(), group_columns),
@@ -995,7 +992,7 @@ void experiment_complex4_param() {
                 group_columns,
                 aggregates::Count(group_columns));
 
-        auto plan_sort = InStreamGroupByNoOvc(
+        auto plan_sort = InStreamGroupByNoOVC(
                 new LeftSemiJoinNoOVC(
                         new SortPrefix(gen1.clone(), group_columns),
                         new SortPrefix(gen2.clone(), group_columns),

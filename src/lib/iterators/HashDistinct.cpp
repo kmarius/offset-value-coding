@@ -1,6 +1,7 @@
 
 #include "HashDistinct.h"
 #include "lib/log.h"
+#include "lib/comparators.h"
 
 namespace ovc::iterators {
 
@@ -53,7 +54,7 @@ namespace ovc::iterators {
     }
 
     std::vector<Row> HashDistinct::process_partition(const std::string &path) {
-        auto eq = RowEqualPrefixNoOVC(prefix, &stats);
+        auto eq = comparators::EqPrefixNoOVC(prefix, &stats);
         ExternalRunR part(path, bufferManager, true);
         if (part.definitelyEmpty()) {
             return {};

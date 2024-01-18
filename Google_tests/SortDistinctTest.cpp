@@ -1,7 +1,6 @@
 #include "lib/Row.h"
 #include "lib/iterators/AssertSortedUnique.h"
-#include "lib/iterators/IncreasingRangeGenerator.h"
-#include "lib/iterators/SortDistinct.h"
+#include "lib/iterators/Sort.h"
 #include "lib/iterators/VectorScan.h"
 #include "lib/iterators/RowGeneratorWithDomains.h"
 
@@ -33,8 +32,8 @@ protected:
         delete plan;
     }
 
-    void testSortDistinctNoOvc(size_t num_rows) const {
-        auto plan = new AssertSortedUnique(new SortDistinctNoOvc(new RowGeneratorWithDomains(num_rows, 100, 0, SEED)));
+    void testSortDistinctNoOVC(size_t num_rows) const {
+        auto plan = new AssertSortedUnique(new SortDistinctNoOVC(new RowGeneratorWithDomains(num_rows, 100, 0, SEED)));
         plan->run();
         ASSERT_TRUE(plan->isSortedAndUnique());
         delete plan;
@@ -122,49 +121,49 @@ TEST_F(SortDistinctTest, SortLarge) {
 }
 
 TEST_F(SortDistinctTest, SortEmptyNoOvc) {
-    testSortDistinctNoOvc(0);
+    testSortDistinctNoOVC(0);
 }
 
 TEST_F(SortDistinctTest, SortOneNoOvc) {
-    testSortDistinctNoOvc(1);
+    testSortDistinctNoOVC(1);
 }
 
 TEST_F(SortDistinctTest, SortTwoNoOvc) {
-    testSortDistinctNoOvc(2);
+    testSortDistinctNoOVC(2);
 }
 
 TEST_F(SortDistinctTest, SortTinyNoOvc) {
-    testSortDistinctNoOvc(5);
+    testSortDistinctNoOVC(5);
 }
 
 TEST_F(SortDistinctTest, SortSmallNoOvc) {
-    testSortDistinctNoOvc(QUEUE_SIZE);
+    testSortDistinctNoOVC(QUEUE_SIZE);
 }
 
 TEST_F(SortDistinctTest, SortSmallNoOvc2) {
-    testSortDistinctNoOvc(QUEUE_SIZE * 3 / 2);
+    testSortDistinctNoOVC(QUEUE_SIZE * 3 / 2);
 }
 
 TEST_F(SortDistinctTest, SortSmallishNoOvc) {
-    testSortDistinctNoOvc(QUEUE_SIZE * 3);
+    testSortDistinctNoOVC(QUEUE_SIZE * 3);
 }
 
 TEST_F(SortDistinctTest, SortMediumNoOvc) {
-    testSortDistinctNoOvc(INITIAL_RUNS * QUEUE_SIZE);
+    testSortDistinctNoOVC(INITIAL_RUNS * QUEUE_SIZE);
 }
 
 //TEST_F(SortDistinctTest, SortMediumButSmallerNoOvc) {
-//    testSortDistinctNoOvc(INITIAL_RUNS * QUEUE_SIZE - QUEUE_SIZE / 2);
+//    testSortDistinctNoOVC(INITIAL_RUNS * QUEUE_SIZE - QUEUE_SIZE / 2);
 //}
 //
 //TEST_F(SortDistinctTest, SortMediumButABitLargerNoOvc) {
-//    testSortDistinctNoOvc(INITIAL_RUNS * QUEUE_SIZE + QUEUE_SIZE / 2);
+//    testSortDistinctNoOVC(INITIAL_RUNS * QUEUE_SIZE + QUEUE_SIZE / 2);
 //}
 
 TEST_F(SortDistinctTest, SortMediumButABitLargerNoOvc2) {
-    testSortDistinctNoOvc(INITIAL_RUNS * QUEUE_SIZE + QUEUE_SIZE * 3 / 2);
+    testSortDistinctNoOVC(INITIAL_RUNS * QUEUE_SIZE + QUEUE_SIZE * 3 / 2);
 }
 
 //TEST_F(SortDistinctTest, SortLargeNoOvc) {
-//    testSortDistinctNoOvc(INITIAL_RUNS * QUEUE_SIZE * 8);
+//    testSortDistinctNoOVC(INITIAL_RUNS * QUEUE_SIZE * 8);
 //}

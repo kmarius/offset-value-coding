@@ -1,5 +1,6 @@
 #include "lib/io/ExternalRunRS.h"
 #include "lib/log.h"
+#include "lib/comparators.h"
 
 #include <cstdio>
 
@@ -14,7 +15,7 @@ int main(int argc, char **argv) {
             continue;
         }
         prev = *row;
-        ovc::CmpOVC cmp;
+        ovc::comparators::CmpOVC cmp;
 
         int count;
         for (count = 1; (row = run.read()) != nullptr; count++, prev = *row) {

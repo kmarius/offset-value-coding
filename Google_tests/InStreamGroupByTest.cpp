@@ -5,6 +5,7 @@
 #include "lib/log.h"
 #include "lib/iterators/Sort.h"
 #include "lib/iterators/RowGenerator.h"
+#include "lib/comparators.h"
 
 #include <gtest/gtest.h>
 
@@ -25,7 +26,7 @@ protected:
 TEST_F(InStreamGroupByTest, EmptyTest) {
     auto *plan = new AssertEqual(
             new InStreamGroupBy(
-                    new SortBase<false, true, CmpPrefixNoOVC>(new RowGenerator(0, 0, 0), CmpPrefixNoOVC{4}),
+                    new SortPrefix(new RowGenerator(0, 0, 0), 4),
                     4,
                     aggregates::Count(1)),
             new VectorScan({})
@@ -37,7 +38,7 @@ TEST_F(InStreamGroupByTest, EmptyTest) {
 
 TEST_F(InStreamGroupByTest, OneColumnSimple) {
     auto *plan = new AssertEqual(
-            new InStreamGroupBy(new SortBase<false, true, CmpPrefixOVC>(
+            new InStreamGroupBy(new SortPrefix(
                     new VectorScan({
                                            {0, 0, {0, 1}},
                                            {0, 1, {0, 2}},
@@ -46,7 +47,7 @@ TEST_F(InStreamGroupByTest, OneColumnSimple) {
                                            {0, 4, {1, 5}},
                                            {0, 3, {2, 6}},
                                            {0, 4, {2, 7}},
-                                   }), CmpPrefixOVC(1)), 1, aggregates::Count(1)),
+                                   }), 1), 1, aggregates::Count(1)),
             new VectorScan({
                                    {0, 0, {0, 2}},
                                    {0, 0, {1, 3}},
@@ -60,7 +61,7 @@ TEST_F(InStreamGroupByTest, OneColumnSimple) {
 
 TEST_F(InStreamGroupByTest, TwoColumnsSimple) {
     auto *plan = new AssertEqual(
-            new InStreamGroupBy(new SortBase<false, true, CmpPrefixOVC>(
+            new InStreamGroupBy(new SortPrefix(
                     new VectorScan({
                                            {0, 0, {0, 1, 5}},
                                            {0, 1, {0, 1, 5}},
@@ -69,7 +70,7 @@ TEST_F(InStreamGroupByTest, TwoColumnsSimple) {
                                            {0, 4, {1, 3, 7}},
                                            {0, 3, {2, 7, 2}},
                                            {0, 4, {2, 7, 9}},
-                                   }), CmpPrefixOVC{2}), 2, aggregates::Count(2)),
+                                   }), 2), 2, aggregates::Count(2)),
             new VectorScan({
                                    {0, 0, {0, 1, 2}},
                                    {0, 0, {1, 2, 1}},
@@ -87,9 +88,9 @@ TEST_F(InStreamGroupByTest, DoesntLoseRows) {
     int group_columns = 2;
 
     auto *plan = new InStreamGroupBy(
-            new SortBase<false, true, CmpPrefixNoOVC>(
+            new SortPrefix(
                     new RowGenerator(num_rows, 32, 5),
-                    CmpPrefixNoOVC(group_columns)),
+                    group_columns),
             group_columns,
             aggregates::Count(group_columns));
     plan->open();
@@ -107,8 +108,7 @@ TEST_F(InStreamGroupByTest, DoesntLoseRows2) {
     int group_columns = 4;
 
     auto *plan = new InStreamGroupBy(
-            new SortBase<false, true, CmpPrefixNoOVC>(new RowGenerator(num_rows, 32, 3),
-                                                      CmpPrefixNoOVC(group_columns)),
+            new SortPrefix(new RowGenerator(num_rows, 32, 3), group_columns),
             group_columns,
             aggregates::Count(group_columns));
     plan->open();
@@ -122,9 +122,9 @@ TEST_F(InStreamGroupByTest, DoesntLoseRows2) {
 }
 
 
-TEST_F(InStreamGroupByTest, OneColumnSimpleNoOvc) {
+TEST_F(InStreamGroupByTest, OneColumnSimpleNoOVC) {
     auto *plan = new AssertEqual(
-            new InStreamGroupByNoOvc(new Sort(
+            new InStreamGroupByNoOVC(new Sort(
                                              new VectorScan({
                                                                     {0, 0, {0, 1}},
                                                                     {0, 1, {0, 2}},
@@ -147,9 +147,9 @@ TEST_F(InStreamGroupByTest, OneColumnSimpleNoOvc) {
     delete plan;
 }
 
-TEST_F(InStreamGroupByTest, TwoColumnsSimpleNoOvc) {
+TEST_F(InStreamGroupByTest, TwoColumnsSimpleNoOVC) {
     auto *plan = new AssertEqual(
-            new InStreamGroupByNoOvc(new Sort(
+            new InStreamGroupByNoOVC(new Sort(
                                              new VectorScan({
                                                                     {0, 0, {0, 1, 5}},
                                                                     {0, 1, {0, 1, 5}},
@@ -173,11 +173,11 @@ TEST_F(InStreamGroupByTest, TwoColumnsSimpleNoOvc) {
     delete plan;
 }
 
-TEST_F(InStreamGroupByTest, DoesntLoseRowsNoOvc) {
+TEST_F(InStreamGroupByTest, DoesntLoseRowsNoOVC) {
     unsigned num_rows = 100000;
     int group_columns = 2;
 
-    auto *plan = new InStreamGroupByNoOvc(new Sort(new RowGenerator(num_rows, 32, 5)),
+    auto *plan = new InStreamGroupByNoOVC(new Sort(new RowGenerator(num_rows, 32, 5)),
                                           group_columns,
                                           aggregates::Count(group_columns));
     plan->open();
@@ -190,11 +190,11 @@ TEST_F(InStreamGroupByTest, DoesntLoseRowsNoOvc) {
     delete plan;
 }
 
-TEST_F(InStreamGroupByTest, DoesntLoseRows2NoOvc) {
+TEST_F(InStreamGroupByTest, DoesntLoseRows2NoOVC) {
     unsigned num_rows = 100000;
     int group_columns = 4;
 
-    auto *plan = new InStreamGroupByNoOvc(new Sort(new RowGenerator(num_rows, 32, 3)),
+    auto *plan = new InStreamGroupByNoOVC(new Sort(new RowGenerator(num_rows, 32, 3)),
                                           group_columns,
                                           aggregates::Count(group_columns));
     plan->open();

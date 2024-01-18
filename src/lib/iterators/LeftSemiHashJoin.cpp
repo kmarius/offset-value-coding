@@ -1,5 +1,6 @@
 #include "LeftSemiHashJoin.h"
 #include "lib/Partitioner.h"
+#include "lib/comparators.h"
 
 namespace ovc::iterators {
 
