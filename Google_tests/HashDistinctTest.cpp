@@ -28,7 +28,7 @@ protected:
     }
 
     void testDistinct(size_t num_rows) {
-        auto *plan = new AssertSortedUnique(new Sort(
+        auto *plan = new AssertSortedUnique(new SortOVC(
                 new HashDistinct(
                         new RowGeneratorWithDomains(num_rows, 100, 0, SEED))));
         plan->run();

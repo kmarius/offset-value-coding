@@ -28,10 +28,10 @@ protected:
 
     }
 
-    void testInStreamDistinct(size_t num_rows) {
+    void testInStreamDistinctOVC(size_t num_rows) {
         auto *plan = new AssertSortedUnique(
-                new InStreamDistinct(
-                        new Sort(
+                new InStreamDistinctOVC(
+                        new SortOVC(
                                 new RowGeneratorWithDomains(num_rows, 100, 0, SEED))));
         plan->run();
         ASSERT_TRUE(plan->isSortedAndUnique());
@@ -41,10 +41,10 @@ protected:
         delete plan;
     }
 
-    void testInStreamDistinctNoOvc(size_t num_rows) {
+    void testInStreamDistinct(size_t num_rows) {
         auto *plan = new AssertSortedUnique(
-                new InStreamDistinctNoOvc(
-                        new SortNoOVC(
+                new InStreamDistinct(
+                        new Sort(
                                 new RowGeneratorWithDomains(num_rows, 100, 0, SEED))));
         plan->run();
         ASSERT_TRUE(plan->isSortedAndUnique());
@@ -86,6 +86,54 @@ TEST_F(InStreamDistinctTest, DetectDupe) {
     delete plan;
 }
 
+TEST_F(InStreamDistinctTest, DistinctOVCEmpty) {
+    testInStreamDistinctOVC(0);
+}
+
+TEST_F(InStreamDistinctTest, DistinctOVCOne) {
+    testInStreamDistinctOVC(1);
+}
+
+TEST_F(InStreamDistinctTest, DistinctOVCTwo) {
+    testInStreamDistinctOVC(2);
+}
+
+TEST_F(InStreamDistinctTest, DistinctOVCTiny) {
+    testInStreamDistinctOVC(5);
+}
+
+TEST_F(InStreamDistinctTest, DistinctOVCSmall) {
+    testInStreamDistinctOVC(QUEUE_SIZE);
+}
+
+TEST_F(InStreamDistinctTest, DistinctOVCSmall2) {
+    testInStreamDistinctOVC(QUEUE_SIZE + QUEUE_SIZE / 2);
+}
+
+TEST_F(InStreamDistinctTest, DistinctOVCSmallish) {
+    testInStreamDistinctOVC(QUEUE_SIZE * 3);
+}
+
+TEST_F(InStreamDistinctTest, DistinctOVCMedium) {
+    testInStreamDistinctOVC(QUEUE_SIZE * INITIAL_RUNS);
+}
+
+TEST_F(InStreamDistinctTest, DistinctOVCMediumButSmaller) {
+    testInStreamDistinctOVC(QUEUE_SIZE * INITIAL_RUNS - QUEUE_SIZE / 2);
+}
+
+TEST_F(InStreamDistinctTest, DistinctOVCMediumButABitLarger) {
+    testInStreamDistinctOVC(QUEUE_SIZE * INITIAL_RUNS + QUEUE_SIZE / 2);
+}
+
+TEST_F(InStreamDistinctTest, DistinctOVCMediumButABitLarger2) {
+    testInStreamDistinctOVC(QUEUE_SIZE * INITIAL_RUNS + QUEUE_SIZE * 3 / 2);
+}
+
+TEST_F(InStreamDistinctTest, DistinctOVCLarge) {
+    testInStreamDistinctOVC(QUEUE_SIZE * INITIAL_RUNS * 8);
+}
+
 TEST_F(InStreamDistinctTest, DistinctEmpty) {
     testInStreamDistinct(0);
 }
@@ -118,66 +166,18 @@ TEST_F(InStreamDistinctTest, DistinctMedium) {
     testInStreamDistinct(QUEUE_SIZE * INITIAL_RUNS);
 }
 
-TEST_F(InStreamDistinctTest, DistinctMediumButSmaller) {
-    testInStreamDistinct(QUEUE_SIZE * INITIAL_RUNS - QUEUE_SIZE / 2);
-}
-
-TEST_F(InStreamDistinctTest, DistinctMediumButABitLarger) {
-    testInStreamDistinct(QUEUE_SIZE * INITIAL_RUNS + QUEUE_SIZE / 2);
-}
-
+//TEST_F(InStreamDistinctTest, DistinctMediumButSmaller) {
+//    testInStreamDistinct(QUEUE_SIZE * INITIAL_RUNS - QUEUE_SIZE / 2);
+//}
+//
+//TEST_F(InStreamDistinctTest, DistinctMediumButABitLarger) {
+//    testInStreamDistinct(QUEUE_SIZE * INITIAL_RUNS + QUEUE_SIZE / 2);
+//}
+//
 TEST_F(InStreamDistinctTest, DistinctMediumButABitLarger2) {
     testInStreamDistinct(QUEUE_SIZE * INITIAL_RUNS + QUEUE_SIZE * 3 / 2);
 }
-
-TEST_F(InStreamDistinctTest, DistinctLarge) {
-    testInStreamDistinct(QUEUE_SIZE * INITIAL_RUNS * 8);
-}
-
-TEST_F(InStreamDistinctTest, DistinctNoOvcEmpty) {
-    testInStreamDistinctNoOvc(0);
-}
-
-TEST_F(InStreamDistinctTest, DistinctNoOvcOne) {
-    testInStreamDistinctNoOvc(1);
-}
-
-TEST_F(InStreamDistinctTest, DistinctNoOvcTwo) {
-    testInStreamDistinctNoOvc(2);
-}
-
-TEST_F(InStreamDistinctTest, DistinctNoOvcTiny) {
-    testInStreamDistinctNoOvc(5);
-}
-
-TEST_F(InStreamDistinctTest, DistinctNoOvcSmall) {
-    testInStreamDistinctNoOvc(QUEUE_SIZE);
-}
-
-TEST_F(InStreamDistinctTest, DistinctNoOvcSmall2) {
-    testInStreamDistinctNoOvc(QUEUE_SIZE + QUEUE_SIZE / 2);
-}
-
-TEST_F(InStreamDistinctTest, DistinctNoOvcSmallish) {
-    testInStreamDistinctNoOvc(QUEUE_SIZE * 3);
-}
-
-TEST_F(InStreamDistinctTest, DistinctNoOvcMedium) {
-    testInStreamDistinctNoOvc(QUEUE_SIZE * INITIAL_RUNS);
-}
-
-//TEST_F(InStreamDistinctTest, DistinctNoOvcMediumButSmaller) {
-//    testInStreamDistinctNoOvc(QUEUE_SIZE * INITIAL_RUNS - QUEUE_SIZE / 2);
-//}
 //
-//TEST_F(InStreamDistinctTest, DistinctNoOvcMediumButABitLarger) {
-//    testInStreamDistinctNoOvc(QUEUE_SIZE * INITIAL_RUNS + QUEUE_SIZE / 2);
-//}
-//
-TEST_F(InStreamDistinctTest, DistinctNoOvcMediumButABitLarger2) {
-    testInStreamDistinctNoOvc(QUEUE_SIZE * INITIAL_RUNS + QUEUE_SIZE * 3 / 2);
-}
-//
-//TEST_F(InStreamDistinctTest, DistinctNoOvcLarge) {
-//    testInStreamDistinctNoOvc(QUEUE_SIZE * INITIAL_RUNS * 8);
+//TEST_F(InStreamDistinctTest, DistinctLarge) {
+//    testInStreamDistinct(QUEUE_SIZE * INITIAL_RUNS * 8);
 //}

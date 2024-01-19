@@ -33,6 +33,6 @@ namespace ovc::iterators {
         bool has_prev;
     };
 
-    typedef InStreamDistinctBase<true> InStreamDistinct;
-    typedef InStreamDistinctBase<false> InStreamDistinctNoOvc;
+    typedef InStreamDistinctBase<true> InStreamDistinctOVC;
+    typedef InStreamDistinctBase<false> InStreamDistinct;
 }

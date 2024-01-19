@@ -24,7 +24,7 @@ protected:
 
 TEST_F(HashGroupByTest, EmptyTest) {
     auto *plan = new AssertEqual(
-            new HashGroupBy(new Sort(new RowGenerator(0, 0, 0)), 4, aggregates::Count(4)),
+            new HashGroupBy(new SortOVC(new RowGenerator(0, 0, 0)), 4, aggregates::Count(4)),
             new VectorScan({})
     );
     plan->run();
@@ -33,7 +33,7 @@ TEST_F(HashGroupByTest, EmptyTest) {
 }
 
 TEST_F(HashGroupByTest, OneColumnSimple) {
-    auto *plan = new AssertEqual( new Sort(
+    auto *plan = new AssertEqual( new SortOVC(
             new HashGroupBy(
                     new VectorScan({
                                            {0, 0, {0, 1}},
@@ -56,7 +56,7 @@ TEST_F(HashGroupByTest, OneColumnSimple) {
 }
 
 TEST_F(HashGroupByTest, TwoColumnsSimple) {
-    auto *plan = new AssertEqual(new Sort(
+    auto *plan = new AssertEqual(new SortOVC(
             new HashGroupBy(
                     new VectorScan({
                                            {0, 0, {0, 1, 5}},

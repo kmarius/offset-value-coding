@@ -43,7 +43,7 @@ namespace ovc {
 
     template<bool USE_OVC, typename Compare>
     struct PriorityQueueBase<USE_OVC, Compare>::Node {
-        /* Sort key in this priority queue. */
+        /* SortOVC key in this priority queue. */
         node_key_t key;
 
         /* Index of the corresponding element in the workspace (i.e. row, run2) */

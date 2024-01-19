@@ -32,16 +32,16 @@ namespace ovc::iterators {
     };
 
     template<typename Aggregate>
-    class InStreamGroupBy : public InStreamGroupByBase<true, Aggregate> {
+    class InStreamGroupByOVC : public InStreamGroupByBase<true, Aggregate> {
     public:
-        InStreamGroupBy(Iterator *input, int groupColumns, const Aggregate &agg = Aggregate())
+        InStreamGroupByOVC(Iterator *input, int groupColumns, const Aggregate &agg = Aggregate())
                 : InStreamGroupByBase<true, Aggregate>(input, groupColumns, agg) {};
     };
 
     template<typename Aggregate>
-    class InStreamGroupByNoOVC : public InStreamGroupByBase<false, Aggregate> {
+    class InStreamGroupBy : public InStreamGroupByBase<false, Aggregate> {
     public:
-        InStreamGroupByNoOVC(Iterator *input, int groupColumns, const Aggregate &agg = Aggregate())
+        InStreamGroupBy(Iterator *input, int groupColumns, const Aggregate &agg = Aggregate())
                 : InStreamGroupByBase<false, Aggregate>(input, groupColumns, agg) {};
     };
 }

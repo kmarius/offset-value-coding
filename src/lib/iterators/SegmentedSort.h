@@ -254,9 +254,9 @@ reset:
     };
 
     template<typename Compare, typename Equals>
-    class SegmentedSortNoOVC : public SegmentedSortBase<false, Compare, Equals> {
+    class SegmentedSort : public SegmentedSortBase<false, Compare, Equals> {
     public:
-        SegmentedSortNoOVC(Iterator *input, const Compare &cmp, const Equals &eq)
+        SegmentedSort(Iterator *input, const Compare &cmp, const Equals &eq)
                 : SegmentedSortBase<false, Compare, Equals>(input, cmp, eq) {
         };
     };

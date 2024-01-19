@@ -1,6 +1,5 @@
 #include "lib/Row.h"
 #include "lib/iterators/AssertSorted.h"
-#include "lib/iterators/IncreasingRangeGenerator.h"
 #include "lib/iterators/VectorScan.h"
 #include "lib/iterators/Sort.h"
 #include "lib/iterators/AssertEqual.h"
@@ -28,11 +27,11 @@ protected:
 
     }
 
-    void testSorted(size_t num_rows) {
+    void testSortOVC(size_t num_rows) {
         auto gen = new RowGeneratorWithDomains(num_rows, 100, 0, SEED);
         auto rows = RowGeneratorWithDomains(num_rows, 100, 0, SEED).collect();
-        auto sorted = new AssertSorted(new Sort(gen));
-        CmpNoOVC cmp;
+        auto sorted = new AssertSorted(new SortOVC(gen));
+        Cmp cmp;
         std::sort(rows.begin(), rows.end(),
                   [cmp](const Row &a, const Row &b) -> bool {
                       return cmp(a, b) < 0;
@@ -45,11 +44,11 @@ protected:
         delete plan;
     }
 
-    void testSortedNoOvc(size_t num_rows) {
+    void testSort(size_t num_rows) {
         auto gen = new RowGeneratorWithDomains(num_rows, 100, 0, SEED);
         auto rows = RowGeneratorWithDomains(num_rows, 100, 0, SEED).collect();
-        auto sorted = new AssertSorted(new SortNoOVC(gen));
-        CmpNoOVC cmp;
+        auto sorted = new AssertSorted(new Sort(gen));
+        Cmp cmp;
         std::sort(rows.begin(), rows.end(),
                   [cmp](const Row &a, const Row &b) -> bool {
                       return cmp(a, b) < 0;
@@ -83,123 +82,123 @@ TEST_F(SortTest, DetectUnsorted) {
     delete plan;
 }
 
+TEST_F(SortTest, SortOVCEmpty) {
+    testSortOVC(0);
+}
+
+TEST_F(SortTest, SortOVCOne) {
+    testSortOVC(1);
+}
+
+TEST_F(SortTest, SortOVCTwo) {
+    testSortOVC(2);
+}
+
+TEST_F(SortTest, SortOVCTiny) {
+    testSortOVC(5);
+}
+
+TEST_F(SortTest, SortOVCSmall) {
+    testSortOVC(QUEUE_SIZE);
+}
+
+TEST_F(SortTest, SortOVCSmall2) {
+    testSortOVC(QUEUE_SIZE * 3 / 2);
+}
+
+TEST_F(SortTest, SortOVCSmallish) {
+    testSortOVC(QUEUE_SIZE * 3);
+}
+
+TEST_F(SortTest, SortOVCSmallish2) {
+    testSortOVC(QUEUE_SIZE * 4);
+}
+
+TEST_F(SortTest, SortOVCSmallish3) {
+    testSortOVC(QUEUE_SIZE * 5);
+}
+
+TEST_F(SortTest, SortOVCSmallish4) {
+    testSortOVC(QUEUE_SIZE * 6);
+}
+
+TEST_F(SortTest, SortOVCMedium) {
+    testSortOVC(INITIAL_RUNS * QUEUE_SIZE);
+}
+
+TEST_F(SortTest, SortOVCMediumButSmaller) {
+    testSortOVC(INITIAL_RUNS * QUEUE_SIZE - QUEUE_SIZE / 2);
+}
+
+TEST_F(SortTest, SortOVCMediumButABitLarger) {
+    testSortOVC(INITIAL_RUNS * QUEUE_SIZE + QUEUE_SIZE / 2);
+}
+
+TEST_F(SortTest, SortOVCMediumButABitLarger2) {
+    testSortOVC(INITIAL_RUNS * QUEUE_SIZE + QUEUE_SIZE * 3 / 2);
+}
+
+TEST_F(SortTest, SortOVCLarge) {
+    testSortOVC(INITIAL_RUNS * QUEUE_SIZE * 8);
+}
+
+
 TEST_F(SortTest, SortEmpty) {
-    testSorted(0);
+    testSort(0);
 }
 
 TEST_F(SortTest, SortOne) {
-    testSorted(1);
+    testSort(1);
 }
 
 TEST_F(SortTest, SortTwo) {
-    testSorted(2);
+    testSort(2);
 }
 
 TEST_F(SortTest, SortTiny) {
-    testSorted(5);
+    testSort(5);
 }
 
 TEST_F(SortTest, SortSmall) {
-    testSorted(QUEUE_SIZE);
+    testSort(QUEUE_SIZE);
 }
 
 TEST_F(SortTest, SortSmall2) {
-    testSorted(QUEUE_SIZE * 3 / 2);
+    testSort(QUEUE_SIZE * 3 / 2);
 }
 
 TEST_F(SortTest, SortSmallish) {
-    testSorted(QUEUE_SIZE * 3);
+    testSort(QUEUE_SIZE * 3);
 }
 
 TEST_F(SortTest, SortSmallish2) {
-    testSorted(QUEUE_SIZE * 4);
+    testSort(QUEUE_SIZE * 4);
 }
 
 TEST_F(SortTest, SortSmallish3) {
-    testSorted(QUEUE_SIZE * 5);
+    testSort(QUEUE_SIZE * 5);
 }
 
 TEST_F(SortTest, SortSmallish4) {
-    testSorted(QUEUE_SIZE * 6);
+    testSort(QUEUE_SIZE * 6);
 }
 
 TEST_F(SortTest, SortMedium) {
-    testSorted(INITIAL_RUNS * QUEUE_SIZE);
+    testSortOVC(INITIAL_RUNS * QUEUE_SIZE);
 }
 
-TEST_F(SortTest, SortMediumButSmaller) {
-    testSorted(INITIAL_RUNS * QUEUE_SIZE - QUEUE_SIZE / 2);
-}
-
-TEST_F(SortTest, SortMediumButABitLarger) {
-    testSorted(INITIAL_RUNS * QUEUE_SIZE + QUEUE_SIZE / 2);
-}
-
-TEST_F(SortTest, SortMediumButABitLarger2) {
-    testSorted(INITIAL_RUNS * QUEUE_SIZE + QUEUE_SIZE * 3 / 2);
-}
-
-TEST_F(SortTest, SortLarge) {
-    testSorted(INITIAL_RUNS * QUEUE_SIZE * 8);
-}
-
-
-TEST_F(SortTest, SortEmptyNoOvc) {
-    testSortedNoOvc(0);
-}
-
-TEST_F(SortTest, SortOneNoOvc) {
-    testSortedNoOvc(1);
-}
-
-TEST_F(SortTest, SortTwoNoOvc) {
-    testSortedNoOvc(2);
-}
-
-TEST_F(SortTest, SortTinyNoOvc) {
-    testSortedNoOvc(5);
-}
-
-TEST_F(SortTest, SortSmallNoOvc) {
-    testSortedNoOvc(QUEUE_SIZE);
-}
-
-TEST_F(SortTest, SortSmallNoOvc2) {
-    testSortedNoOvc(QUEUE_SIZE * 3 / 2);
-}
-
-TEST_F(SortTest, SortSmallishNoOvc) {
-    testSortedNoOvc(QUEUE_SIZE * 3);
-}
-
-TEST_F(SortTest, SortSmallishNoOvc2) {
-    testSortedNoOvc(QUEUE_SIZE * 4);
-}
-
-TEST_F(SortTest, SortSmallishNoOvc3) {
-    testSortedNoOvc(QUEUE_SIZE * 5);
-}
-
-TEST_F(SortTest, SortSmallishNoOvc4) {
-    testSortedNoOvc(QUEUE_SIZE * 6);
-}
-
-TEST_F(SortTest, SortMediumNoOvc) {
-    testSorted(INITIAL_RUNS * QUEUE_SIZE);
-}
-
-//TEST_F(SortTest, SortMediumButSmallerNoOvc) {
+//TEST_F(SortTest, SortMediumButSmaller) {
 //    testInSortDistinct(INITIAL_RUNS * QUEUE_SIZE - QUEUE_SIZE / 2);
 //}
 //
-//TEST_F(SortTest, SortMediumButABitLargerNoOvc) {
+//TEST_F(SortTest, SortMediumButABitLarger) {
 //    testInSortDistinct(INITIAL_RUNS * QUEUE_SIZE + QUEUE_SIZE / 2);
 //}
 //
-TEST_F(SortTest, SortMediumButABitLargerNoOvc2) {
-    testSorted(INITIAL_RUNS * QUEUE_SIZE + QUEUE_SIZE * 3 / 2);
+TEST_F(SortTest, SortMediumButABitLarger2) {
+    testSortOVC(INITIAL_RUNS * QUEUE_SIZE + QUEUE_SIZE * 3 / 2);
 }
 //
-//TEST_F(SortTest, SortLargeNoOvc) {
+//TEST_F(SortTest, SortLarge) {
 //    testInSortDistinct(INITIAL_RUNS * QUEUE_SIZE * 8);
 //}

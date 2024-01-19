@@ -43,8 +43,8 @@ TEST_F(SegmentedSortTest, TinyTest0) {
                                  });
 
     auto plan = AssertEqual(
-            new SegmentedSortBase<false, comparators::CmpPrefixNoOVC, comparators::EqPrefixNoOVC>(
-                    vec, comparators::CmpPrefixNoOVC(2), comparators::EqPrefixNoOVC(1)
+            new SegmentedSortBase<false, comparators::CmpPrefix, comparators::EqPrefix>(
+                    vec, comparators::CmpPrefix(2), comparators::EqPrefix(1)
             ),
             wanted
     );
@@ -64,8 +64,8 @@ TEST_F(SegmentedSortTest, TinyTest1) {
                                  });
 
     auto plan = AssertEqual(
-            new SegmentedSortNoOVC(
-                    vec, comparators::CmpColumnListNoOVC({1}), comparators::EqColumnListNoOVC({0})
+            new SegmentedSort(
+                    vec, comparators::CmpColumnList({1}), comparators::EqColumnList({0})
             ),
             wanted
     );
@@ -92,8 +92,8 @@ TEST_F(SegmentedSortTest, TinyTest2) {
                                  });
 
     auto plan = AssertEqual(
-            new SegmentedSortNoOVC(
-                    vec, comparators::CmpColumnListNoOVC({1}), comparators::EqColumnListNoOVC({0})
+            new SegmentedSort(
+                    vec, comparators::CmpColumnList({1}), comparators::EqColumnList({0})
             ),
             wanted
     );
@@ -137,8 +137,8 @@ TEST_F(SegmentedSortTest, TinyTest3) {
                               });
 
     auto plan = AssertEqual(
-            new SegmentedSortNoOVC(
-                    vec, comparators::CmpColumnListNoOVC({1}), comparators::EqColumnListNoOVC({0})
+            new SegmentedSort(
+                    vec, comparators::CmpColumnList({1}), comparators::EqColumnList({0})
             ),
             wanted
     );

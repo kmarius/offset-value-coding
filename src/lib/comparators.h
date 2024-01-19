@@ -4,23 +4,23 @@
 
 namespace ovc::comparators {
 
-    struct CmpColumnListNoOVC {
+    struct CmpColumnList {
         uint8_t columns[ROW_ARITY];
         int length;
         struct iterator_stats *stats;
     private:
-        CmpColumnListNoOVC() : columns(), length(0), stats(nullptr) {};
+        CmpColumnList() : columns(), length(0), stats(nullptr) {};
 
     public:
-        CmpColumnListNoOVC addStats(struct iterator_stats *stats) const {
-            CmpColumnListNoOVC cmp;
+        CmpColumnList addStats(struct iterator_stats *stats) const {
+            CmpColumnList cmp;
             cmp.stats = stats;
             cmp.length = length;
             mempcpy(cmp.columns, columns, length * sizeof *columns);
             return cmp;
         }
 
-        explicit CmpColumnListNoOVC(std::initializer_list<uint8_t> columns, iterator_stats *stats = nullptr)
+        explicit CmpColumnList(std::initializer_list<uint8_t> columns, iterator_stats *stats = nullptr)
                 : length(columns.size()), stats(stats) {
             assert(columns.size() <= ROW_ARITY);
             int i = 0;
@@ -29,7 +29,7 @@ namespace ovc::comparators {
             }
         };
 
-        CmpColumnListNoOVC(const uint8_t *cols, int n, iterator_stats *stats = nullptr)
+        CmpColumnList(const uint8_t *cols, int n, iterator_stats *stats = nullptr)
                 : length(n), stats(stats) {
             assert(n <= ROW_ARITY);
             for (int i = 0; i < n; i++) {
@@ -63,18 +63,18 @@ namespace ovc::comparators {
         }
 
         inline unsigned long makeOVC(long arity, long offset, const ovc::Row *row) const {
-            log_error("makeOVC called on CmpPrefixNoOVC");
+            log_error("makeOVC called on CmpPrefix");
             assert(false);
             return 0;
         }
     };
 
-    struct CmpPrefixNoOVC : public CmpColumnListNoOVC {
+    struct CmpPrefix : public CmpColumnList {
     public:
-        CmpPrefixNoOVC() = delete;
+        CmpPrefix() = delete;
 
-        explicit CmpPrefixNoOVC(int prefix, iterator_stats *stats = nullptr)
-                : CmpColumnListNoOVC(nullptr, 0, stats) {
+        explicit CmpPrefix(int prefix, iterator_stats *stats = nullptr)
+                : CmpColumnList(nullptr, 0, stats) {
             length = prefix;
             for (int i = 0; i < prefix; i++) {
                 columns[i] = i;
@@ -82,9 +82,9 @@ namespace ovc::comparators {
         };
     };
 
-    struct CmpNoOVC : public CmpPrefixNoOVC {
+    struct Cmp : public CmpPrefix {
     public:
-        explicit CmpNoOVC(iterator_stats *stats = nullptr) : CmpPrefixNoOVC(ROW_ARITY, stats) {}
+        explicit Cmp(iterator_stats *stats = nullptr) : CmpPrefix(ROW_ARITY, stats) {}
     };
 
     struct CmpColumnListOVC {
@@ -190,12 +190,12 @@ namespace ovc::comparators {
         explicit CmpOVC(iterator_stats *stats = nullptr) : CmpPrefixOVC(ROW_ARITY, stats) {}
     };
 
-    struct EqColumnListNoOVC {
+    struct EqColumnList {
         uint8_t columns[ROW_ARITY];
         int length;
         struct iterator_stats *stats;
     public:
-        explicit EqColumnListNoOVC(std::initializer_list<uint8_t> columns, iterator_stats *stats = nullptr)
+        explicit EqColumnList(std::initializer_list<uint8_t> columns, iterator_stats *stats = nullptr)
                 : length(columns.size()), stats(stats) {
             assert(columns.size() <= ROW_ARITY);
             int i = 0;
@@ -204,7 +204,7 @@ namespace ovc::comparators {
             }
         };
 
-        EqColumnListNoOVC(uint8_t *columns, int n, iterator_stats *stats = nullptr)
+        EqColumnList(uint8_t *columns, int n, iterator_stats *stats = nullptr)
                 : length(n), stats(stats), columns() {
             assert(n <= ROW_ARITY);
             for (int i = 0; i < n; i++) {
@@ -234,12 +234,12 @@ namespace ovc::comparators {
         }
     };
 
-    struct EqPrefixNoOVC : public EqColumnListNoOVC {
+    struct EqPrefix : public EqColumnList {
     public:
-        EqPrefixNoOVC() = delete;
+        EqPrefix() = delete;
 
-        explicit EqPrefixNoOVC(int prefix, iterator_stats *stats = nullptr)
-                : EqColumnListNoOVC(nullptr, 0, stats) {
+        explicit EqPrefix(int prefix, iterator_stats *stats = nullptr)
+                : EqColumnList(nullptr, 0, stats) {
             length = prefix;
             for (int i = 0; i < prefix; i++) {
                 columns[i] = i;
@@ -247,9 +247,9 @@ namespace ovc::comparators {
         };
     };
 
-    struct EqNoOVC : public EqPrefixNoOVC {
+    struct Eq : public EqPrefix {
     public:
-        explicit EqNoOVC(iterator_stats *stats = nullptr) : EqPrefixNoOVC(ROW_ARITY, stats) {};
+        explicit Eq(iterator_stats *stats = nullptr) : EqPrefix(ROW_ARITY, stats) {};
     };
 
     struct EqColumnListOVC {

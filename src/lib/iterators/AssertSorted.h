@@ -58,6 +58,6 @@ namespace ovc::iterators {
         Row prev;
         bool is_sorted;
         size_t count;
-        comparators::CmpNoOVC cmp;
+        comparators::Cmp cmp;
     };
 }

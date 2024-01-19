@@ -62,10 +62,10 @@ namespace ovc {
         }
 
         /**
-         * Sort the run with quicksort.
+         * SortOVC the run with quicksort.
          */
         void sort() {
-            comparators::CmpNoOVC cmp;
+            comparators::Cmp cmp;
             std::sort(data.begin(), data.end(),
                       [cmp](const Row *a, const Row *b) -> bool {
                           return cmp(*a, *b) < 0;

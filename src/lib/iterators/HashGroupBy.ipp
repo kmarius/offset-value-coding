@@ -67,7 +67,7 @@ namespace ovc::iterators {
     template<typename Aggregate>
     std::vector<Row> HashGroupBy<Aggregate>::process_partition(const std::string &path) {
 
-        auto eq = comparators::EqPrefixNoOVC(group_columns, &stats);
+        auto eq = comparators::EqPrefix(group_columns, &stats);
         ExternalRunR part(path, bufferManager, true);
         if (part.definitelyEmpty()) {
             return {};

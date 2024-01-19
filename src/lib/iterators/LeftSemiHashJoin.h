@@ -25,7 +25,7 @@ namespace ovc::iterators {
         }
 
     private:
-        comparators::EqPrefixNoOVC cmp;
+        comparators::EqPrefix cmp;
         unsigned join_columns;
         std::vector<std::vector<Row>> set;
         std::vector<std::string> left_partitions;

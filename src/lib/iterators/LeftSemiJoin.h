@@ -5,7 +5,7 @@
 
 namespace ovc::iterators {
 
-    template<bool USE_OVC = false, typename Compare = CmpPrefixNoOVC>
+    template<bool USE_OVC = false, typename Compare = CmpPrefix>
     class LeftSemiJoinBase : public BinaryIterator {
     public:
         LeftSemiJoinBase(Iterator *left, Iterator *right, unsigned join_columns)
@@ -106,15 +106,15 @@ namespace ovc::iterators {
         long count;
     };
 
-    class LeftSemiJoin : public LeftSemiJoinBase<true, CmpPrefixOVC> {
+    class LeftSemiJoinOVC : public LeftSemiJoinBase<true, CmpPrefixOVC> {
     public:
-        LeftSemiJoin(Iterator *left, Iterator *right, unsigned join_columns)
+        LeftSemiJoinOVC(Iterator *left, Iterator *right, unsigned join_columns)
                 : LeftSemiJoinBase<true, CmpPrefixOVC>(left, right, join_columns) {}
     };
 
-    class LeftSemiJoinNoOVC : public LeftSemiJoinBase<false, CmpPrefixNoOVC> {
+    class LeftSemiJoin : public LeftSemiJoinBase<false, CmpPrefix> {
     public:
-        LeftSemiJoinNoOVC(Iterator *left, Iterator *right, unsigned join_columns)
-                : LeftSemiJoinBase<false, CmpPrefixNoOVC>(left, right, join_columns) {}
+        LeftSemiJoin(Iterator *left, Iterator *right, unsigned join_columns)
+                : LeftSemiJoinBase<false, CmpPrefix>(left, right, join_columns) {}
     };
 }
