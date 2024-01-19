@@ -205,14 +205,14 @@ namespace ovc::comparators {
         };
 
         EqColumnListNoOVC(uint8_t *columns, int n, iterator_stats *stats = nullptr)
-        : length(n), stats(stats) {
+                : length(n), stats(stats), columns() {
             assert(n <= ROW_ARITY);
             for (int i = 0; i < n; i++) {
                 this->columns[i] = columns[i];
             }
         };
 
-        bool operator()(ovc::Row &lhs, ovc::Row &rhs) const {
+        bool operator()(const ovc::Row &lhs, const ovc::Row &rhs) const {
             for (int i = 0; i < length; i++) {
                 if (stats) {
                     stats->column_comparisons++;
@@ -222,42 +222,6 @@ namespace ovc::comparators {
                 };
             }
             return true;
-        }
-
-        bool raw(ovc::Row &lhs, ovc::Row &rhs) const {
-            for (int i = 0; i < length; i++) {
-                if (lhs.columns[columns[i]] != rhs.columns[columns[i]]) {
-                    return false;
-                };
-            }
-            return true;
-        }
-    };
-
-    struct EqColumnListOVC {
-        uint8_t columns[ROW_ARITY];
-        int length;
-        struct iterator_stats *stats;
-    public:
-        explicit EqColumnListOVC(std::initializer_list<uint8_t> columns, iterator_stats *stats = nullptr)
-                : length(columns.size()), stats(stats) {
-            assert(columns.size() <= ROW_ARITY);
-            int i = 0;
-            for (auto col: columns) {
-                this->columns[i++] = col;
-            }
-        };
-
-        EqColumnListOVC(uint8_t *columns, int n, iterator_stats *stats = nullptr)
-                : length(n), stats(stats) {
-            assert(n <= ROW_ARITY);
-            for (int i = 0; i < n; i++) {
-                this->columns[i] = columns[i];
-            }
-        };
-
-        bool operator()(const ovc::Row &lhs, const ovc::Row &rhs) const {
-            return lhs.key == 0;
         }
 
         bool raw(const ovc::Row &lhs, const ovc::Row &rhs) const {
@@ -281,17 +245,37 @@ namespace ovc::comparators {
                 columns[i] = i;
             }
         };
+    };
 
-        bool operator()(const ovc::Row &lhs, const ovc::Row &rhs) const {
-            for (int i = 0; i < length; i++) {
-                if (stats) {
-                    stats->column_comparisons++;
-                }
-                if (lhs.columns[columns[i]] != rhs.columns[columns[i]]) {
-                    return false;
-                }
+    struct EqNoOVC : public EqPrefixNoOVC {
+    public:
+        explicit EqNoOVC(iterator_stats *stats = nullptr) : EqPrefixNoOVC(ROW_ARITY, stats) {};
+    };
+
+    struct EqColumnListOVC {
+        uint8_t columns[ROW_ARITY];
+        int length;
+        struct iterator_stats *stats;
+    public:
+        explicit EqColumnListOVC(std::initializer_list<uint8_t> columns, iterator_stats *stats = nullptr)
+                : length(columns.size()), stats(stats), columns() {
+            assert(columns.size() <= ROW_ARITY);
+            int i = 0;
+            for (auto c: columns) {
+                this->columns[i++] = c;
             }
-            return true;
+        }
+
+        EqColumnListOVC(uint8_t *columns, int n, iterator_stats *stats = nullptr)
+                : length(n), stats(stats) {
+            assert(n <= ROW_ARITY);
+            for (int i = 0; i < n; i++) {
+                this->columns[i] = columns[i];
+            }
+        };
+
+        bool operator()(const ovc::Row &next, const ovc::Row &prev) const {
+            return next.key == 0;
         }
 
         bool raw(const ovc::Row &lhs, const ovc::Row &rhs) const {
