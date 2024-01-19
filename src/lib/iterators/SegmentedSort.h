@@ -10,14 +10,14 @@
 
 namespace ovc::iterators {
 
-    template<bool USE_OVC, typename Compare, typename Equals>
+    template<typename Compare, typename Equals>
     struct SegmentedSorter {
         Compare cmp;
         Equals eq;
         std::vector<Row> workspace;
         std::queue<MemoryRun> memory_runs;
         std::vector<MemoryRun> current_merge_runs;
-        PriorityQueue<USE_OVC, Compare> queue;
+        PriorityQueue<Compare> queue;
         iterator_stats *stats;
         Row *prev;
         Row *next_segment;
@@ -210,7 +210,7 @@ reset:
         }
     };
 
-    template<bool USE_OVC, typename Compare, typename Equals>
+    template<typename Compare, typename Equals>
     class SegmentedSortBase : public UnaryIterator {
     public:
         SegmentedSortBase(Iterator *input, const Compare &cmp, const Equals &eq)
@@ -249,15 +249,16 @@ reset:
         }
 
     private:
-        SegmentedSorter<USE_OVC, Compare, Equals> sorter;
+        SegmentedSorter<Compare, Equals> sorter;
         bool input_empty;
     };
 
     template<typename Compare, typename Equals>
-    class SegmentedSort : public SegmentedSortBase<false, Compare, Equals> {
+    class SegmentedSort : public SegmentedSortBase<Compare, Equals> {
     public:
         SegmentedSort(Iterator *input, const Compare &cmp, const Equals &eq)
-                : SegmentedSortBase<false, Compare, Equals>(input, cmp, eq) {
+                : SegmentedSortBase<Compare, Equals>(input, cmp, eq) {
+            assert(cmp.uses_ovc == eq.uses_ovc);
         };
     };
 }

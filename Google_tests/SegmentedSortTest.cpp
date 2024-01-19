@@ -43,7 +43,7 @@ TEST_F(SegmentedSortTest, TinyTest0) {
                                  });
 
     auto plan = AssertEqual(
-            new SegmentedSortBase<false, comparators::CmpPrefix, comparators::EqPrefix>(
+            new SegmentedSortBase<comparators::CmpPrefix, comparators::EqPrefix>(
                     vec, comparators::CmpPrefix(2), comparators::EqPrefix(1)
             ),
             wanted

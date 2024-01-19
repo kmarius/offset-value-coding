@@ -20,7 +20,7 @@ namespace ovc {
 
     typedef unsigned long Key;
 
-    template<bool USE_OVC, typename Compare>
+    template<typename Compare>
     class PriorityQueueBase {
     public:
 
@@ -96,7 +96,7 @@ namespace ovc {
 
         Row *pop_safe(Index run_index);
 
-        friend std::ostream &operator<<(std::ostream &o, const PriorityQueueBase<USE_OVC, Compare> &pq) {
+        friend std::ostream &operator<<(std::ostream &o, const PriorityQueueBase<Compare> &pq) {
             for (size_t i = 0; i < pq.capacity(); i++) {
                 if (i > 0) {
                     o << std::endl;
@@ -123,17 +123,17 @@ namespace ovc {
         Compare cmp;
     };
 
-    template<bool USE_OVC, typename Compare = comparators::CmpOVC>
-    class PriorityQueue : public PriorityQueueBase<USE_OVC, Compare> {
+    template<typename Compare>
+    class PriorityQueue : public PriorityQueueBase<Compare> {
 
     public:
         PriorityQueue(size_t capacity, iterator_stats *stats, const Compare &less = Compare())
-                : PriorityQueueBase<USE_OVC, Compare>(capacity, stats, less) {
+                : PriorityQueueBase<Compare>(capacity, stats, less) {
         };
 
         template<class T = void>
         inline void push(Row *row, Index run_index, T *udata = nullptr) {
-            PriorityQueueBase<USE_OVC, Compare>::push(row, run_index, reinterpret_cast<void *>(udata));
+            PriorityQueueBase<Compare>::push(row, run_index, reinterpret_cast<void *>(udata));
         }
 
         template<class T = void>

@@ -7,7 +7,7 @@
 
 namespace ovc::iterators {
 
-    template<bool USE_OVC, typename Aggregate, typename Compare>
+    template<typename Aggregate, typename Compare>
     class InSortGroupByBase : public UnaryIterator {
     public:
         explicit InSortGroupByBase(Iterator *input, int groupColumns, const Aggregate &agg, const Compare &cmp)
@@ -39,24 +39,23 @@ namespace ovc::iterators {
         }
 
     private:
-        Sorter<false, USE_OVC, Compare, Aggregate, true> sorter;
+        Sorter<false, Compare, Aggregate, true> sorter;
         unsigned long count;
     };
 
     template<typename Aggregate>
-    class InSortGroupByOVC : public InSortGroupByBase<true, Aggregate, CmpPrefixOVC> {
+    class InSortGroupByOVC : public InSortGroupByBase<Aggregate, CmpPrefixOVC> {
     public:
         InSortGroupByOVC(Iterator *input, int groupColumns, const Aggregate &agg = Aggregate())
-                : InSortGroupByBase<true, Aggregate, CmpPrefixOVC>(input, groupColumns, agg,
-                                                                   CmpPrefixOVC(groupColumns, &this->stats)) {};
+                : InSortGroupByBase<Aggregate, CmpPrefixOVC>(input, groupColumns, agg,
+                                                             CmpPrefixOVC(groupColumns, &this->stats)) {};
     };
 
     template<typename Aggregate>
-    class InSortGroupBy : public InSortGroupByBase<false, Aggregate, CmpPrefix> {
+    class InSortGroupBy : public InSortGroupByBase<Aggregate, CmpPrefix> {
     public:
         InSortGroupBy(Iterator *input, int groupColumns, const Aggregate &agg = Aggregate())
-                : InSortGroupByBase<false, Aggregate, CmpPrefix>(input, groupColumns, agg,
-                                                                 CmpPrefix(groupColumns,
-                                                                           &this->stats)) {};
+                : InSortGroupByBase<Aggregate, CmpPrefix>(input, groupColumns, agg,
+                                                          CmpPrefix(groupColumns, &this->stats)) {};
     };
 }

@@ -5,7 +5,6 @@
 #include "lib/log.h"
 #include "lib/iterators/Sort.h"
 #include "lib/iterators/RowGenerator.h"
-#include "lib/comparators.h"
 
 #include <gtest/gtest.h>
 

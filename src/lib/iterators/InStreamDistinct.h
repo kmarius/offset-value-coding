@@ -3,18 +3,38 @@
 #include "Iterator.h"
 
 namespace ovc::iterators {
+    using namespace ovc::comparators;
 
-    template<bool USE_OVC>
+    template<typename Equals>
     class InStreamDistinctBase : public UnaryIterator {
     public:
-        explicit InStreamDistinctBase(Iterator *input);
+        explicit InStreamDistinctBase(Iterator *input, const Equals &eq = Equals())
+                : UnaryIterator(input), num_dupes(0), has_prev(false), prev({0}), eq(eq) {
+        }
 
         void open() override {
             Iterator::open();
             input->open();
         }
 
-        Row *next() override;
+        Row *next() override {
+            for (Row *row; (row = input->next()); input->free()) {
+                if constexpr (eq.uses_ovc) {
+                    // TODO: we can repair OVCs here
+                    if (row->key != 0) {
+                        return row;
+                    }
+                } else {
+                    if (!has_prev || !row->equals(prev)) {
+                        prev = *row;
+                        has_prev = true;
+                        return row;
+                    }
+                }
+                num_dupes++;
+            }
+            return nullptr;
+        }
 
         void free() override {
             Iterator::free();
@@ -29,10 +49,20 @@ namespace ovc::iterators {
         size_t num_dupes;
 
     private:
+        Equals eq;
         Row prev;
         bool has_prev;
     };
 
-    typedef InStreamDistinctBase<true> InStreamDistinctOVC;
-    typedef InStreamDistinctBase<false> InStreamDistinct;
+    class InStreamDistinctOVC : public InStreamDistinctBase<EqOVC> {
+    public:
+        explicit InStreamDistinctOVC(Iterator *input)
+                : InStreamDistinctBase<EqOVC>(input, EqOVC(&this->stats)) {};
+    };
+
+    class InStreamDistinct : public InStreamDistinctBase<Eq> {
+    public:
+        explicit InStreamDistinct(Iterator *input)
+                : InStreamDistinctBase<Eq>(input, Eq(&this->stats)) {};
+    };
 }

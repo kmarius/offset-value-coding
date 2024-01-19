@@ -8,10 +8,8 @@ namespace ovc::comparators {
         uint8_t columns[ROW_ARITY];
         int length;
         struct iterator_stats *stats;
-    private:
-        CmpColumnList() : columns(), length(0), stats(nullptr) {};
+        static const bool uses_ovc = false;
 
-    public:
         CmpColumnList addStats(struct iterator_stats *stats) const {
             CmpColumnList cmp;
             cmp.stats = stats;
@@ -67,6 +65,9 @@ namespace ovc::comparators {
             assert(false);
             return 0;
         }
+
+    private:
+        CmpColumnList() : columns(), length(0), stats(nullptr) {};
     };
 
     struct CmpPrefix : public CmpColumnList {
@@ -91,6 +92,7 @@ namespace ovc::comparators {
         uint8_t columns[ROW_ARITY];
         int length;
         struct iterator_stats *stats;
+        static const bool uses_ovc = true;
     private:
         CmpColumnListOVC() : columns(), length(0), stats(nullptr) {};
 
@@ -194,6 +196,7 @@ namespace ovc::comparators {
         uint8_t columns[ROW_ARITY];
         int length;
         struct iterator_stats *stats;
+        static const bool uses_ovc = false;
     public:
         explicit EqColumnList(std::initializer_list<uint8_t> columns, iterator_stats *stats = nullptr)
                 : length(columns.size()), stats(stats) {
@@ -256,6 +259,7 @@ namespace ovc::comparators {
         uint8_t columns[ROW_ARITY];
         int length;
         struct iterator_stats *stats;
+        static const bool uses_ovc = true;
     public:
         explicit EqColumnListOVC(std::initializer_list<uint8_t> columns, iterator_stats *stats = nullptr)
                 : length(columns.size()), stats(stats), columns() {
@@ -288,4 +292,21 @@ namespace ovc::comparators {
         }
     };
 
+    struct EqPrefixOVC : public EqColumnListOVC {
+    public:
+        EqPrefixOVC() = delete;
+
+        explicit EqPrefixOVC(int prefix, iterator_stats *stats = nullptr)
+                : EqColumnListOVC(nullptr, 0, stats) {
+            length = prefix;
+            for (int i = 0; i < prefix; i++) {
+                columns[i] = i;
+            }
+        };
+    };
+
+    struct EqOVC : public EqPrefixOVC {
+    public:
+        explicit EqOVC(iterator_stats *stats = nullptr) : EqPrefixOVC(ROW_ARITY, stats) {};
+    };
 }
