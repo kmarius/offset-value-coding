@@ -39,7 +39,7 @@ namespace ovc::iterators {
         }
 
     private:
-        Sorter<false, Compare, Aggregate, true> sorter;
+        Sorter<false, Compare, Aggregate> sorter;
         unsigned long count;
     };
 

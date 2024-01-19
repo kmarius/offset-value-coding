@@ -12,7 +12,7 @@
 namespace ovc::iterators {
     using namespace ovc::comparators;
 
-    template<bool DISTINCT, typename Compare, typename Aggregate = aggregates::Null, bool DO_AGGREGATE = false>
+    template<bool DISTINCT, typename Compare, typename Aggregate = aggregates::Null>
     struct Sorter {
         Compare cmp;
         Aggregate agg;
@@ -48,7 +48,7 @@ namespace ovc::iterators {
 
         template<typename R>
         inline void process_row(Row *row, R &run) {
-            if constexpr (DO_AGGREGATE) {
+            if constexpr (!agg.is_null) {
                 // TODO: if we use OVCs, we don't need to check if the run is empty
                 if (!run.isEmpty() && equals(run.back(), row)) {
                     agg.merge(*run.back(), *row);
