@@ -41,7 +41,7 @@ namespace ovc::iterators {
 
                 if (c < 0) {
                     // right row is smaller, left row now has its OVC relative to this row (and so will the next right row)
-                    if constexpr (cmp.uses_ovc) {
+                    if constexpr (cmp.USES_OVC) {
                         if (row_right->key > max_ovc) {
                             max_ovc = row_right->key;
                         }
@@ -50,7 +50,7 @@ namespace ovc::iterators {
                     row_right = right->next();
                 } else if (c > 0) {
                     // left row is smaller, right row now has its OVC relative to this row (and so will the next left row)
-                    if constexpr (cmp.uses_ovc) {
+                    if constexpr (cmp.USES_OVC) {
                         if (row_left->key > max_ovc) {
                             max_ovc = row_left->key;
                         }
@@ -60,7 +60,7 @@ namespace ovc::iterators {
                 } else {
                     // equality, right row has OVC relative to this one.
                     // to make sure this one has an ovc w.r.t the previously output row, apply the "max-rule"
-                    if constexpr (cmp.uses_ovc) {
+                    if constexpr (cmp.USES_OVC) {
                         if (first_row) {
                             // the very first row we output should have its OVC w.r.t. to the non-existent row
                             row_left->setOVCInitial(ROW_ARITY, &stats);

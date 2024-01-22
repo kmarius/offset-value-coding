@@ -19,7 +19,7 @@ namespace ovc::iterators {
 
         Row *next() override {
             for (Row *row; (row = input->next()); input->free()) {
-                if constexpr (eq.uses_ovc) {
+                if constexpr (eq.USES_OVC) {
                     // TODO: we can repair OVCs here
                     if (row->key != 0) {
                         return row;

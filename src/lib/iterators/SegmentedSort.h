@@ -258,7 +258,7 @@ reset:
     public:
         SegmentedSort(Iterator *input, const Compare &cmp, const Equals &eq)
                 : SegmentedSortBase<Compare, Equals>(input, cmp, eq) {
-            assert(cmp.uses_ovc == eq.uses_ovc);
+            assert(cmp.USES_OVC == eq.USES_OVC);
         };
     };
 }

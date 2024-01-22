@@ -108,7 +108,7 @@ namespace ovc {
         inline bool less(Node &node, Compare &cmp, WorkspaceItem *ws, struct iterator_stats *stats) {
             stats->comparisons++;
 
-            if constexpr (!cmp.uses_ovc) {
+            if constexpr (!cmp.USES_OVC) {
                 stats->comparisons_equal_key++;
                 if (!isValid() || !node.isValid() || run_index() != node.run_index()) {
                     return key < node.key;

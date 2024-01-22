@@ -69,13 +69,13 @@ namespace ovc::iterators {
         Row *row;
 
         for (; queue.size() < queue.capacity() && (row = input->next());) {
-            if constexpr (!agg.is_null) {
+            if constexpr (!agg.IS_NULL) {
                 agg.init(*row);
             }
             workspace[workspace_size] = *row;
             input->free();
             row = &workspace[workspace_size++];
-            if constexpr (cmp.uses_ovc) {
+            if constexpr (cmp.USES_OVC) {
                 row->key = cmp.makeOVC(ROW_ARITY, 0, row);
                 stats->column_comparisons++;
             }
@@ -103,13 +103,13 @@ namespace ovc::iterators {
 #endif
 
         for (; (row = input->next());) {
-            if constexpr (!agg.is_null) {
+            if constexpr (!agg.IS_NULL) {
                 agg.init(*row);
             }
             workspace[workspace_size] = *row;
             input->free();
             row = &workspace[workspace_size++];
-            if constexpr (cmp.uses_ovc) {
+            if constexpr (cmp.USES_OVC) {
                 row->key = cmp.makeOVC(ROW_ARITY, 0, row);
                 stats->column_comparisons++;
             }
@@ -269,8 +269,8 @@ namespace ovc::iterators {
             }
 #endif
             Row *row1 = queue.pop_memory();
-            if constexpr (!agg.is_null) {
-                if constexpr (cmp.uses_ovc) {
+            if constexpr (!agg.IS_NULL) {
+                if constexpr (cmp.USES_OVC) {
                     while (!queue.isEmpty() && queue.top_ovc() == 0) {
                         agg.merge(*row1, *queue.top());
                         queue.pop_memory();
@@ -287,7 +287,7 @@ namespace ovc::iterators {
                     }
                 }
             } else if constexpr (DISTINCT) {
-                if constexpr (cmp.uses_ovc) {
+                if constexpr (cmp.USES_OVC) {
                     run.add(*row1);
                     stats->rows_written++;
                     while (!queue.isEmpty() && queue.top_ovc() == 0) {
@@ -365,11 +365,11 @@ namespace ovc::iterators {
 #endif
             Row *row = queue.pop_external();
             stats->rows_read++;
-            if constexpr (!agg.is_null) {
+            if constexpr (!agg.IS_NULL) {
                 run.add(*row);;
                 stats->rows_written++;
                 row = run.back();
-                if constexpr (cmp.uses_ovc) {
+                if constexpr (cmp.USES_OVC) {
                     while (!queue.isEmpty() && queue.top_ovc() == 0) {
                         agg.merge(*row, *queue.top());
                         queue.pop_external();
@@ -383,7 +383,7 @@ namespace ovc::iterators {
                     }
                 }
             } else if constexpr (DISTINCT) {
-                if constexpr (cmp.uses_ovc) {
+                if constexpr (cmp.USES_OVC) {
                     run.add(*row);;
                     stats->rows_written++;
                     while (!queue.isEmpty() && queue.top_ovc() == 0) {
@@ -450,7 +450,7 @@ namespace ovc::iterators {
 #ifndef NDEBUG
         Row *row = nullptr;
         if constexpr (DISTINCT) {
-            if constexpr (cmp.uses_ovc) {
+            if constexpr (cmp.USES_OVC) {
                 while ((row = queue.pop_external()) && row->key == 0) {
                     if (queue.isEmpty()) {
                         row = nullptr;
@@ -489,9 +489,9 @@ namespace ovc::iterators {
         prev = *row;
         return row;
 #else
-        if constexpr (!agg.is_null) {
+        if constexpr (!agg.IS_NULL) {
             Row *row = queue.pop_external();
-            if constexpr (cmp.uses_ovc) {
+            if constexpr (cmp.USES_OVC) {
                 while (!queue.isEmpty() && queue.top_ovc() == 0) {
                     agg.merge(*queue.top(), *row);
                     row = queue.pop_external();
@@ -506,7 +506,7 @@ namespace ovc::iterators {
             return row;
         } else if constexpr (DISTINCT) {
             Row *row = nullptr;
-            if constexpr (cmp.uses_ovc) {
+            if constexpr (cmp.USES_OVC) {
                 while ((row = queue.pop_external()) && row->key == 0) {
                     if (queue.isEmpty()) {
                         row = nullptr;

@@ -5,7 +5,7 @@
 namespace ovc::aggregates {
 
     struct Null {
-        static const bool is_null = true;
+        static const bool IS_NULL = true;
 
         Null() {}
 
@@ -20,7 +20,7 @@ namespace ovc::aggregates {
     };
 
     struct Sum {
-        static const bool is_null = false;
+        static const bool IS_NULL = false;
 
         Sum(int groupColumns, int aggColumn) : group_columns(groupColumns), agg_column(aggColumn) {}
 
@@ -47,7 +47,7 @@ namespace ovc::aggregates {
     };
 
     struct Avg {
-        static const bool is_null = false;
+        static const bool IS_NULL = false;
 
         Avg(int groupColumns, int aggColumn) : group_columns(groupColumns), agg_column(aggColumn) {}
 
@@ -77,7 +77,7 @@ namespace ovc::aggregates {
     };
 
     struct Count {
-        static const bool is_null = false;
+        static const bool IS_NULL = false;
 
         explicit Count(int groupColumns) : group_columns(groupColumns) {}
 
@@ -104,7 +104,7 @@ namespace ovc::aggregates {
 
 
     struct Max {
-        static const bool is_null = false;
+        static const bool IS_NULL = false;
 
         Max(int groupColumns, int aggColumn) : group_columns(groupColumns), agg_column(aggColumn) {}
 

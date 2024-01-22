@@ -8,7 +8,7 @@ namespace ovc::comparators {
         uint8_t columns[ROW_ARITY];
         int length;
         struct iterator_stats *stats;
-        static const bool uses_ovc = false;
+        static const bool USES_OVC = false;
 
         CmpColumnList addStats(struct iterator_stats *stats) const {
             CmpColumnList cmp;
@@ -92,7 +92,7 @@ namespace ovc::comparators {
         uint8_t columns[ROW_ARITY];
         int length;
         struct iterator_stats *stats;
-        static const bool uses_ovc = true;
+        static const bool USES_OVC = true;
     private:
         CmpColumnListOVC() : columns(), length(0), stats(nullptr) {};
 
@@ -196,7 +196,7 @@ namespace ovc::comparators {
         uint8_t columns[ROW_ARITY];
         int length;
         struct iterator_stats *stats;
-        static const bool uses_ovc = false;
+        static const bool USES_OVC = false;
     public:
         explicit EqColumnList(std::initializer_list<uint8_t> columns, iterator_stats *stats = nullptr)
                 : length(columns.size()), stats(stats) {
@@ -259,7 +259,7 @@ namespace ovc::comparators {
         uint8_t columns[ROW_ARITY];
         int length;
         struct iterator_stats *stats;
-        static const bool uses_ovc = true;
+        static const bool USES_OVC = true;
     public:
         explicit EqColumnListOVC(std::initializer_list<uint8_t> columns, iterator_stats *stats = nullptr)
                 : length(columns.size()), stats(stats), columns() {

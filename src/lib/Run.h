@@ -64,11 +64,11 @@ namespace ovc {
         /**
          * SortOVC the run with quicksort.
          */
-        void sort() {
-            comparators::Cmp cmp;
+        template <typename Compare>
+        void sort(const Compare &cmp = comparators::Cmp()) {
             std::sort(data.begin(), data.end(),
                       [cmp](const Row *a, const Row *b) -> bool {
-                          return cmp(*a, *b) < 0;
+                          return cmp.raw(*a, *b) < 0;
                       });
         }
 
@@ -76,8 +76,8 @@ namespace ovc {
          * Check if the run is sorted.
          * @return True if the run is sorted. False otherwise.
          */
-         template<typename Compare = comparators::CmpOVC>
-        bool isSorted(const Compare &cmp = comparators::CmpOVC{}) {
+        template<typename Compare>
+        bool isSorted(const Compare &cmp = comparators::Cmp()) {
             for (int i = 1; i < data.size(); i++) {
                 if (cmp.raw(*data[i], *data[i - 1]) < 0) {
                     return false;

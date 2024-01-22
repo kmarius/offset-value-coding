@@ -39,7 +39,7 @@ namespace ovc::iterators {
 
     private:
         inline bool equals(Row *row1, Row *row2) {
-            if constexpr (cmp.uses_ovc) {
+            if constexpr (cmp.USES_OVC) {
                 return row2->key == 0;
             } else {
                 return cmp(*row1, *row2) == 0;
@@ -48,7 +48,7 @@ namespace ovc::iterators {
 
         template<typename R>
         inline void process_row(Row *row, R &run) {
-            if constexpr (!agg.is_null) {
+            if constexpr (!agg.IS_NULL) {
                 // TODO: if we use OVCs, we don't need to check if the run is empty
                 if (!run.isEmpty() && equals(run.back(), row)) {
                     agg.merge(*run.back(), *row);
