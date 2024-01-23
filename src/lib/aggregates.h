@@ -7,15 +7,15 @@ namespace ovc::aggregates {
     struct Null {
         static const bool IS_NULL = true;
 
-        Null() {}
+        Null() = default;
 
-        void init(Row &row) const {
+        inline void init(Row &row) const {
         }
 
-        void merge(Row &acc, const Row &row) const {
+        inline void merge(Row &acc, const Row &row) const {
         }
 
-        void finalize(Row &row) const {
+        inline void finalize(Row &row) const {
         }
     };
 
@@ -26,18 +26,18 @@ namespace ovc::aggregates {
 
         Sum() = delete;
 
-        void init(Row &row) const {
+        inline void init(Row &row) const {
             row.columns[group_columns] = row.columns[agg_column];
             for (int i = group_columns + 1; i < ROW_ARITY; i++) {
                 row.columns[i] = 0;
             }
         }
 
-        void merge(Row &acc, const Row &row) const {
+        inline void merge(Row &acc, const Row &row) const {
             acc.columns[group_columns] += row.columns[group_columns];
         }
 
-        void finalize(Row &row) const {
+        inline void finalize(Row &row) const {
             // nothing
         }
 
@@ -53,7 +53,7 @@ namespace ovc::aggregates {
 
         Avg() = delete;
 
-        void init(Row &row) const {
+        inline void init(Row &row) const {
             row.columns[group_columns] = row.columns[agg_column];
             row.columns[group_columns + 1] = 1;
             for (int i = group_columns + 2; i < ROW_ARITY; i++) {
@@ -61,12 +61,12 @@ namespace ovc::aggregates {
             }
         }
 
-        void merge(Row &acc, const Row &row) const {
+        inline void merge(Row &acc, const Row &row) const {
             acc.columns[group_columns] += row.columns[group_columns];
             acc.columns[group_columns + 1] += row.columns[group_columns + 1];
         }
 
-        void finalize(Row &row) const {
+        inline void finalize(Row &row) const {
             row.columns[group_columns] = row.columns[group_columns] / row.columns[group_columns + 1];
             row.columns[group_columns + 1] = 0;
         }
@@ -83,18 +83,18 @@ namespace ovc::aggregates {
 
         Count() = delete;
 
-        void init(Row &row) const {
+        inline void init(Row &row) const {
             row.columns[group_columns] = 1;
             for (int i = group_columns + 1; i < ROW_ARITY; i++) {
                 row.columns[i] = 0;
             }
         }
 
-        void merge(Row &acc, const Row &row) const {
+        inline void merge(Row &acc, const Row &row) const {
             acc.columns[group_columns] += row.columns[group_columns];
         }
 
-        void finalize(Row &row) const {
+        inline void finalize(Row &row) const {
             // nothing
         }
 
@@ -110,20 +110,20 @@ namespace ovc::aggregates {
 
         Max() = delete;
 
-        void init(Row &row) const {
+        inline void init(Row &row) const {
             row.columns[group_columns] = row.columns[agg_column];
             for (int i = group_columns + 1; i < ROW_ARITY; i++) {
                 row.columns[i] = 0;
             }
         }
 
-        void merge(Row &acc, const Row &row) const {
+        inline void merge(Row &acc, const Row &row) const {
             if (acc.columns[group_columns] < row.columns[group_columns]) {
                 acc.columns[group_columns] = row.columns[group_columns];
             }
         }
 
-        void finalize(Row &row) const {
+        inline void finalize(Row &row) const {
             // nothing
         }
 
