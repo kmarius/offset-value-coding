@@ -18,12 +18,21 @@
 
 #define LOG_VERSION "0.1.0"
 
+#ifndef NO_LOGGING
 #define log_trace(...) log_log(LOG_TRACE, __FILE__, __LINE__, __VA_ARGS__)
 #define log_debug(...) log_log(LOG_DEBUG, __FILE__, __LINE__, __VA_ARGS__)
 #define log_info(...) log_log(LOG_INFO, __FILE__, __LINE__, __VA_ARGS__)
 #define log_warn(...) log_log(LOG_WARN, __FILE__, __LINE__, __VA_ARGS__)
 #define log_error(...) log_log(LOG_ERROR, __FILE__, __LINE__, __VA_ARGS__)
 #define log_fatal(...) log_log(LOG_FATAL, __FILE__, __LINE__, __VA_ARGS__)
+#else
+#define log_trace(...)
+#define log_debug(...)
+#define log_info(...)
+#define log_warn(...)
+#define log_error(...)
+#define log_fatal(...)
+#endif
 
 namespace ovc {
 
@@ -65,9 +74,5 @@ namespace ovc {
 
     int log_get_level_fp(FILE *fp);
 
-#ifndef NO_LOGGING
     void log_log(int level, const char *file, int line, const char *fmt, ...);
-#else
-    static inline void log_log(int level, const char *file, int line, const char *fmt, ...) {};
-#endif
 }

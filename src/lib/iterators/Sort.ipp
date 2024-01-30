@@ -339,7 +339,7 @@ namespace ovc::iterators {
 
     template<bool DISTINCT, typename Compare, typename Aggregate>
     std::string Sorter<DISTINCT, Compare, Aggregate>::merge_external_runs(size_t fan_in) {
-        log_info("merge_external_runs %lu", fan_in);
+        log_trace("merge_external_runs %lu", fan_in);
         insert_external_runs(fan_in);
 
         std::string path = generate_path();
@@ -428,7 +428,9 @@ namespace ovc::iterators {
         if (num_runs > QUEUE_CAPACITY) {
             // this guarantees maximal fan-in for the later merges
             size_t initial_merge_fan_in = num_runs % (QUEUE_CAPACITY - 1);
-            assert(initial_merge_fan_in > 0);
+            if (initial_merge_fan_in == 0) {
+                initial_merge_fan_in = QUEUE_CAPACITY - 1;
+            }
             merge_external_runs(initial_merge_fan_in);
         }
 

@@ -21,13 +21,15 @@
 #include "lib/iterators/DuplicateGenerator.h"
 #include "lib/iterators/OVCApplier.h"
 #include "lib/iterators/Transposer.h"
-#include "lib/iterators/RowGeneratorWithDomains.h"
+#include "lib/iterators/GeneratorWithDomains.h"
 #include "lib/iterators/UniqueRowGenerator.h"
 #include "lib/iterators/SegmentedSort.h"
 #include "lib/comparators.h"
 #include "lib/iterators/InSortGroupBy.h"
+#include "lib/iterators/VectorGen.h"
 
 #include <vector>
+#include <thread>
 
 using namespace ovc;
 using namespace ovc::iterators;
@@ -199,7 +201,7 @@ void experiment_joins4() {
         log_set_quiet(true);
 
         auto domain = i * 4 + domains[right_exp];
-        auto gen1 = RowGeneratorWithDomains(left_input_size, domain, 0, 1337);
+        auto gen1 = GeneratorWithDomains(left_input_size, domain, 0, 1337);
         auto gen2 = UniqueRowGenerator(right_input_size, domain, 0, join_columns, 1337 + 1);
 
         auto ovc_join_only = LeftSemiJoinOVC(new SortPrefixOVC(gen1.clone(), join_columns),
@@ -340,8 +342,8 @@ void experiment_joins5() {
             log_set_quiet(true);
 
             auto domain = i * 4 + domains[right_exp];
-            auto gen1 = RowGeneratorWithDomains(left_input_size, domain, 0, 1337);
-            auto gen2 = RowGeneratorWithDomains(right_input_size, domain, 0, 1337 + 1);
+            auto gen1 = GeneratorWithDomains(left_input_size, domain, 0, 1337);
+            auto gen2 = GeneratorWithDomains(right_input_size, domain, 0, 1337 + 1);
 
             auto ovc_join_only = LeftSemiJoinOVC(new SortPrefixOVC(gen1.clone(), join_columns),
                                                  new SortPrefixOVC(gen2.clone(), join_columns), join_columns);
@@ -555,11 +557,12 @@ void experiment_complex() {
                     ),
                     new SortPrefixOVC(
                             new Transposer(
-                                    new LeftSemiJoinOVC((new SortPrefixOVC(gen4.clone(), second_join_columns))->disableStats(
-                                                             presorted > 3),
-                                                        (new SortPrefixOVC(gen5.clone(), second_join_columns))->disableStats(
-                                                             presorted > 4),
-                                                        second_join_columns),
+                                    new LeftSemiJoinOVC(
+                                            (new SortPrefixOVC(gen4.clone(), second_join_columns))->disableStats(
+                                                    presorted > 3),
+                                            (new SortPrefixOVC(gen5.clone(), second_join_columns))->disableStats(
+                                                    presorted > 4),
+                                            second_join_columns),
                                     second_join_columns),
                             third_join_columns),
                     third_join_columns
@@ -800,8 +803,8 @@ void experiment_complex2() {
     int domain = 80;
     int group_columns = 3;
 
-    auto gen1 = RowGeneratorWithDomains(num_rows, domain, 0);
-    auto gen2 = RowGeneratorWithDomains(num_rows, domain, 0, 1337 + 1);
+    auto gen1 = GeneratorWithDomains(num_rows, domain, 0);
+    auto gen2 = GeneratorWithDomains(num_rows, domain, 0, 1337 + 1);
 
     auto size = LeftSemiJoinOVC(
             new SortPrefixOVC(gen1.clone(), group_columns),
@@ -858,8 +861,8 @@ void experiment_complex3() {
     int domain = 64;
     int group_columns = 3;
 
-    auto gen1 = RowGeneratorWithDomains(num_rows, domain, 0);
-    auto gen2 = RowGeneratorWithDomains(num_rows, domain, 0, 1337 + 1);
+    auto gen1 = GeneratorWithDomains(num_rows, domain, 0);
+    auto gen2 = GeneratorWithDomains(num_rows, domain, 0, 1337 + 1);
 
     auto plan_ovc =
             LeftSemiJoinOVC(
@@ -907,8 +910,8 @@ void experiment_complex4() {
     int domain = 80;
     int group_columns = 3;
 
-    auto gen1 = RowGeneratorWithDomains(num_rows, domain, 0);
-    auto gen2 = RowGeneratorWithDomains(num_rows, domain, 0, 1337 + 1);
+    auto gen1 = GeneratorWithDomains(num_rows, domain, 0);
+    auto gen2 = GeneratorWithDomains(num_rows, domain, 0, 1337 + 1);
 
     auto size = LeftSemiJoinOVC(
             new SortPrefixOVC(gen1.clone(), group_columns),
@@ -973,10 +976,10 @@ void experiment_complex4_param() {
     for (int i = 0; i < num_experiments; i++) {
         int domain = domains[i];
 
-        //auto gen1 = RowGeneratorWithDomains(num_rows, domain, 0);
-        //auto gen2 = RowGeneratorWithDomains(num_rows, domain, 0, 1337 + 1);
+        //auto gen1 = GeneratorWithDomains(num_rows, domain, 0);
+        //auto gen2 = GeneratorWithDomains(num_rows, domain, 0, 1337 + 1);
 
-        auto gen1 = RowGeneratorWithDomains(num_rows << 1, domain, 0);
+        auto gen1 = GeneratorWithDomains(num_rows << 1, domain, 0);
         auto gen2 = UniqueRowGenerator(num_rows, domain, 0, group_columns, 1337 + 1);
 
         auto join_size = LeftSemiJoinOVC(
@@ -1030,33 +1033,281 @@ void experiment_complex4_param() {
     fclose(results);
 }
 
+void experiment_sort_order1() {
+    int num_rows = 1 << 20;
+    int reps = 10;
+
+#ifndef NDEBUG
+    reps = 1;
+#endif
+
+    FILE *results = fopen("sort_order1.csv", "w");
+    fprintf(results, "%s,%s,%s,%s,%s\n", "experiment", "data", "list_length", "column_comparisons", "duration");
+
+    uint8_t A[ROW_ARITY] = {0};
+    uint8_t B[ROW_ARITY] = {0};
+    uint8_t AB[ROW_ARITY] = {0};
+    uint8_t BA[ROW_ARITY] = {0};
+    uint8_t *nil = AB;
+
+    for (int list_length = 2; list_length <= 16; list_length *= 2) {
+        const int key_length = list_length * 2;
+
+        // initialize key column lists
+        for (int i = 0; i < list_length; i++) {
+            A[i] = BA[i + list_length] = AB[i] = i;
+            B[i] = BA[i] = AB[i + list_length] = i + list_length;
+        }
+
+        uint64_t domains[3][ROW_ARITY];
+        for (int i = 0; i < ROW_ARITY; i++) {
+            for (auto &domain: domains) {
+                domain[i] = 1;
+            }
+        }
+
+        uint64_t bits_per_row = 16;
+        uint64_t bits_per_column = bits_per_row / list_length;
+
+        uint64_t domain = 1 << bits_per_column;
+        auto combined_domain = (uint64_t) pow((double) domain, list_length);
+
+        for (int i = 0; i < key_length; i++) {
+            domains[0][i] = domain;
+        }
+
+        domains[1][list_length - 1] = combined_domain;
+        domains[1][key_length - 1] = combined_domain;
+        domains[2][0] = combined_domain;
+        domains[2][list_length] = combined_domain;
+
+        // generate data and sort by AB
+        struct {
+            Generator *gen;
+            const char *name;
+        } gens[] = {
+                {new VectorGen(
+                        new SortPrefixOVC(
+                                new GeneratorWithDomains(num_rows, domains[0], 1337),
+                                key_length)),
+                        "random"},
+                {new VectorGen(
+                        new SortPrefixOVC(
+                                new GeneratorWithDomains(num_rows, domains[1], 1337 + 1),
+                                key_length)),
+                        "last_decides"},
+                {new VectorGen(
+                        new SortPrefixOVC(
+                                new GeneratorWithDomains(num_rows, domains[2], 1337 + 2),
+                                key_length)),
+                        "first_decides"}
+        };
+
+        for (auto &gen: gens) {
+            for (int i = 0; i < reps; i++) {
+                Iterator *ovc = new SegmentedSort(
+                        gen.gen->clone(),
+                        EqOffset(nil, key_length, 0),
+                        EqOffset(AB, key_length, list_length),
+                        CmpColumnListOVC(BA, key_length));
+
+#ifndef NDEBUG
+                auto asserter = new AssertSorted(ovc, CmpColumnListOVC(BA, key_length));
+                ovc = asserter;
+#endif
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                auto t0 = now();
+                ovc->run();
+                auto duration = since(t0);
+
+#ifndef NDEBUG
+                assert(asserter->getCount() == num_rows);
+                assert(asserter->isSorted());
+#endif
+
+                fprintf(results, "%s,%s,%d,%lu,%lu\n", "ovc", gen.name, list_length, ovc->getStats().column_comparisons, duration);
+                fflush(results);
+
+                delete ovc;
+            }
+
+            for (int i = 0; i < reps; i++) {
+                Iterator *traditional = new
+                        SegmentedSort(
+                        gen.gen->clone(),
+                        EqColumnList(nil, 0),
+                        EqColumnList(A, list_length),
+                        CmpColumnList(BA, key_length));
+
+#ifndef NDEBUG
+                auto asserter = new AssertSorted(traditional, CmpColumnList(BA, key_length));
+                traditional = asserter;
+#endif
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                auto t0 = now();
+                traditional->run();
+                auto duration = since(t0);
+
+#ifndef NDEBUG
+                assert(asserter->getCount() == num_rows);
+                assert(asserter->isSorted());
+#endif
+
+                fprintf(results, "%s,%s,%d,%lu,%lu\n", "traditional", gen.name, list_length, traditional->getStats().column_comparisons, duration);
+                fflush(results);
+
+                delete traditional;
+            }
+        }
+
+        for (auto &gen: gens) {
+            delete gen.gen;
+        }
+    }
+
+    fclose(results);
+}
+
+void experiment_sort_order2() {
+    int num_rows = 1 << 20;
+    int reps = 10;
+
+#ifndef NDEBUG
+    reps = 1;
+#endif
+
+    FILE *results = fopen("sort_order2.csv", "w");
+    fprintf(results, "%s,%s,%s,%s\n", "experiment", "bits_per_row", "duration", "column_comparisons");
+
+    uint8_t A[ROW_ARITY] = {0};
+    uint8_t B[ROW_ARITY] = {0};
+    uint8_t CB[ROW_ARITY] = {0};
+    uint8_t ABC[ROW_ARITY] = {0};
+    uint8_t ACB[ROW_ARITY] = {0};
+
+    int list_length = 8;
+    for (uint64_t bits_per_row = 1; bits_per_row < 20; bits_per_row += 3) {
+        const int key_length = list_length * 3;
+
+        // initialize key column lists
+        for (int i = 0; i < list_length; i++) {
+            A[i] = ABC[i] = ACB[i] = i;
+            B[i] = CB[i + list_length] = ABC[i + list_length] = ACB[i + 2 * list_length] = i + list_length;
+            CB[i] = ABC[i + 2 * list_length] = ACB[i + list_length] = i + 2 * list_length;
+        }
+
+        uint64_t domains[1][ROW_ARITY];
+        for (int i = 0; i < ROW_ARITY; i++) {
+            for (auto &domain: domains) {
+                domain[i] = 1;
+            }
+        }
+
+        domains[0][list_length - 1] = 1 << bits_per_row;
+        domains[0][2 * list_length - 1] = 1024;
+        domains[0][3 * list_length - 1] = 1024;
+
+        // generate data and sort by ABC
+        struct {
+            Generator *gen;
+            const char *name;
+        } gens[] = {
+                {new VectorGen(
+                        new SortPrefixOVC(
+                                new GeneratorWithDomains(num_rows, domains[0], 1337),
+                                key_length)),
+                 "last_decides"},
+        };
+
+        for (auto &gen: gens) {
+            for (int i = 0; i < reps; i++) {
+                Iterator *ovc = new SegmentedSort(
+                        gen.gen->clone(),
+                        EqOffset(ABC, key_length, list_length),
+                        EqOffset(ABC, key_length, list_length * 2),
+                        CmpColumnListOVC(ACB, key_length));
+
+#ifndef NDEBUG
+                auto asserter = new AssertSorted(ovc, CmpColumnListOVC(ACB, key_length));
+                ovc = asserter;
+#endif
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                auto t0 = now();
+                ovc->run();
+                auto duration = since(t0);
+
+#ifndef NDEBUG
+                assert(asserter->getCount() == num_rows);
+                assert(asserter->isSorted());
+#endif
+
+                fprintf(results, "%s,%lu,%lu,%lu\n", "ovc", bits_per_row, duration,
+                        ovc->getStats().column_comparisons);
+                fflush(results);
+
+                delete ovc;
+            }
+
+            for (int i = 0; i < reps; i++) {
+                Iterator *traditional = new
+                        SegmentedSort(
+                        gen.gen->clone(),
+                        EqColumnList(A, list_length),
+                        EqColumnList(B, list_length),
+                        CmpColumnList(ACB, key_length));
+
+#ifndef NDEBUG
+                auto asserter = new AssertSorted(traditional, CmpColumnList(ACB, key_length));
+                traditional = asserter;
+#endif
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                auto t0 = now();
+                traditional->run();
+                auto duration = since(t0);
+
+#ifndef NDEBUG
+                assert(asserter->getCount() == num_rows);
+                assert(asserter->isSorted());
+#endif
+
+                fprintf(results, "%s,%lu,%lu,%lu\n", "traditional", bits_per_row, duration,
+                        traditional->getStats().column_comparisons);
+                fflush(results);
+
+                delete traditional;
+            }
+        }
+
+        for (auto &gen: gens) {
+            delete gen.gen;
+        }
+    }
+
+    fclose(results);
+}
+
 int main(int argc, char *argv[]) {
     log_open(LOG_TRACE);
     log_set_quiet(false);
-    log_set_level(LOG_TRACE);
     log_set_level(LOG_INFO);
-    log_info("start", "");
+    log_info("start");
 
     auto start = now();
 
-    //experiment_groupby(); // here
-    //experiment_joins4(); // here
-    //experiment_joins5(); // here
+    //experiment_groupby();
+    //experiment_joins4();
+    //experiment_joins5();
     //experiment_column_order_sort();
     //experiment_complex();
     //experiment_complex2();
     //experiment_complex3();
-    //experiment_complex4_param();
 
-    //auto gen = RowGenerator(4, 2, 0, 1337);
-
-    auto sort = SegmentedSort(
-            new SortPrefix(new RowGeneratorWithDomains(1000, {10, 10, 1, 1, 1, 4, 4}, 1337), 2),
-            CmpColumnList({6, 5}),
-            EqColumnList({0, 1})
-    );
-
-    sort.run(true);
+    //experiment_sort_order1();
+    experiment_sort_order2();
 
     log_info("elapsed=%lums", since(start));
     log_info("fin");

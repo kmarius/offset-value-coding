@@ -100,28 +100,39 @@ namespace ovc {
 
         const char *key_s() const {
             static char buf[128] = {0};
-            sprintf(buf, "(off=%lu, val=%lu)", NODE_OFFSET(key), NODE_VALUE(key));
+            sprintf(buf, "(off=%lu, offset=%lu)", NODE_OFFSET(key), NODE_VALUE(key));
             return buf;
         }
 
         // sets ovc of the loser w.r.t. the winner
         inline bool less(Node &node, Compare &cmp, WorkspaceItem *ws, struct iterator_stats *stats) {
+
+#ifdef COLLECT_STATS
             stats->comparisons++;
+#endif
 
             if constexpr (!cmp.USES_OVC) {
+#ifdef COLLECT_STATS
                 stats->comparisons_equal_key++;
+#endif
                 if (!isValid() || !node.isValid() || run_index() != node.run_index()) {
                     return key < node.key;
                 }
+#ifdef COLLECT_STATS
                 stats->comparisons_of_actual_rows++;
+#endif
                 return cmp(*ws[index].row, *ws[node.index].row) < 0;
             } else {
                 if (key == node.key) {
+#ifdef COLLECT_STATS
                     stats->comparisons_equal_key++;
+#endif
                     if (!isValid() || !node.isValid()) {
                         return false;
                     }
+#ifdef COLLECT_STATS
                     stats->comparisons_of_actual_rows++;
+#endif
 
                     if (cmp(*ws[index].row, *ws[node.index].row) <= 0) {
                         node.setOvc(ws[node.index].row->key);
@@ -143,7 +154,7 @@ namespace ovc {
             } else if (node.isHighSentinel()) {
                 stream << ", run=" << node.value() << ", HI" << ":" << node.index << "]";
             } else {
-                stream << ", run=" << node.run_index() << ", val=" << node.value() << ": ind=" << node.index << "]";
+                stream << ", run=" << node.run_index() << ", offset=" << node.value() << ": ind=" << node.index << "]";
             }
             return stream;
         }
@@ -249,6 +260,7 @@ namespace ovc {
     template<typename Compare>
     Row *PriorityQueueBase<Compare>::top() {
         assert(!isEmpty());
+        assert(!heap[0].isLowSentinel());
         return workspace[heap[0].index].row;
     }
 

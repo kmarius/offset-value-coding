@@ -4,7 +4,7 @@
 #include "lib/iterators/Sort.h"
 #include "lib/iterators/IncreasingRangeGenerator.h"
 #include "lib/iterators/VectorScan.h"
-#include "lib/iterators/RowGeneratorWithDomains.h"
+#include "lib/iterators/GeneratorWithDomains.h"
 
 #include <gtest/gtest.h>
 
@@ -30,7 +30,7 @@ protected:
     void testDistinct(size_t num_rows) {
         auto *plan = new AssertSortedUnique(new SortOVC(
                 new HashDistinct(
-                        new RowGeneratorWithDomains(num_rows, 100, 0, SEED))));
+                        new GeneratorWithDomains(num_rows, 100, 0, SEED))));
         plan->run();
         ASSERT_TRUE(plan->isSortedAndUnique());
         delete plan;
@@ -38,7 +38,7 @@ protected:
 };
 
 TEST_F(HashDistinctTest, EmptyTest) {
-    auto *plan = new AssertSortedUnique(new RowGeneratorWithDomains(0, 100, 0, SEED));
+    auto *plan = new AssertSortedUnique(new GeneratorWithDomains(0, 100, 0, SEED));
     plan->run();
     ASSERT_TRUE(plan->isSortedAndUnique());
     ASSERT_EQ(plan->count(), 0);

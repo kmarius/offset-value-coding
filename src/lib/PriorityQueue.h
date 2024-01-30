@@ -203,7 +203,9 @@ namespace ovc {
             Row *res = this->pop(MERGE_RUN_IDX);
             Row *next = run->read();
 
+#ifdef COLLECT_STATS
             this->stats->rows_read++;
+#endif
 
             if (likely(next != nullptr)) {
                 push(next, MERGE_RUN_IDX, run);

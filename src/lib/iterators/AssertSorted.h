@@ -9,10 +9,12 @@ namespace ovc::iterators {
 /**
  * Checks if the input is ascending and therefore sorted.
  */
+    template<typename Compare = comparators::Cmp>
     class AssertSorted : public UnaryIterator {
     public:
-        explicit AssertSorted(Iterator *iterator) : UnaryIterator(iterator),
-                                                    is_sorted(true), count(0), prev({0}) {}
+        explicit AssertSorted(Iterator *iterator, const Compare &cmp = Compare()) : UnaryIterator(iterator),
+                                                                                    is_sorted(true), count(0),
+                                                                                    prev({0}), cmp(cmp) {}
 
         void open() override {
             Iterator::open();
@@ -25,10 +27,32 @@ namespace ovc::iterators {
             if (row == nullptr) {
                 return nullptr;
             }
-            if (is_sorted && cmp(*row, prev) < 0) {
-                log_error("input not sorted at %d: prev: %s", count + 1, prev.c_str());
-                log_error("                        cur: %s", row->c_str());
-                is_sorted = false;
+            if (is_sorted) {
+                if (cmp.raw(*row, prev) < 0) {
+                    log_error("input not sorted at %d: prev: %s", count, prev.c_str());
+                    log_error("                        cur: %s", row->c_str());
+                    is_sorted = false;
+                }
+                if constexpr (cmp.USES_OVC) {
+                    if (count == 0) {
+                        auto wanted = cmp.makeInitialOVC(*row);
+                        if (row->key != wanted) {
+                            log_error("wrong OVC at %d: prev: %s", count, prev.c_str());
+                            log_error("                  cur: %s", row->c_str());
+                            log_error("wanted=%lu, found=%lu", wanted, row->key);
+                            is_sorted = false;
+                        }
+                    } else {
+                        unsigned long ovc;
+                        cmp.raw(*row, prev, &ovc);
+                        if (ovc != row->key) {
+                            log_error("wrong OVC at %d: prev: %s", count, prev.c_str());
+                            log_error("                  cur: %s", row->c_str());
+                            log_error("wanted=%lu, found=%lu", ovc, row->key);
+                            is_sorted = false;
+                        }
+                    }
+                }
             }
             prev = *row;
             count++;
@@ -55,9 +79,9 @@ namespace ovc::iterators {
         };
 
     private:
+        Compare cmp;
         Row prev;
         bool is_sorted;
         size_t count;
-        comparators::Cmp cmp;
     };
 }

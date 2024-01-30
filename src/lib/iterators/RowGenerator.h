@@ -9,7 +9,7 @@ namespace ovc::iterators {
 
     class RowGenerator : public Generator {
     public :
-        RowGenerator(unsigned long num_rows, const uint8_t bits[8], unsigned long seed = -1);
+        RowGenerator(unsigned long num_rows, const uint8_t bits[ROW_ARITY], unsigned long seed = -1);
         RowGenerator(unsigned long num_rows, std::initializer_list<uint8_t> bits, unsigned long seed = -1);
         RowGenerator(unsigned long num_rows, int upper, int prefix = 0, unsigned long seed = -1);
 

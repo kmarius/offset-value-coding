@@ -10,6 +10,7 @@ set(CMAKE_CXX_STANDARD 17)
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
 
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+set(CMAKE_CXX_FLAGS_PROFILE "-O0 -g -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -flto -g -DNDEBUG")
 
 include_directories(src)
@@ -49,13 +50,13 @@ add_library(libovc
         src/lib/utils.cpp
         src/lib/iterators/AssertCorrectOVC.h
         src/lib/iterators/Transposer.h
-        src/lib/iterators/RowGeneratorWithDomains.cpp
-        src/lib/iterators/RowGeneratorWithDomains.h
+        src/lib/iterators/GeneratorWithDomains.cpp
+        src/lib/iterators/GeneratorWithDomains.h
         src/lib/iterators/UniqueRowGenerator.cpp
         src/lib/iterators/UniqueRowGenerator.h
-        src/lib/iterators/SegmentedSort.ipp
         src/lib/iterators/SegmentedSort.h
-        src/lib/iterators/AssertCount.h)
+        src/lib/iterators/AssertCount.h
+        src/lib/iterators/VectorGen.h)
 target_link_libraries(libovc uring)
 
 add_executable(ovc src/ovc/main.cpp)

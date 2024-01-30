@@ -9,7 +9,7 @@
 #include "defs.h"
 #include "log.h"
 
-#define ROW_ARITY 8
+#define ROW_ARITY 32
 
 #define BITMASK(bits) ((1ul << (bits)) - 1)
 
@@ -40,11 +40,11 @@ namespace ovc {
 
         OVC_s(ovc_type_t ovc) : ovc(ovc) {};
 
-        unsigned getOffset() const {
-            return ROW_ARITY - ((ovc & ROW_OFFSET_MASK) >> ROW_VALUE_BITS);
+        inline unsigned getOffset(unsigned long arity = ROW_ARITY) const {
+            return arity - ((ovc & ROW_OFFSET_MASK) >> ROW_VALUE_BITS);
         };
 
-        int getValue() const {
+        inline int getValue() const {
             return ovc & ROW_VALUE_MASK;
         };
     };
@@ -61,6 +61,10 @@ namespace ovc {
         inline void setOVC(const Row &base, int prefix = ROW_ARITY, struct iterator_stats *stats = nullptr) {
             OVC ovc = calcOVC(base, prefix, stats);
             key = ovc;
+        }
+
+        inline void setNewOVC(int arity, int offset, int idx) {
+            key = MAKE_OVC(arity, offset, columns[idx]);
         }
 
         inline void setOVCInitial(int prefix = ROW_ARITY, struct iterator_stats *stats = nullptr) {

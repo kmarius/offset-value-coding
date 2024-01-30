@@ -2,9 +2,11 @@
 #include "lib/iterators/VectorScan.h"
 #include "lib/iterators/SegmentedSort.h"
 #include "lib/iterators/AssertEqual.h"
-#include "lib/iterators/RowGeneratorWithDomains.h"
+#include "lib/iterators/GeneratorWithDomains.h"
 #include "lib/iterators/AssertCount.h"
 #include "lib/comparators.h"
+#include "lib/iterators/Sort.h"
+#include "lib/iterators/AssertSorted.h"
 
 #include <gtest/gtest.h>
 
@@ -34,115 +36,26 @@ TEST_F(SegmentedSortTest, EmptyTest) {
     delete plan;
 }
 
-TEST_F(SegmentedSortTest, TinyTest0) {
-    auto vec = new VectorScan({
-                                      {0, 0, {0}}
-                              });
-    auto wanted = new VectorScan({
-                                         {0, 0, {0}}
-                                 });
+TEST_F(SegmentedSortTest, BigTest) {
+    unsigned long domain = 128;
+    unsigned long num_rows = 1 << 15;
 
-    auto plan = AssertEqual(
-            new SegmentedSortBase<comparators::CmpPrefix, comparators::EqPrefix>(
-                    vec, comparators::CmpPrefix(2), comparators::EqPrefix(1)
-            ),
-            wanted
-    );
+    uint8_t A[ROW_ARITY] = {0, 1};
+    uint8_t B[ROW_ARITY] = {2, 3};
+    uint8_t ACB[ROW_ARITY] = {0, 1, 4, 5, 2, 3};
+    uint8_t CB[ROW_ARITY] = {4, 5, 2, 3};
 
-    plan.run();
-    ASSERT_TRUE(plan.isEqual());
-}
-
-TEST_F(SegmentedSortTest, TinyTest1) {
-    auto vec = new VectorScan({
-                                      {0, 0, {0, 2}},
-                                      {0, 0, {0, 1}}
-                              });
-    auto wanted = new VectorScan({
-                                         {0, 0, {0, 1}},
-                                         {0, 0, {0, 2}}
-                                 });
-
-    auto plan = AssertEqual(
+    auto plan = AssertSorted(
             new SegmentedSort(
-                    vec, comparators::CmpColumnList({1}), comparators::EqColumnList({0})
-            ),
-            wanted
-    );
+                    new SortPrefix(
+                            new GeneratorWithDomains(num_rows, {domain, domain, domain}, 1337),
+                            sizeof ACB / sizeof *ACB),
+                    EqColumnList(A, sizeof A / sizeof *A),
+                    EqColumnList(B, sizeof B / sizeof *B),
+                    CmpColumnList(CB, sizeof CB / sizeof *CB)),
+            CmpColumnList(ACB, sizeof ACB / sizeof *ACB));
 
     plan.run();
-    ASSERT_TRUE(plan.isEqual());
-}
-
-
-TEST_F(SegmentedSortTest, TinyTest2) {
-    auto vec = new VectorScan({
-                                      {0, 0, {1, 2}},
-                                      {0, 0, {1, 1}},
-
-                                      {0, 0, {0, 2}},
-                                      {0, 0, {0, 1}}
-                              });
-    auto wanted = new VectorScan({
-                                         {0, 0, {1, 1}},
-                                         {0, 0, {1, 2}},
-
-                                         {0, 0, {0, 1}},
-                                         {0, 0, {0, 2}}
-                                 });
-
-    auto plan = AssertEqual(
-            new SegmentedSort(
-                    vec, comparators::CmpColumnList({1}), comparators::EqColumnList({0})
-            ),
-            wanted
-    );
-
-    plan.run();
-    ASSERT_TRUE(plan.isEqual());
-}
-
-TEST_F(SegmentedSortTest, TinyTest3) {
-    auto vec = new VectorScan({
-                                       {0, 2, {1, 2}},
-                                       {0, 3, {1, 3}},
-
-                                       {0, 1, {0, 1}},
-                                       {0, 1, {0, 2}},
-                                       {0, 0, {0, 3}},
-                                       {0, 1, {0, 4}},
-                                       {0, 1, {0, 5}},
-                                       {0, 1, {0, 6}},
-                                       {0, 1, {0, 7}},
-                                       {0, 1, {0, 8}},
-
-                                       {0, 1, {3, 9}},
-
-                               });
-
-    auto wanted = new VectorScan({
-                                      {0, 2, {1, 2}},
-                                      {0, 3, {1, 3}},
-
-                                      {0, 1, {0, 1}},
-                                      {0, 1, {0, 2}},
-                                      {0, 0, {0, 3}},
-                                      {0, 1, {0, 4}},
-                                      {0, 1, {0, 5}},
-                                      {0, 1, {0, 6}},
-                                      {0, 1, {0, 7}},
-                                      {0, 1, {0, 8}},
-
-                                      {0, 1, {3, 9}},
-                              });
-
-    auto plan = AssertEqual(
-            new SegmentedSort(
-                    vec, comparators::CmpColumnList({1}), comparators::EqColumnList({0})
-            ),
-            wanted
-    );
-
-    plan.run();
-    ASSERT_TRUE(plan.isEqual());
+    assert(plan.isSorted());;
+    assert(plan.getCount() == num_rows);
 }

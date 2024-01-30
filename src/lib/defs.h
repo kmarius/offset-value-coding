@@ -8,7 +8,7 @@
 // Use synchronuous IO (TODO)
 //#define USE_SYNC_IO
 
-// Where should memory_runs be stored on disk?
+// Where should runs be stored on disk?
 // Memory (doesn't support O_DIRECT)
 //#define BASEDIR "/tmp"
 
@@ -22,12 +22,14 @@
 // This currently controls how many bits we use to store the run index in the key in the priority queue
 // which at the same time controls the fan-in of the merge
 // TODO: we should decouple this from the queue size
-#define RUN_IDX_BITS 3
+#define RUN_IDX_BITS 5
 
 #define PRIORITYQUEUE_CAPACITY (1 << RUN_IDX_BITS)
 
 #define LOGPATH "/tmp/ovc.log"
-// #define NO_LOGGING
+#define NO_LOGGING
+
+// #define COLLECT_STATS
 
 #define likely(x) __builtin_expect(x, 1)
 #define unlikely(x) __builtin_expect(x, 0)

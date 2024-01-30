@@ -3,7 +3,7 @@
 #include "lib/iterators/VectorScan.h"
 #include "lib/iterators/Sort.h"
 #include "lib/iterators/AssertEqual.h"
-#include "lib/iterators/RowGeneratorWithDomains.h"
+#include "lib/iterators/GeneratorWithDomains.h"
 #include "lib/comparators.h"
 
 #include <gtest/gtest.h>
@@ -28,8 +28,8 @@ protected:
     }
 
     void testSortOVC(size_t num_rows) {
-        auto gen = new RowGeneratorWithDomains(num_rows, 100, 0, SEED);
-        auto rows = RowGeneratorWithDomains(num_rows, 100, 0, SEED).collect();
+        auto gen = new GeneratorWithDomains(num_rows, 100, 0, SEED);
+        auto rows = GeneratorWithDomains(num_rows, 100, 0, SEED).collect();
         auto sorted = new AssertSorted(new SortOVC(gen));
         Cmp cmp;
         std::sort(rows.begin(), rows.end(),
@@ -45,8 +45,8 @@ protected:
     }
 
     void testSort(size_t num_rows) {
-        auto gen = new RowGeneratorWithDomains(num_rows, 100, 0, SEED);
-        auto rows = RowGeneratorWithDomains(num_rows, 100, 0, SEED).collect();
+        auto gen = new GeneratorWithDomains(num_rows, 100, 0, SEED);
+        auto rows = GeneratorWithDomains(num_rows, 100, 0, SEED).collect();
         auto sorted = new AssertSorted(new Sort(gen));
         Cmp cmp;
         std::sort(rows.begin(), rows.end(),

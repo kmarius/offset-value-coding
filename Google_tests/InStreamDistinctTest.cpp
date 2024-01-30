@@ -5,7 +5,7 @@
 #include "lib/iterators/Sort.h"
 #include "lib/iterators/AssertSortedUnique.h"
 #include "lib/iterators/InStreamDistinct.h"
-#include "lib/iterators/RowGeneratorWithDomains.h"
+#include "lib/iterators/GeneratorWithDomains.h"
 
 #include <gtest/gtest.h>
 
@@ -32,7 +32,7 @@ protected:
         auto *plan = new AssertSortedUnique(
                 new InStreamDistinctOVC(
                         new SortOVC(
-                                new RowGeneratorWithDomains(num_rows, 100, 0, SEED))));
+                                new GeneratorWithDomains(num_rows, 100, 0, SEED))));
         plan->run();
         ASSERT_TRUE(plan->isSortedAndUnique());
         if (num_rows > 0) {
@@ -45,7 +45,7 @@ protected:
         auto *plan = new AssertSortedUnique(
                 new InStreamDistinct(
                         new Sort(
-                                new RowGeneratorWithDomains(num_rows, 100, 0, SEED))));
+                                new GeneratorWithDomains(num_rows, 100, 0, SEED))));
         plan->run();
         ASSERT_TRUE(plan->isSortedAndUnique());
         delete plan;

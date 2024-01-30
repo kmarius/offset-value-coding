@@ -2,7 +2,7 @@
 #include "lib/iterators/AssertSortedUnique.h"
 #include "lib/iterators/Sort.h"
 #include "lib/iterators/VectorScan.h"
-#include "lib/iterators/RowGeneratorWithDomains.h"
+#include "lib/iterators/GeneratorWithDomains.h"
 
 #include <gtest/gtest.h>
 
@@ -26,14 +26,14 @@ protected:
     }
 
     void testSortDistinctOVC(size_t num_rows) const {
-        auto plan = new AssertSortedUnique(new SortDistinctOVC(new RowGeneratorWithDomains(num_rows, 100, 0, SEED)));
+        auto plan = new AssertSortedUnique(new SortDistinctOVC(new GeneratorWithDomains(num_rows, 100, 0, SEED)));
         plan->run();
         ASSERT_TRUE(plan->isSortedAndUnique());
         delete plan;
     }
 
     void testSortDistinct(size_t num_rows) const {
-        auto plan = new AssertSortedUnique(new SortDistinct(new RowGeneratorWithDomains(num_rows, 100, 0, SEED)));
+        auto plan = new AssertSortedUnique(new SortDistinct(new GeneratorWithDomains(num_rows, 100, 0, SEED)));
         plan->run();
         ASSERT_TRUE(plan->isSortedAndUnique());
         delete plan;
@@ -41,7 +41,7 @@ protected:
 };
 
 TEST_F(SortDistinctTest, EmptyTest) {
-    auto *plan = new AssertSortedUnique(new SortDistinctOVC(new RowGeneratorWithDomains(0, 100, 0, SEED)));
+    auto *plan = new AssertSortedUnique(new SortDistinctOVC(new GeneratorWithDomains(0, 100, 0, SEED)));
     plan->run();
     ASSERT_TRUE(plan->isSortedAndUnique());
     ASSERT_EQ(plan->count(), 0);
