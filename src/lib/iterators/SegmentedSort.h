@@ -27,6 +27,7 @@ namespace ovc::iterators {
         Row *prev;
         Row *next_segment;
         unsigned long stored_ovc;
+        std::vector<unsigned long> stored_ovcs;
 
         SegmentedSorter(iterator_stats *stats, const EqualsA &eqA, const EqualsB &eqB, const Compare &cmp) :
                 queue(QUEUE_CAPACITY, stats, cmp), stats(stats), eqA(eqA), eqB(eqB), cmp(cmp), prev(nullptr),
@@ -39,6 +40,7 @@ namespace ovc::iterators {
         void prep_next_segment(Iterator *input) {
             log_trace("prep_next_segment");
 
+            stored_ovcs.clear();
             sort_next_segment(input);
             assert(queue.isEmpty());
 
@@ -126,6 +128,7 @@ namespace ovc::iterators {
             if constexpr (eqA.USES_OVC) {
                 // First row in run
                 stored_ovc = std::max(stored_ovc, row->key);
+                stored_ovcs.push_back(row->key);
                 row->setNewOVC(eqA.arity, eqA.offset, eqA.columns[eqB.offset]);
             }
 
@@ -140,6 +143,7 @@ namespace ovc::iterators {
                     if constexpr (eqA.USES_OVC) {
                         // First row in run
                         stored_ovc = std::max(stored_ovc, row->key);
+                        stored_ovcs.push_back(row->key);
                         row->setNewOVC(eqA.arity, eqA.offset, eqA.columns[eqB.offset]);
                     }
                 } else {

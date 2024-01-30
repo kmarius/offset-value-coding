@@ -1035,7 +1035,7 @@ void experiment_complex4_param() {
 
 void experiment_sort_order1() {
     int num_rows = 1 << 20;
-    int reps = 10;
+    int reps = 1;
 
 #ifndef NDEBUG
     reps = 1;
@@ -1172,7 +1172,7 @@ void experiment_sort_order1() {
 
 void experiment_sort_order2() {
     int num_rows = 1 << 20;
-    int reps = 10;
+    int reps = 1;
 
 #ifndef NDEBUG
     reps = 1;
@@ -1257,7 +1257,7 @@ void experiment_sort_order2() {
                         gen.gen->clone(),
                         EqColumnList(A, list_length),
                         EqColumnList(B, list_length),
-                        CmpColumnList(ACB, key_length));
+                        CmpColumnList(CB, 2 * list_length));
 
 #ifndef NDEBUG
                 auto asserter = new AssertSorted(traditional, CmpColumnList(ACB, key_length));
@@ -1306,7 +1306,7 @@ int main(int argc, char *argv[]) {
     //experiment_complex2();
     //experiment_complex3();
 
-    //experiment_sort_order1();
+    experiment_sort_order1();
     experiment_sort_order2();
 
     log_info("elapsed=%lums", since(start));

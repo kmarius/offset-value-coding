@@ -92,7 +92,7 @@ namespace ovc {
             return IS_HIGH_SENTINEL(key);
         }
 
-        inline void setOvc(OVC ovc) {
+        inline void setOVC(OVC ovc) {
             key &= ~NODE_OVC_MASK;
             key |= NODE_OVC_MASK & ovc;
             assert(this->ovc() == ovc);
@@ -112,33 +112,27 @@ namespace ovc {
 #endif
 
             if constexpr (!cmp.USES_OVC) {
+                if (key == node.key) {
+                    // same run index, need to compare rows
 #ifdef COLLECT_STATS
-                stats->comparisons_equal_key++;
+                    stats->comparisons_equal_key++;
+                    stats->comparisons_of_actual_rows++;
 #endif
-                if (!isValid() || !node.isValid() || run_index() != node.run_index()) {
-                    return key < node.key;
+                    return cmp(*ws[index].row, *ws[node.index].row) < 0;
                 }
-#ifdef COLLECT_STATS
-                stats->comparisons_of_actual_rows++;
-#endif
-                return cmp(*ws[index].row, *ws[node.index].row) < 0;
+
+                return key < node.key;
             } else {
                 if (key == node.key) {
 #ifdef COLLECT_STATS
                     stats->comparisons_equal_key++;
-#endif
-                    if (!isValid() || !node.isValid()) {
-                        return false;
-                    }
-#ifdef COLLECT_STATS
                     stats->comparisons_of_actual_rows++;
 #endif
-
                     if (cmp(*ws[index].row, *ws[node.index].row) <= 0) {
-                        node.setOvc(ws[node.index].row->key);
+                        node.setOVC(ws[node.index].row->key);
                         return true;
                     } else {
-                        setOvc(ws[index].row->key);
+                        setOVC(ws[index].row->key);
                         return false;
                     }
                 }
@@ -169,7 +163,7 @@ namespace ovc {
         heap = new Node[capacity];
         for (int i = 0; i < capacity_; i++) {
             heap[i].index = i;
-            heap[i].key = LOW_SENTINEL(0);
+            heap[i].key = LOW_SENTINEL(i);
         }
     }
 
@@ -217,19 +211,19 @@ namespace ovc {
     void PriorityQueueBase<Compare>::flush_sentinel(bool safe) {
         if (safe) {
             if (heap[0].isLowSentinel()) {
-                pass(heap[0].index, HIGH_SENTINEL(MERGE_RUN_IDX));
+                pass(heap[0].index, HIGH_SENTINEL(heap[0].index));
             }
         } else {
             assert(heap[0].isLowSentinel());
-            pass(heap[0].index, HIGH_SENTINEL(MERGE_RUN_IDX));
+            pass(heap[0].index, HIGH_SENTINEL(heap[0].index));
         }
     }
 
     template<typename Compare>
     void PriorityQueueBase<Compare>::flush_sentinels() {
         for (int i = size_; i < capacity_; i++) {
-            Index workspace_index = heap[0].index;
-            pass(workspace_index, HIGH_SENTINEL(MERGE_RUN_IDX));
+            assert(heap[0].isLowSentinel());
+            pass(heap[0].index, HIGH_SENTINEL(heap[0].index));
         }
     }
 
@@ -311,7 +305,7 @@ namespace ovc {
     void PriorityQueueBase<Compare>::reset() {
         assert(isEmpty());
         for (int i = 0; i < capacity(); i++) {
-            heap[i].key = LOW_SENTINEL(0);
+            heap[i].key = LOW_SENTINEL(i);
         }
     }
 }
