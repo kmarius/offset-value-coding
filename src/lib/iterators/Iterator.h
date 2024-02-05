@@ -15,6 +15,9 @@ namespace ovc::iterators {
     } IteratorStatus;
 
     class Iterator {
+    protected:
+        iterator_stats stats;
+        IteratorStatus status = Unopened;
     public:
 
         Iterator() : status(Unopened), stats() {};
@@ -149,9 +152,6 @@ namespace ovc::iterators {
             return iter(nullptr);
         }
 
-    protected:
-        iterator_stats stats;
-        IteratorStatus status = Unopened;
     };
 
     class Generator : public Iterator {

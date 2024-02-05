@@ -28,8 +28,8 @@
 
 #define IS_LOW_SENTINEL(key) (NODE_RUN_INDEX(key) == 0)
 #define IS_HIGH_SENTINEL(key) (((key) & NODE_RUN_INDEX_MASK) == NODE_RUN_INDEX_MASK)
-#define LOW_SENTINEL(run_index) (NODE_KEYGEN(0, run_index))
-#define HIGH_SENTINEL(run_index) (NODE_RUN_INDEX_MASK | (run_index))
+#define LOW_SENTINEL(index) (NODE_KEYGEN(0, index))
+#define HIGH_SENTINEL(index) (NODE_RUN_INDEX_MASK | (index))
 
 namespace ovc {
 
@@ -269,7 +269,7 @@ namespace ovc {
         res->key = heap[0].ovc();
 
         // replace workspace item with high sentinel
-        heap[0].key = LOW_SENTINEL(run_index);
+        heap[0].key = LOW_SENTINEL(workspace_index);
         workspace[workspace_index].row = nullptr;
         size_--;
 
@@ -286,7 +286,11 @@ namespace ovc {
 
         workspace[workspace_index].row = row;
         workspace[workspace_index].udata = udata;
-        pass(workspace_index, NODE_KEYGEN(run_index, row->key));
+        if constexpr (cmp.USES_OVC) {
+            pass(workspace_index, NODE_KEYGEN(run_index, row->key));
+        } else {
+            pass(workspace_index, NODE_KEYGEN(run_index, 0));
+        }
         size_++;
     }
 

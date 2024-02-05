@@ -5,9 +5,6 @@
 #include "lib/io/BufferManager.h"
 #include "lib/PriorityQueue.h"
 
-#define SSORT_INITIAL_RUNS ((1 << RUN_IDX_BITS) - 3)
-#define SSORTER_WORKSPACE_CAPACITY (QUEUE_CAPACITY * SSORT_INITIAL_RUNS)
-
 namespace ovc::iterators {
 
     /*
@@ -26,12 +23,12 @@ namespace ovc::iterators {
         iterator_stats *stats;
         Row *prev;
         Row *next_segment;
-        unsigned long stored_ovc;
-        std::vector<unsigned long> stored_ovcs;
+        unsigned long ovc_of_first_row_in_segment;
+        std::vector<OVC> ovcs_of_first_row_in_run;
 
         SegmentedSorter(iterator_stats *stats, const EqualsA &eqA, const EqualsB &eqB, const Compare &cmp) :
                 queue(QUEUE_CAPACITY, stats, cmp), stats(stats), eqA(eqA), eqB(eqB), cmp(cmp), prev(nullptr),
-                next_segment(nullptr), stored_ovc(0) {
+                next_segment(nullptr), ovc_of_first_row_in_segment(0) {
             workspace.reserve(1 << 20);
         }
 
@@ -40,9 +37,16 @@ namespace ovc::iterators {
         void prep_next_segment(Iterator *input) {
             log_trace("prep_next_segment");
 
-            stored_ovcs.clear();
+            ovcs_of_first_row_in_run.clear();
             sort_next_segment(input);
             assert(queue.isEmpty());
+
+            if constexpr (eqA.USES_OVC) {
+                queue.cmp.stored_ovcs = &ovcs_of_first_row_in_run;
+                for (auto ovc : ovcs_of_first_row_in_run) {
+                    log_trace("%lu@%lu", OVC_FMT(ovc));
+                }
+            }
 
             size_t num_runs = memory_runs.size();
 
@@ -51,6 +55,8 @@ namespace ovc::iterators {
             }
 
             if (num_runs > QUEUE_CAPACITY) {
+                assert(false);
+
                 // this guarantees maximal fan-in for the later merges
                 size_t initial_merge_fan_in = num_runs % (QUEUE_CAPACITY - 1);
                 if (initial_merge_fan_in == 0) {
@@ -68,10 +74,10 @@ namespace ovc::iterators {
 
         Row *next() {
             Row *row = queue.pop_memory();
-            if (stored_ovc) {
-                //log_info("restoring ovc %lu for %s", stored_ovc, row->c_str());
-                //row->key = stored_ovc;
-                stored_ovc = 0;
+            if (ovc_of_first_row_in_segment) {
+                log_info("restoring ovc %lu for %s", ovc_of_first_row_in_segment, row->c_str());
+                row->key = ovc_of_first_row_in_segment;
+                ovc_of_first_row_in_segment = 0;
             }
             return row;
         }
@@ -104,7 +110,6 @@ namespace ovc::iterators {
             while (!queue.isEmpty()) {
                 run.add(queue.pop_memory());
             }
-            log_trace("memory run size: %lu", run.size());
             memory_runs.push(run);
         }
 
@@ -126,35 +131,47 @@ namespace ovc::iterators {
             }
 
             if constexpr (eqA.USES_OVC) {
-                // First row in run
-                stored_ovc = std::max(stored_ovc, row->key);
-                stored_ovcs.push_back(row->key);
+                // First row in run, store its offset-value code
+                ovc_of_first_row_in_segment = row->key;
+
+                //ovcs_of_first_row_in_run.push_back(row->key);
+                ovcs_of_first_row_in_run.push_back(0);
+
+
+                // Set new offset-value code with offset |A| and value from C[0]
                 row->setNewOVC(eqA.arity, eqA.offset, eqA.columns[eqB.offset]);
             }
 
+            long run_index = 0;
+
+            row->tid = run_index;
             run.add(row);
 
             Row *prev = row;
 
             for (; (row = next_from_segment(input));) {
                 if (!eqB(*row, *prev)) {
+                    // Change in B detected, create a new run
                     memory_runs.push(run);
                     run = {};
+                    run_index++;
                     if constexpr (eqA.USES_OVC) {
-                        // First row in run
-                        stored_ovc = std::max(stored_ovc, row->key);
-                        stored_ovcs.push_back(row->key);
+                        // First row in run, store its offset-value code
+                        ovcs_of_first_row_in_run.push_back(row->key);
+
+                        // Set new offset-value code with offset |A| and value C[0]
                         row->setNewOVC(eqA.arity, eqA.offset, eqA.columns[eqB.offset]);
                     }
                 } else {
                     if constexpr (eqA.USES_OVC) {
-                        // decrement offset by |B|, unless it is a dupe
+                        // Unless the row is a dupe (indicated by a code of 0), decrement the offset-value code by |B|
                         if (row->key) {
-                            auto offset = row->getOVC().getOffset();
+                            auto offset = row->getOffset();
                             row->setNewOVC(eqA.arity, offset - (eqB.offset - eqA.offset), eqA.columns[offset]);
                         }
                     }
                 }
+                row->tid = run_index;
                 run.add(row);
                 prev = row;
             }
@@ -165,7 +182,6 @@ namespace ovc::iterators {
         }
 
         Row *next_from_segment(Iterator *input) {
-            log_trace("next_from_segment");
             if (next_segment) {
                 prev = next_segment;
                 next_segment = nullptr;
@@ -173,7 +189,7 @@ namespace ovc::iterators {
             }
             Row *row = input->next();
             if (!row) {
-                log_trace("input empty");
+                log_trace("next_from_segment: input empty");
                 // input empty
                 return nullptr;
             }
@@ -191,8 +207,8 @@ namespace ovc::iterators {
                     prev = row;
                     return row;
                 } else {
-                    log_info("segment boundary detected at row %s", row->c_str());
-                    // next segment, hold back the row and return null
+                    log_info("next_from_segment: segment boundary detected at row %s", row->c_str());
+                    // Next segment, hold back the row and return null
                     next_segment = row;
                     prev = nullptr;
                     return nullptr;
@@ -248,7 +264,9 @@ namespace ovc::iterators {
     class SegmentedSort : public SegmentedSortBase<EqualsA, EqualsB, Compare> {
     public:
         SegmentedSort(Iterator *input, const EqualsA &eqA, const EqualsB &eqB, const Compare &cmp)
-                : SegmentedSortBase<EqualsA, EqualsB, Compare>(input, eqA.addStats(&this->stats), eqB.addStats(&this->stats), cmp.addStats(&this->stats)) {
+                : SegmentedSortBase<EqualsA, EqualsB, Compare>(input, eqA.addStats(&this->stats),
+                                                               eqB.addStats(&this->stats), cmp.addStats(&this->stats)) {
+            log_trace("constructor: %p", &this->stats);
             assert(cmp.USES_OVC == eqA.USES_OVC);
             assert(cmp.USES_OVC == eqB.USES_OVC);
         };

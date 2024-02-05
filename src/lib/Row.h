@@ -22,40 +22,29 @@
 
 #define ROW_VALUE_MASK (BITMASK(ROW_VALUE_BITS))
 
-#define MAKE_OVC(arity, offset, value) (((arity - offset) << ROW_VALUE_BITS) & ROW_OFFSET_MASK | (value & ROW_VALUE_MASK))
+#define MAKE_OVC(arity, offset, value) ((((arity) - (offset)) << ROW_VALUE_BITS) & ROW_OFFSET_MASK | ((value) & ROW_VALUE_MASK))
+
+#define OVC_SET_OFFSET(ovc, offset, arity) (((ovc) & ~ROW_OFFSET_MASK) | (((arity)-(offset)) << ROW_VALUE_BITS))
+#define OVC_GET_OFFSET(ovc, arity) ((arity) - (((ovc) & ROW_OFFSET_MASK) >> ROW_VALUE_BITS))
+#define OVC_GET_VALUE(ovc) ((ovc) & ROW_VALUE_MASK)
+
+#define OVC_FMT(ovc) OVC_GET_VALUE(ovc), OVC_GET_OFFSET(ovc, ROW_ARITY)
 
 namespace ovc {
 
     typedef uint32_t ovc_type_t;
-
-
-// statistics: number of times hash was called
-    extern unsigned long row_num_calls_to_hash;
-
-// statistics: number of times == was called
-    extern unsigned long row_num_calls_to_equal;
-
-    struct OVC_s {
-        ovc_type_t ovc;
-
-        OVC_s(ovc_type_t ovc) : ovc(ovc) {};
-
-        inline unsigned getOffset(unsigned long arity = ROW_ARITY) const {
-            return arity - ((ovc & ROW_OFFSET_MASK) >> ROW_VALUE_BITS);
-        };
-
-        inline int getValue() const {
-            return ovc & ROW_VALUE_MASK;
-        };
-    };
 
     typedef struct Row {
         OVC key;
         unsigned long tid;
         unsigned long columns[ROW_ARITY];
 
-        OVC_s getOVC() const {
-            return key;
+        inline unsigned long getOffset(unsigned long arity = ROW_ARITY) const {
+            return arity - ((key & ROW_OFFSET_MASK) >> ROW_VALUE_BITS);
+        }
+
+        inline unsigned long getValue(unsigned long arity = ROW_ARITY) const {
+            return key & ROW_VALUE_MASK;
         }
 
         inline void setOVC(const Row &base, int prefix = ROW_ARITY, struct iterator_stats *stats = nullptr) {
@@ -106,11 +95,11 @@ namespace ovc {
          * @return The string.
          */
         const char *c_str(char *buf = nullptr) const {
-            static char sbuf[128];
+            static char sbuf[256];
             if (buf == nullptr) {
                 buf = sbuf;
             }
-            int pos = sprintf(buf, "[%d@%d:%lu: ", getOVC().getValue(), getOVC().getOffset(), tid);
+            int pos = sprintf(buf, "[%lu@%lu:%lu: ", getValue(), getOffset(), tid);
             for (int i = 0; i < ROW_ARITY; i++) {
                 pos += sprintf(buf + pos, "%lu", columns[i]);
                 if (i < ROW_ARITY - 1) {
@@ -123,15 +112,4 @@ namespace ovc {
 
         friend std::ostream &operator<<(std::ostream &stream, const Row &row);
     } Row;
-
-}
-
-namespace std {
-    template<>
-    struct hash<ovc::Row> {
-        std::size_t operator()(const ovc::Row &p) const noexcept {
-            ovc::row_num_calls_to_hash++;
-            return p.key;
-        }
-    };
 }

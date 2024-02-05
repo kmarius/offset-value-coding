@@ -309,7 +309,7 @@ namespace ovc::iterators {
         }
 
         if (run.size() > 0) {
-            log_trace("external run of offset %lu created in %s", run.size(), path.c_str());
+            log_trace("external run of length %lu created in %s", run.size(), path.c_str());
             external_run_paths.push(path);
         }
 

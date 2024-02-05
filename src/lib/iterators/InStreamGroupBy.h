@@ -36,7 +36,7 @@ namespace ovc::iterators {
             for (Row *row; (row = input->next()) != nullptr; input->free()) {
                 agg.init(*row);
                 if constexpr (eq.USES_OVC) {
-                    if (row->getOVC().getOffset() < group_columns) {
+                    if (row->getOffset() < group_columns) {
                         output_buf = acc_buf;
                         agg.finalize(output_buf);
 

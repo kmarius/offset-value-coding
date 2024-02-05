@@ -43,9 +43,8 @@ namespace ovc::comparators {
                     stats->column_comparisons++;
                 }
 #endif
-                uint8_t ind = columns[i];
-                long cmp = (long) lhs.columns[ind] - (long) rhs.columns[ind];
-                if (cmp != 0) {
+                long cmp = (long) lhs.columns[columns[i]] - (long) rhs.columns[columns[i]];
+                if (cmp) {
                     return cmp;
                 }
             }
@@ -54,8 +53,7 @@ namespace ovc::comparators {
 
         long raw(const ovc::Row &lhs, const ovc::Row &rhs) const {
             for (int i = 0; i < length; i++) {
-                uint8_t ind = columns[i];
-                long cmp = (long) lhs.columns[ind] - (long) rhs.columns[ind];
+                long cmp = (long) lhs.columns[columns[i]] - (long) rhs.columns[columns[i]];
                 if (cmp != 0) {
                     return cmp;
                 }
@@ -136,9 +134,11 @@ namespace ovc::comparators {
                     // equality, no need to go on
                     return 0;
                 }
+                // if the offset is |AC|-1 (i.e. the last column of C) we can derive the offset-value code
+                // by taking the maximum ovc of the first rows all runs between the run of lhs, rhs
 
                 // if i > prefix, rows are equal
-                int i = lhs.getOVC().getOffset() + 1;
+                int i = lhs.getOffset() + 1;
                 for (; i < length; i++) {
                     cmp = (long) lhs.columns[columns[i]] - (long) rhs.columns[columns[i]];
 
@@ -210,6 +210,142 @@ namespace ovc::comparators {
     struct CmpOVC : public CmpPrefixOVC {
     public:
         explicit CmpOVC(iterator_stats *stats = nullptr) : CmpPrefixOVC(ROW_ARITY, stats) {}
+    };
+
+    struct CmpColumnListCoolOVC {
+        uint8_t columns[ROW_ARITY];
+        int length;
+        struct iterator_stats *stats;
+        static const bool USES_OVC = true;
+        std::vector<OVC> *stored_ovcs;
+        int length_ac;
+        int length_c;
+    private:
+        CmpColumnListCoolOVC() : columns(), length(0), stats(nullptr), stored_ovcs(nullptr) {};
+
+    public:
+        CmpColumnListCoolOVC addStats(struct iterator_stats *stats) const {
+            CmpColumnListCoolOVC cmp;
+            cmp.stats = stats;
+            cmp.length = length;
+            cmp.length_c = length_c;
+            cmp.length_ac = length_ac;
+            mempcpy(cmp.columns, columns, length * sizeof *columns);
+            return cmp;
+        }
+
+        CmpColumnListCoolOVC(const uint8_t *cols, int n, int ac, int c, iterator_stats *stats = nullptr)
+                : length(n), stats(stats), length_ac(ac), length_c(c) {
+            assert(n <= ROW_ARITY);
+            for (int i = 0; i < n; i++) {
+                columns[i] = cols[i];
+            }
+        };
+
+        explicit CmpColumnListCoolOVC(std::initializer_list<uint8_t> columns, int ac, int c,
+                                      iterator_stats *stats = nullptr)
+                : length(columns.size()), stats(stats), length_ac(ac), length_c(c) {
+            assert(columns.size() <= ROW_ARITY);
+            int i = 0;
+            for (auto col: columns) {
+                this->columns[i++] = col;
+            }
+        };
+
+        inline unsigned long makeOVC(long arity, long offset, const ovc::Row *row) const {
+            return MAKE_OVC(arity, offset, row->columns[columns[offset]]);
+        }
+
+        long operator()(ovc::Row &lhs, ovc::Row &rhs) const {
+            long cmp = (long) lhs.key - (long) rhs.key;
+            if (cmp) {
+                return cmp;
+            }
+            if (lhs.key == 0) {
+                // equality, no need to go on
+                return 0;
+            }
+            char buf[128];
+            log_trace("%s, %s", lhs.c_str(), rhs.c_str(buf));
+            //log_trace("cmp: %lu@%lu, %lu@%lu", OVC_GET_VALUE(lhs.key), OVC_GET_OFFSET(lhs.key, ROW_ARITY), OVC_GET_VALUE(rhs.key), OVC_GET_OFFSET(rhs.key, ROW_ARITY));
+
+            int offset = lhs.getOffset();
+
+            int i = offset + 1;
+            if (i < length_ac) {
+                log_trace("checking for difference in AC");
+            }
+            for (; i < length_ac; i++) {
+                cmp = (long) lhs.columns[columns[i]] - (long) rhs.columns[columns[i]];
+
+#ifdef COLLECT_STATS
+                if (stats) {
+                    log_trace("inc %lu %p", stats->column_comparisons, stats);
+                    stats->column_comparisons++;
+                }
+#endif
+                if (cmp) {
+                    break;
+                }
+            }
+            if (i < length_ac) {
+                // rows differ within AC
+                if (cmp <= 0) {
+                    rhs.key = MAKE_OVC(ROW_ARITY, i, rhs.columns[columns[i]]);
+                } else {
+                    lhs.key = MAKE_OVC(ROW_ARITY, i, lhs.columns[columns[i]]);
+                }
+                return cmp;
+            } else {
+                log_trace("deriving ovc");
+                // rows are equal on AC, derive the offset-value code from stored_ovcs
+                int ind_l = lhs.tid;
+                int ind_r = rhs.tid;
+                assert(ind_l < stored_ovcs->size());
+                assert(ind_r < stored_ovcs->size());
+                if (ind_l < ind_r) {
+                    long max = 0;
+                    for (int i = ind_l; i <= ind_r; i++) {
+                        log_trace("l=%d r=%d i=%d max=%lu@%lu %lu@%lu ", ind_l, ind_r, i,
+                                  OVC_GET_VALUE(max), OVC_GET_OFFSET(max, ROW_ARITY),
+                                  OVC_GET_VALUE((*stored_ovcs)[i]), OVC_GET_OFFSET((*stored_ovcs)[i], ROW_ARITY));
+                        if ((*stored_ovcs)[i] > max) {
+                            max = (*stored_ovcs)[i];
+                        }
+                    }
+
+                    log_trace("derived %lu@%lu", OVC_GET_VALUE(max), OVC_GET_OFFSET(max, ROW_ARITY));
+
+                    // increment offset of max by |C|
+                    max = OVC_SET_OFFSET(max, OVC_GET_OFFSET(max, ROW_ARITY) + length_c, ROW_ARITY);
+
+                    log_trace("adapted to %lu@%lu", OVC_GET_VALUE(max), OVC_GET_OFFSET(max, ROW_ARITY));
+
+                    rhs.key = max;
+                    log_trace("larger: %s", rhs.c_str());
+                    return -1;
+                } else {
+                    long max = 0;
+                    for (int i = ind_r; i <= ind_l; i++) {
+                        log_trace("l=%d r=%d i=%d max=%lu@%lu %lu@%lu ", ind_l, ind_r, i,
+                                  OVC_GET_VALUE(max), OVC_GET_OFFSET(max, ROW_ARITY),
+                                  OVC_GET_VALUE((*stored_ovcs)[i]), OVC_GET_OFFSET((*stored_ovcs)[i], ROW_ARITY));
+                        if ((*stored_ovcs)[i] > max) {
+                            max = (*stored_ovcs)[i];
+                        }
+                    }
+
+                    log_trace("derived %lu@%lu", OVC_GET_VALUE(max), OVC_GET_OFFSET(max, ROW_ARITY));
+                    // increment offset of max by |C|
+                    max = OVC_SET_OFFSET(max, OVC_GET_OFFSET(max, ROW_ARITY) + length_c, ROW_ARITY);
+                    log_trace("adapted to %lu@%lu", OVC_GET_VALUE(max), OVC_GET_OFFSET(max, ROW_ARITY));
+
+                    lhs.key = max;
+                    log_trace("larger: %s", lhs.c_str());
+                    return 1;
+                }
+            }
+        }
     };
 
     struct EqColumnList {
@@ -369,10 +505,7 @@ namespace ovc::comparators {
         }
 
         bool operator()(const ovc::Row &next, const ovc::Row &prev) const {
-            auto ovc = next.getOVC();
-            log_trace("%s arity=%d, offset=%d, ovc=(%u, %u)", next.c_str(), arity, offset, ovc.getOffset(),
-                      ovc.getValue());
-            return next.getOVC().getOffset(arity) >= offset;
+            return next.getOffset(arity) >= offset;
         }
 
         bool raw(const ovc::Row &lhs, const ovc::Row &rhs) const {

@@ -109,6 +109,7 @@ namespace ovc {
             return o;
         }
 
+        Compare cmp;
     protected:
         iterator_stats *stats;
 
@@ -120,7 +121,6 @@ namespace ovc {
         size_t capacity_;
         Node *heap;
         WorkspaceItem *workspace;
-        Compare cmp;
     };
 
     template<typename Compare>

@@ -1035,7 +1035,7 @@ void experiment_complex4_param() {
 
 void experiment_sort_order1() {
     int num_rows = 1 << 20;
-    int reps = 1;
+    int reps = 10;
 
 #ifndef NDEBUG
     reps = 1;
@@ -1050,7 +1050,7 @@ void experiment_sort_order1() {
     uint8_t BA[ROW_ARITY] = {0};
     uint8_t *nil = AB;
 
-    for (int list_length = 2; list_length <= 16; list_length *= 2) {
+    for (int list_length = 1; list_length <= 16; list_length *= 2) {
         const int key_length = list_length * 2;
 
         // initialize key column lists
@@ -1086,11 +1086,11 @@ void experiment_sort_order1() {
             Generator *gen;
             const char *name;
         } gens[] = {
-                {new VectorGen(
-                        new SortPrefixOVC(
-                                new GeneratorWithDomains(num_rows, domains[0], 1337),
-                                key_length)),
-                        "random"},
+//                {new VectorGen(
+//                        new SortPrefixOVC(
+//                                new GeneratorWithDomains(num_rows, domains[0], 1337),
+//                                key_length)),
+//                        "random"},
                 {new VectorGen(
                         new SortPrefixOVC(
                                 new GeneratorWithDomains(num_rows, domains[1], 1337 + 1),
@@ -1105,20 +1105,21 @@ void experiment_sort_order1() {
 
         for (auto &gen: gens) {
             for (int i = 0; i < reps; i++) {
-                Iterator *ovc = new SegmentedSort(
+                auto ovc = new SegmentedSort(
                         gen.gen->clone(),
                         EqOffset(nil, key_length, 0),
                         EqOffset(AB, key_length, list_length),
-                        CmpColumnListOVC(BA, key_length));
+                        CmpColumnListCoolOVC(BA, key_length, list_length, list_length));
 
+                Iterator *plan = ovc;
 #ifndef NDEBUG
                 auto asserter = new AssertSorted(ovc, CmpColumnListOVC(BA, key_length));
-                ovc = asserter;
+                plan = asserter;
 #endif
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 auto t0 = now();
-                ovc->run();
+                plan->run();
                 auto duration = since(t0);
 
 #ifndef NDEBUG
@@ -1127,27 +1128,29 @@ void experiment_sort_order1() {
 #endif
 
                 fprintf(results, "%s,%s,%d,%lu,%lu\n", "ovc", gen.name, list_length, ovc->getStats().column_comparisons, duration);
+                fprintf(stdout, "%s,%s,%d,%lu,%lu\n", "ovc", gen.name, list_length, ovc->getStats().column_comparisons, duration);
                 fflush(results);
 
-                delete ovc;
+                delete plan;
             }
 
             for (int i = 0; i < reps; i++) {
-                Iterator *traditional = new
+                 auto traditional = new
                         SegmentedSort(
                         gen.gen->clone(),
                         EqColumnList(nil, 0),
                         EqColumnList(A, list_length),
                         CmpColumnList(BA, key_length));
 
+                 Iterator *plan = traditional;
 #ifndef NDEBUG
                 auto asserter = new AssertSorted(traditional, CmpColumnList(BA, key_length));
-                traditional = asserter;
+                plan = asserter;
 #endif
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 auto t0 = now();
-                traditional->run();
+                plan->run();
                 auto duration = since(t0);
 
 #ifndef NDEBUG
@@ -1156,9 +1159,10 @@ void experiment_sort_order1() {
 #endif
 
                 fprintf(results, "%s,%s,%d,%lu,%lu\n", "traditional", gen.name, list_length, traditional->getStats().column_comparisons, duration);
+                fprintf(stdout, "%s,%s,%d,%lu,%lu\n", "traditional", gen.name, list_length, traditional->getStats().column_comparisons, duration);
                 fflush(results);
 
-                delete traditional;
+                delete plan;
             }
         }
 
@@ -1172,7 +1176,7 @@ void experiment_sort_order1() {
 
 void experiment_sort_order2() {
     int num_rows = 1 << 20;
-    int reps = 1;
+    int reps = 10;
 
 #ifndef NDEBUG
     reps = 1;
@@ -1187,7 +1191,7 @@ void experiment_sort_order2() {
     uint8_t ABC[ROW_ARITY] = {0};
     uint8_t ACB[ROW_ARITY] = {0};
 
-    int list_length = 8;
+    int list_length = 6;
     for (uint64_t bits_per_row = 1; bits_per_row < 20; bits_per_row += 3) {
         const int key_length = list_length * 3;
 
@@ -1206,8 +1210,9 @@ void experiment_sort_order2() {
         }
 
         domains[0][list_length - 1] = 1 << bits_per_row;
-        domains[0][2 * list_length - 1] = 1024;
+        domains[0][2 * list_length - 1] = QUEUE_CAPACITY;
         domains[0][3 * list_length - 1] = 1024;
+        //domains[0][3 * list_length - 2] = 1024;
 
         // generate data and sort by ABC
         struct {
@@ -1223,20 +1228,21 @@ void experiment_sort_order2() {
 
         for (auto &gen: gens) {
             for (int i = 0; i < reps; i++) {
-                Iterator *ovc = new SegmentedSort(
+                auto ovc = new SegmentedSort(
                         gen.gen->clone(),
                         EqOffset(ABC, key_length, list_length),
                         EqOffset(ABC, key_length, list_length * 2),
-                        CmpColumnListOVC(ACB, key_length));
+                        CmpColumnListCoolOVC(ACB, key_length, list_length * 2, list_length));
 
+                Iterator *plan = ovc;
 #ifndef NDEBUG
-                auto asserter = new AssertSorted(ovc, CmpColumnListOVC(ACB, key_length));
-                ovc = asserter;
+                auto asserter = new AssertSorted(plan, CmpColumnListOVC(ACB, key_length));
+                plan = asserter;
 #endif
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 auto t0 = now();
-                ovc->run();
+                plan->run(true);
                 auto duration = since(t0);
 
 #ifndef NDEBUG
@@ -1246,27 +1252,30 @@ void experiment_sort_order2() {
 
                 fprintf(results, "%s,%lu,%lu,%lu\n", "ovc", bits_per_row, duration,
                         ovc->getStats().column_comparisons);
+                fprintf(stdout, "%s,%lu,%lu,%lu\n", "ovc", bits_per_row, duration,
+                        ovc->getStats().column_comparisons);
                 fflush(results);
 
-                delete ovc;
+                delete plan;
             }
 
             for (int i = 0; i < reps; i++) {
-                Iterator *traditional = new
+                auto traditional = new
                         SegmentedSort(
                         gen.gen->clone(),
                         EqColumnList(A, list_length),
                         EqColumnList(B, list_length),
                         CmpColumnList(CB, 2 * list_length));
+                Iterator *plan = traditional;
 
 #ifndef NDEBUG
                 auto asserter = new AssertSorted(traditional, CmpColumnList(ACB, key_length));
-                traditional = asserter;
+                plan = asserter;
 #endif
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 auto t0 = now();
-                traditional->run();
+                plan->run();
                 auto duration = since(t0);
 
 #ifndef NDEBUG
@@ -1276,9 +1285,11 @@ void experiment_sort_order2() {
 
                 fprintf(results, "%s,%lu,%lu,%lu\n", "traditional", bits_per_row, duration,
                         traditional->getStats().column_comparisons);
+                fprintf(stdout, "%s,%lu,%lu,%lu\n", "traditional", bits_per_row, duration,
+                        traditional->getStats().column_comparisons);
                 fflush(results);
 
-                delete traditional;
+                delete plan;
             }
         }
 
@@ -1293,7 +1304,7 @@ void experiment_sort_order2() {
 int main(int argc, char *argv[]) {
     log_open(LOG_TRACE);
     log_set_quiet(false);
-    log_set_level(LOG_INFO);
+    log_set_level(LOG_TRACE);
     log_info("start");
 
     auto start = now();
@@ -1306,7 +1317,7 @@ int main(int argc, char *argv[]) {
     //experiment_complex2();
     //experiment_complex3();
 
-    experiment_sort_order1();
+    //experiment_sort_order1();
     experiment_sort_order2();
 
     log_info("elapsed=%lums", since(start));
