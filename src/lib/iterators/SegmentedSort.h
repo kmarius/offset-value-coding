@@ -132,7 +132,6 @@ namespace ovc::iterators {
 
             if constexpr (eqA.USES_OVC) {
                 // First row in run, store its offset-value code
-                ovc_of_first_row_in_segment = row->key;
                 stored_ovcs.push_back(row->key);
 
                 // Set new offset-value code with offset |A| and value from C[0]
