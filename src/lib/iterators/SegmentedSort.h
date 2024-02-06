@@ -23,12 +23,11 @@ namespace ovc::iterators {
         iterator_stats *stats;
         Row *prev;
         Row *next_segment;
-        unsigned long ovc_of_first_row_in_segment;
         std::vector<OVC> stored_ovcs;
 
         SegmentedSorter(iterator_stats *stats, const EqualsA &eqA, const EqualsB &eqB, const Compare &cmp) :
                 queue(QUEUE_CAPACITY, stats, cmp), stats(stats), eqA(eqA), eqB(eqB), cmp(cmp), prev(nullptr),
-                next_segment(nullptr), ovc_of_first_row_in_segment(0) {
+                next_segment(nullptr){
             workspace.reserve(1 << 20);
         }
 
