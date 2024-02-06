@@ -39,7 +39,7 @@ namespace ovc::iterators {
                         if (row->key != wanted) {
                             log_error("wrong OVC at %d: prev: %s", count, prev.c_str());
                             log_error("                  cur: %s", row->c_str());
-                            log_error("wanted=%lu, found=%lu", wanted, row->key);
+                            log_error("wanted=%lu@%lu, found=%lu@%lu", OVC_FMT(wanted), OVC_FMT(row->key));
                             is_sorted = false;
                         }
                     } else {
@@ -48,7 +48,7 @@ namespace ovc::iterators {
                         if (ovc != row->key) {
                             log_error("wrong OVC at %d: prev: %s", count, prev.c_str());
                             log_error("                  cur: %s", row->c_str());
-                            log_error("wanted=%lu, found=%lu", ovc, row->key);
+                            log_error("wanted=%lu@%lu, found=%lu@%lu", OVC_FMT(ovc), OVC_FMT(row->key));
                             is_sorted = false;
                         }
                     }

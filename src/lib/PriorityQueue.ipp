@@ -266,9 +266,8 @@ namespace ovc {
         Index workspace_index = heap[0].index;
 
         Row *res = workspace[workspace_index].row;
-        res->key = heap[0].ovc();
 
-        // replace workspace item with high sentinel
+        // replace node with low sentinel
         heap[0].key = LOW_SENTINEL(workspace_index);
         workspace[workspace_index].row = nullptr;
         size_--;

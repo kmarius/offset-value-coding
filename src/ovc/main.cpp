@@ -1109,7 +1109,7 @@ void experiment_sort_order1() {
                         gen.gen->clone(),
                         EqOffset(nil, key_length, 0),
                         EqOffset(AB, key_length, list_length),
-                        CmpColumnListCoolOVC(BA, key_length, list_length, list_length));
+                        CmpColumnListDerivingOVC(BA, key_length, list_length, list_length));
 
                 Iterator *plan = ovc;
 #ifndef NDEBUG
@@ -1176,7 +1176,7 @@ void experiment_sort_order1() {
 
 void experiment_sort_order2() {
     int num_rows = 1 << 20;
-    int reps = 10;
+    int reps = 1;
 
 #ifndef NDEBUG
     reps = 1;
@@ -1191,7 +1191,7 @@ void experiment_sort_order2() {
     uint8_t ABC[ROW_ARITY] = {0};
     uint8_t ACB[ROW_ARITY] = {0};
 
-    int list_length = 6;
+    int list_length = 1;
     for (uint64_t bits_per_row = 1; bits_per_row < 20; bits_per_row += 3) {
         const int key_length = list_length * 3;
 
@@ -1232,7 +1232,7 @@ void experiment_sort_order2() {
                         gen.gen->clone(),
                         EqOffset(ABC, key_length, list_length),
                         EqOffset(ABC, key_length, list_length * 2),
-                        CmpColumnListCoolOVC(ACB, key_length, list_length * 2, list_length));
+                        CmpColumnListDerivingOVC(ACB, key_length, list_length * 2, list_length));
 
                 Iterator *plan = ovc;
 #ifndef NDEBUG

@@ -19,12 +19,12 @@ namespace ovc::iterators {
         std::vector<Row> workspace;
         std::queue<MemoryRun> memory_runs;
         std::vector<MemoryRun> current_merge_runs;
-        PriorityQueue<Compare> queue;
+        PriorityQueue <Compare> queue;
         iterator_stats *stats;
         Row *prev;
         Row *next_segment;
         unsigned long ovc_of_first_row_in_segment;
-        std::vector<OVC> ovcs_of_first_row_in_run;
+        std::vector<OVC> stored_ovcs;
 
         SegmentedSorter(iterator_stats *stats, const EqualsA &eqA, const EqualsB &eqB, const Compare &cmp) :
                 queue(QUEUE_CAPACITY, stats, cmp), stats(stats), eqA(eqA), eqB(eqB), cmp(cmp), prev(nullptr),
@@ -37,13 +37,14 @@ namespace ovc::iterators {
         void prep_next_segment(Iterator *input) {
             log_trace("prep_next_segment");
 
-            ovcs_of_first_row_in_run.clear();
+            assert(queue.isEmpty());
+            stored_ovcs.clear();
             sort_next_segment(input);
             assert(queue.isEmpty());
 
             if constexpr (eqA.USES_OVC) {
-                queue.cmp.stored_ovcs = &ovcs_of_first_row_in_run;
-                for (auto ovc : ovcs_of_first_row_in_run) {
+                queue.cmp.stored_ovcs = &stored_ovcs[0];
+                for (auto ovc: stored_ovcs) {
                     log_trace("%lu@%lu", OVC_FMT(ovc));
                 }
             }
@@ -70,16 +71,16 @@ namespace ovc::iterators {
             }
 
             insert_memory_runs(memory_runs.size());
+
+            if constexpr (eqA.USES_OVC) {
+                // Restore OVC for the first row in the segment
+                assert(stored_ovcs.size() > 0);
+                queue.top()->key = stored_ovcs[0];
+            }
         }
 
-        Row *next() {
-            Row *row = queue.pop_memory();
-            if (ovc_of_first_row_in_segment) {
-                log_info("restoring ovc %lu for %s", ovc_of_first_row_in_segment, row->c_str());
-                row->key = ovc_of_first_row_in_segment;
-                ovc_of_first_row_in_segment = 0;
-            }
-            return row;
+        inline Row *next() {
+            return queue.pop_memory();
         }
 
     private:
@@ -133,10 +134,7 @@ namespace ovc::iterators {
             if constexpr (eqA.USES_OVC) {
                 // First row in run, store its offset-value code
                 ovc_of_first_row_in_segment = row->key;
-
-                //ovcs_of_first_row_in_run.push_back(row->key);
-                ovcs_of_first_row_in_run.push_back(0);
-
+                stored_ovcs.push_back(row->key);
 
                 // Set new offset-value code with offset |A| and value from C[0]
                 row->setNewOVC(eqA.arity, eqA.offset, eqA.columns[eqB.offset]);
@@ -157,7 +155,7 @@ namespace ovc::iterators {
                     run_index++;
                     if constexpr (eqA.USES_OVC) {
                         // First row in run, store its offset-value code
-                        ovcs_of_first_row_in_run.push_back(row->key);
+                        stored_ovcs.push_back(row->key);
 
                         // Set new offset-value code with offset |A| and value C[0]
                         row->setNewOVC(eqA.arity, eqA.offset, eqA.columns[eqB.offset]);
@@ -207,7 +205,7 @@ namespace ovc::iterators {
                     prev = row;
                     return row;
                 } else {
-                    log_info("next_from_segment: segment boundary detected at row %s", row->c_str());
+                    log_trace("next_from_segment: segment boundary detected at row %s", row->c_str());
                     // Next segment, hold back the row and return null
                     next_segment = row;
                     prev = nullptr;
@@ -269,6 +267,25 @@ namespace ovc::iterators {
             log_trace("constructor: %p", &this->stats);
             assert(cmp.USES_OVC == eqA.USES_OVC);
             assert(cmp.USES_OVC == eqB.USES_OVC);
+        };
+    };
+
+    using namespace comparators;
+
+    class SegmentedSort2 : public SegmentedSortBase<EqColumnList, EqColumnList, CmpColumnList> {
+    public:
+        SegmentedSort2(Iterator *input,
+                       uint8_t *columnsA, uint8_t lengthA,
+                       uint8_t *columnsB, uint8_t lengthB,
+                       uint8_t *columnsC, uint8_t lengthC)
+                : SegmentedSortBase<EqColumnList, EqColumnList, CmpColumnList>(input,
+                                                                               EqColumnList(columnsA, lengthA,
+                                                                                            &this->stats),
+                                                                               EqColumnList(columnsB, lengthB,
+                                                                                            &this->stats),
+                                                                               CmpColumnList(columnsC, lengthC,
+                                                                                             &this->stats).append(
+                                                                                       columnsB, lengthB)) {
         };
     };
 }

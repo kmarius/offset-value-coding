@@ -18,6 +18,15 @@ namespace ovc::comparators {
             return cmp;
         }
 
+        CmpColumnList append(uint8_t *columns_, int length_) const {
+            CmpColumnList cmp;
+            cmp.stats = stats;
+            cmp.length = length + length_;
+            mempcpy(cmp.columns, columns, length * sizeof *columns);
+            mempcpy(cmp.columns + length, columns_, length_ * sizeof *columns_);
+            return cmp;
+        }
+
         explicit CmpColumnList(std::initializer_list<uint8_t> columns, iterator_stats *stats = nullptr)
                 : length(columns.size()), stats(stats) {
             assert(columns.size() <= ROW_ARITY);
@@ -212,20 +221,20 @@ namespace ovc::comparators {
         explicit CmpOVC(iterator_stats *stats = nullptr) : CmpPrefixOVC(ROW_ARITY, stats) {}
     };
 
-    struct CmpColumnListCoolOVC {
+    struct CmpColumnListDerivingOVC {
         uint8_t columns[ROW_ARITY];
         int length;
         struct iterator_stats *stats;
         static const bool USES_OVC = true;
-        std::vector<OVC> *stored_ovcs;
+        OVC *stored_ovcs;
         int length_ac;
         int length_c;
     private:
-        CmpColumnListCoolOVC() : columns(), length(0), stats(nullptr), stored_ovcs(nullptr) {};
+        CmpColumnListDerivingOVC() : columns(), length(0), stats(nullptr), stored_ovcs(nullptr) {};
 
     public:
-        CmpColumnListCoolOVC addStats(struct iterator_stats *stats) const {
-            CmpColumnListCoolOVC cmp;
+        CmpColumnListDerivingOVC addStats(struct iterator_stats *stats) const {
+            CmpColumnListDerivingOVC cmp;
             cmp.stats = stats;
             cmp.length = length;
             cmp.length_c = length_c;
@@ -234,7 +243,7 @@ namespace ovc::comparators {
             return cmp;
         }
 
-        CmpColumnListCoolOVC(const uint8_t *cols, int n, int ac, int c, iterator_stats *stats = nullptr)
+        CmpColumnListDerivingOVC(const uint8_t *cols, int n, int ac, int c, iterator_stats *stats = nullptr)
                 : length(n), stats(stats), length_ac(ac), length_c(c) {
             assert(n <= ROW_ARITY);
             for (int i = 0; i < n; i++) {
@@ -242,8 +251,8 @@ namespace ovc::comparators {
             }
         };
 
-        explicit CmpColumnListCoolOVC(std::initializer_list<uint8_t> columns, int ac, int c,
-                                      iterator_stats *stats = nullptr)
+        explicit CmpColumnListDerivingOVC(std::initializer_list<uint8_t> columns, int ac, int c,
+                                          iterator_stats *stats = nullptr)
                 : length(columns.size()), stats(stats), length_ac(ac), length_c(c) {
             assert(columns.size() <= ROW_ARITY);
             int i = 0;
@@ -267,7 +276,6 @@ namespace ovc::comparators {
             }
             char buf[128];
             log_trace("%s, %s", lhs.c_str(), rhs.c_str(buf));
-            //log_trace("cmp: %lu@%lu, %lu@%lu", OVC_GET_VALUE(lhs.key), OVC_GET_OFFSET(lhs.key, ROW_ARITY), OVC_GET_VALUE(rhs.key), OVC_GET_OFFSET(rhs.key, ROW_ARITY));
 
             int offset = lhs.getOffset();
 
@@ -301,44 +309,40 @@ namespace ovc::comparators {
                 // rows are equal on AC, derive the offset-value code from stored_ovcs
                 int ind_l = lhs.tid;
                 int ind_r = rhs.tid;
-                assert(ind_l < stored_ovcs->size());
-                assert(ind_r < stored_ovcs->size());
                 if (ind_l < ind_r) {
-                    long max = 0;
-                    for (int i = ind_l; i <= ind_r; i++) {
-                        log_trace("l=%d r=%d i=%d max=%lu@%lu %lu@%lu ", ind_l, ind_r, i,
-                                  OVC_GET_VALUE(max), OVC_GET_OFFSET(max, ROW_ARITY),
-                                  OVC_GET_VALUE((*stored_ovcs)[i]), OVC_GET_OFFSET((*stored_ovcs)[i], ROW_ARITY));
-                        if ((*stored_ovcs)[i] > max) {
-                            max = (*stored_ovcs)[i];
+                    unsigned long max = 0;
+                    for (int j = ind_l + 1; j <= ind_r; j++) {
+                        log_trace("l=%d r=%d j=%d max=%lu@%lu %lu@%lu", ind_l, ind_r, j, OVC_FMT(max),
+                                  OVC_FMT((stored_ovcs)[j]));
+                        if (stored_ovcs[j] > max) {
+                            max = stored_ovcs[j];
                         }
                     }
 
-                    log_trace("derived %lu@%lu", OVC_GET_VALUE(max), OVC_GET_OFFSET(max, ROW_ARITY));
+                    log_trace("derived %lu@%lu", OVC_FMT(max));
 
                     // increment offset of max by |C|
                     max = OVC_SET_OFFSET(max, OVC_GET_OFFSET(max, ROW_ARITY) + length_c, ROW_ARITY);
 
-                    log_trace("adapted to %lu@%lu", OVC_GET_VALUE(max), OVC_GET_OFFSET(max, ROW_ARITY));
+                    log_trace("adapted to %lu@%lu", OVC_FMT(max));
 
                     rhs.key = max;
                     log_trace("larger: %s", rhs.c_str());
                     return -1;
                 } else {
-                    long max = 0;
-                    for (int i = ind_r; i <= ind_l; i++) {
-                        log_trace("l=%d r=%d i=%d max=%lu@%lu %lu@%lu ", ind_l, ind_r, i,
-                                  OVC_GET_VALUE(max), OVC_GET_OFFSET(max, ROW_ARITY),
-                                  OVC_GET_VALUE((*stored_ovcs)[i]), OVC_GET_OFFSET((*stored_ovcs)[i], ROW_ARITY));
-                        if ((*stored_ovcs)[i] > max) {
-                            max = (*stored_ovcs)[i];
+                    unsigned long max = 0;
+                    for (int j = ind_r + 1; j <= ind_l; j++) {
+                        log_trace("l=%d r=%d j=%d max=%lu@%lu %lu@%lu", ind_l, ind_r, j, OVC_FMT(max),
+                                  OVC_FMT((stored_ovcs)[j]));
+                        if (stored_ovcs[j] > max) {
+                            max = stored_ovcs[j];
                         }
                     }
 
-                    log_trace("derived %lu@%lu", OVC_GET_VALUE(max), OVC_GET_OFFSET(max, ROW_ARITY));
+                    log_trace("derived %lu@%lu", OVC_FMT(max));
                     // increment offset of max by |C|
                     max = OVC_SET_OFFSET(max, OVC_GET_OFFSET(max, ROW_ARITY) + length_c, ROW_ARITY);
-                    log_trace("adapted to %lu@%lu", OVC_GET_VALUE(max), OVC_GET_OFFSET(max, ROW_ARITY));
+                    log_trace("adapted to %lu@%lu", OVC_FMT(max));
 
                     lhs.key = max;
                     log_trace("larger: %s", lhs.c_str());
