@@ -110,24 +110,15 @@ namespace ovc {
 #ifdef COLLECT_STATS
             stats->comparisons++;
 #endif
-
-            if constexpr (!cmp.USES_OVC) {
-                if (key == node.key) {
-                    // same run index, need to compare rows
+            if (key == node.key) {
 #ifdef COLLECT_STATS
-                    stats->comparisons_equal_key++;
-                    stats->comparisons_of_actual_rows++;
+                stats->comparisons_equal_key++;
+                stats->comparisons_of_actual_rows++;
 #endif
+                // same run index, need to compare rows
+                if constexpr (!cmp.USES_OVC) {
                     return cmp(*ws[index].row, *ws[node.index].row) < 0;
-                }
-
-                return key < node.key;
-            } else {
-                if (key == node.key) {
-#ifdef COLLECT_STATS
-                    stats->comparisons_equal_key++;
-                    stats->comparisons_of_actual_rows++;
-#endif
+                } else {
                     if (cmp(*ws[index].row, *ws[node.index].row) <= 0) {
                         node.setOVC(ws[node.index].row->key);
                         return true;
@@ -136,9 +127,9 @@ namespace ovc {
                         return false;
                     }
                 }
-
-                return key < node.key;
             }
+
+            return key < node.key;
         }
 
         friend std::ostream &operator<<(std::ostream &stream, const Node &node) {

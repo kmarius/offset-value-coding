@@ -55,7 +55,7 @@ namespace ovc::iterators {
             }
 
             if (num_runs > QUEUE_CAPACITY) {
-                assert(false);
+                assert(false); // disabled for now
 
                 // this guarantees maximal fan-in for the later merges
                 size_t initial_merge_fan_in = num_runs % (QUEUE_CAPACITY - 1);

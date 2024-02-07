@@ -305,47 +305,30 @@ namespace ovc::comparators {
                 }
                 return cmp;
             } else {
-                log_trace("deriving ovc");
-                // rows are equal on AC, derive the offset-value code from stored_ovcs
+                // Equality on AC, derive the offset-value code from stored_ovcs
                 int ind_l = lhs.tid;
                 int ind_r = rhs.tid;
                 if (ind_l < ind_r) {
                     unsigned long max = 0;
                     for (int j = ind_l + 1; j <= ind_r; j++) {
-                        log_trace("l=%d r=%d j=%d max=%lu@%lu %lu@%lu", ind_l, ind_r, j, OVC_FMT(max),
-                                  OVC_FMT((stored_ovcs)[j]));
                         if (stored_ovcs[j] > max) {
                             max = stored_ovcs[j];
                         }
                     }
-
-                    log_trace("derived %lu@%lu", OVC_FMT(max));
-
                     // increment offset of max by |C|
                     max = OVC_SET_OFFSET(max, OVC_GET_OFFSET(max, ROW_ARITY) + length_c, ROW_ARITY);
-
-                    log_trace("adapted to %lu@%lu", OVC_FMT(max));
-
                     rhs.key = max;
-                    log_trace("larger: %s", rhs.c_str());
                     return -1;
                 } else {
                     unsigned long max = 0;
                     for (int j = ind_r + 1; j <= ind_l; j++) {
-                        log_trace("l=%d r=%d j=%d max=%lu@%lu %lu@%lu", ind_l, ind_r, j, OVC_FMT(max),
-                                  OVC_FMT((stored_ovcs)[j]));
                         if (stored_ovcs[j] > max) {
                             max = stored_ovcs[j];
                         }
                     }
-
-                    log_trace("derived %lu@%lu", OVC_FMT(max));
                     // increment offset of max by |C|
                     max = OVC_SET_OFFSET(max, OVC_GET_OFFSET(max, ROW_ARITY) + length_c, ROW_ARITY);
-                    log_trace("adapted to %lu@%lu", OVC_FMT(max));
-
                     lhs.key = max;
-                    log_trace("larger: %s", lhs.c_str());
                     return 1;
                 }
             }

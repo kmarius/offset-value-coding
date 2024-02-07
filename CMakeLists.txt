@@ -56,11 +56,16 @@ add_library(libovc
         src/lib/iterators/UniqueRowGenerator.h
         src/lib/iterators/SegmentedSort.h
         src/lib/iterators/AssertCount.h
-        src/lib/iterators/VectorGen.h)
+        src/lib/iterators/VectorGen.h
+        src/paper1/main.cpp)
+
 target_link_libraries(libovc uring)
 
-add_executable(ovc src/ovc/main.cpp)
-target_link_libraries(ovc libovc)
+add_executable(paper1 src/paper1/main.cpp)
+target_link_libraries(paper1 libovc)
+
+add_executable(paper2 src/paper2/main.cpp)
+target_link_libraries(paper2 libovc)
 
 add_executable(rcat src/rcat/main.cpp)
 target_link_libraries(rcat libovc)
@@ -77,7 +82,8 @@ target_link_libraries(rgen libovc)
 add_custom_target(BuildAll)
 add_dependencies(BuildAll
         libovc
-        ovc
+        paper1
+        paper2
         rcat
         rcheck
         rcount
