@@ -68,7 +68,7 @@ namespace ovc::iterators {
 
         Row *row;
 
-        for (; queue.size() < queue.capacity() && (row = input->next());) {
+        for (; queue.getSize() < queue.getCapacity() && (row = input->next());) {
             if constexpr (!agg.IS_NULL) {
                 agg.init(*row);
             }
@@ -158,7 +158,7 @@ namespace ovc::iterators {
             }
         }
 
-        if (queue.size() < queue.capacity()) {
+        if (queue.getSize() < queue.getCapacity()) {
             // The queue is not even full once. Pop everything, we then have a single in-memory run.
             while (!queue.isEmpty()) {
                 Row *row1 = queue.pop_safe(MERGE_RUN_IDX);
@@ -188,7 +188,7 @@ namespace ovc::iterators {
 
             assert(queue.isCorrect());
 
-            if (queue.size() == queue.capacity()) {
+            if (queue.getSize() == queue.getCapacity()) {
                 Row *row1 = queue.pop(MERGE_RUN_IDX);
                 process_row(row1, run);
                 i++;
@@ -226,7 +226,7 @@ namespace ovc::iterators {
 
         runs_generated++;
 
-        log_trace("generate_initial_runs: %lu memory_runs generated, last one has size: %lu", runs_generated,
+        log_trace("generate_initial_runs: %lu memory_runs generated, last one has getSize: %lu", runs_generated,
                   memory_runs.back().size());
         log_trace("%lu rows processed", rows_processed);
 

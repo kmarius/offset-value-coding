@@ -13,7 +13,7 @@
 
 #define BITMASK(bits) ((1ul << (bits)) - 1)
 
-// bits used for the offset, 7 mean we can work with 128 columns
+// bits used for the getOffset, 7 mean we can work with 128 columns
 #define ROW_OFFSET_BITS 7
 
 #define ROW_OFFSET_MASK (BITMASK(ROW_OFFSET_BITS) << ROW_VALUE_BITS)

@@ -19,7 +19,7 @@ namespace ovc::iterators {
         std::vector<Row> workspace;
         std::queue<MemoryRun> memory_runs;
         std::vector<MemoryRun> current_merge_runs;
-        PriorityQueue <Compare> queue;
+        PriorityQueue<Compare> queue;
         iterator_stats *stats;
         Row *prev;
         Row *next_segment;
@@ -27,8 +27,11 @@ namespace ovc::iterators {
 
         SegmentedSorter(iterator_stats *stats, const EqualsA &eqA, const EqualsB &eqB, const Compare &cmp) :
                 queue(QUEUE_CAPACITY, stats, cmp), stats(stats), eqA(eqA), eqB(eqB), cmp(cmp), prev(nullptr),
-                next_segment(nullptr){
+                next_segment(nullptr) {
             workspace.reserve(1 << 20);
+
+            assert(cmp.USES_OVC == eqA.USES_OVC);
+            assert(cmp.USES_OVC == eqB.USES_OVC);
         }
 
         ~SegmentedSorter() {};
@@ -256,34 +259,31 @@ namespace ovc::iterators {
         bool input_empty;
     };
 
-    template<typename EqualsA, typename EqualsB, typename Compare>
-    class SegmentedSort : public SegmentedSortBase<EqualsA, EqualsB, Compare> {
+    using namespace comparators;
+
+    class SegmentedSort : public SegmentedSortBase<EqColumnList, EqColumnList, CmpColumnListCool> {
     public:
-        SegmentedSort(Iterator *input, const EqualsA &eqA, const EqualsB &eqB, const Compare &cmp)
-                : SegmentedSortBase<EqualsA, EqualsB, Compare>(input, eqA.addStats(&this->stats),
-                                                               eqB.addStats(&this->stats), cmp.addStats(&this->stats)) {
-            log_trace("constructor: %p", &this->stats);
-            assert(cmp.USES_OVC == eqA.USES_OVC);
-            assert(cmp.USES_OVC == eqB.USES_OVC);
+        SegmentedSort(Iterator *input,
+                      uint8_t *columnsA, uint8_t lengthA,
+                      uint8_t *columnsB, uint8_t lengthB,
+                      uint8_t *columnsC, uint8_t lengthC)
+                : SegmentedSortBase<EqColumnList, EqColumnList, CmpColumnListCool>(
+                input,
+                EqColumnList(columnsA, lengthA, &this->stats),
+                EqColumnList(columnsB, lengthB, &this->stats),
+                CmpColumnListCool(columnsC, lengthC, &this->stats).append(columnsB, lengthB)) {
         };
     };
 
-    using namespace comparators;
-
-    class SegmentedSort2 : public SegmentedSortBase<EqColumnList, EqColumnList, CmpColumnList> {
+    class SegmentedSortOVC : public SegmentedSortBase<EqOffset, EqOffset, CmpColumnListDerivingOVC> {
     public:
-        SegmentedSort2(Iterator *input,
-                       uint8_t *columnsA, uint8_t lengthA,
-                       uint8_t *columnsB, uint8_t lengthB,
-                       uint8_t *columnsC, uint8_t lengthC)
-                : SegmentedSortBase<EqColumnList, EqColumnList, CmpColumnList>(input,
-                                                                               EqColumnList(columnsA, lengthA,
-                                                                                            &this->stats),
-                                                                               EqColumnList(columnsB, lengthB,
-                                                                                            &this->stats),
-                                                                               CmpColumnList(columnsC, lengthC,
-                                                                                             &this->stats).append(
-                                                                                       columnsB, lengthB)) {
-        };
+        SegmentedSortOVC(Iterator *input,
+                         uint8_t *columnsABC, uint8_t lengthA, uint8_t lengthB, uint8_t lengthC)
+                : SegmentedSortBase<EqOffset, EqOffset, CmpColumnListDerivingOVC>(
+                input,
+                EqOffset(columnsABC, lengthA + lengthB + lengthC, lengthA, &this->stats),
+                EqOffset(columnsABC, lengthA + lengthB + lengthC, lengthA + lengthB, &this->stats),
+                CmpColumnListDerivingOVC(columnsABC, lengthA, lengthB, lengthC, &this->stats).transposeBC()
+        ) {};
     };
 }

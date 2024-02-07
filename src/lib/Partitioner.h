@@ -38,7 +38,7 @@ namespace ovc {
         };
 
         /**
-         * Insert a row into its partition. The Row's `key` field is used for its hash value.
+         * Insert a row into its partition. The Row's `key` field is used for its hash getValue.
          * @param row The row to be inserted.
          */
         void put(Row *row) {

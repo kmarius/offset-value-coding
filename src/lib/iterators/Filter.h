@@ -5,7 +5,7 @@
 namespace ovc::iterators {
 
     /*
-     * If USE_OVC is enabled, the filter will repair offset value codes using the maximum formula.
+     * If USE_OVC is enabled, the filter will repair offset-value codes using the maximum formula.
      */
     template<bool USE_OVC = false>
     class Filter : public UnaryIterator {

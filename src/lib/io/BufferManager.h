@@ -38,7 +38,7 @@ namespace ovc::io {
         ~BufferManager();
 
         /**
-        * Submit a next of the file given by the descriptor at the given offset. A previously used buffer can be given back,
+        * Submit a next of the file given by the descriptor at the given getOffset. A previously used buffer can be given back,
         * there is no guarantee, that the data will be next into the buffer.
         * @param fd
         * @param buffer

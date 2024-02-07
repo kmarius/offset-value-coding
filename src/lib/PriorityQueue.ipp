@@ -37,7 +37,6 @@ namespace ovc {
     struct PriorityQueueBase<Compare>::WorkspaceItem {
         Row *row;
         void *udata;
-
         WorkspaceItem() = default;
     };
 
@@ -64,18 +63,15 @@ namespace ovc {
             return NODE_RUN_INDEX(key);
         }
 
-        /* value (without the offset) */
-        inline unsigned offset() const {
+        inline unsigned getOffset() const {
             return NODE_OFFSET(key);
         }
 
-        /* value (without the offset) */
-        inline OVC value() const {
+        inline OVC getValue() const {
             return NODE_VALUE(key);
         }
 
-        /* offset value code */
-        inline OVC ovc() const {
+        inline OVC getOVC() const {
             return NODE_OVC(key);
         }
 
@@ -95,12 +91,12 @@ namespace ovc {
         inline void setOVC(OVC ovc) {
             key &= ~NODE_OVC_MASK;
             key |= NODE_OVC_MASK & ovc;
-            assert(this->ovc() == ovc);
+            assert(this->getOVC() == ovc);
         }
 
         const char *key_s() const {
             static char buf[128] = {0};
-            sprintf(buf, "(off=%lu, offset=%lu)", NODE_OFFSET(key), NODE_VALUE(key));
+            sprintf(buf, "%lu@%lu", OVC_FMT(getOVC()));
             return buf;
         }
 
@@ -135,11 +131,11 @@ namespace ovc {
         friend std::ostream &operator<<(std::ostream &stream, const Node &node) {
             stream << "[key=" << node.key_s();
             if (node.isLowSentinel()) {
-                stream << ", run=" << node.value() << ", LO" << ":" << node.index << "]";
+                stream << ", run=" << node.getValue() << ", LO" << ":" << node.index << "]";
             } else if (node.isHighSentinel()) {
-                stream << ", run=" << node.value() << ", HI" << ":" << node.index << "]";
+                stream << ", run=" << node.getValue() << ", HI" << ":" << node.index << "]";
             } else {
-                stream << ", run=" << node.run_index() << ", offset=" << node.value() << ": ind=" << node.index << "]";
+                stream << ", run=" << node.run_index() << ", getOffset=" << node.getValue() << ": ind=" << node.index << "]";
             }
             return stream;
         }
@@ -147,12 +143,12 @@ namespace ovc {
 
     template<typename Compare>
     PriorityQueueBase<Compare>::PriorityQueueBase(size_t capacity, iterator_stats *stats, const Compare &cmp)
-            : capacity_(capacity), size_(0), cmp(cmp), stats(stats) {
+            : capacity(capacity), size(0), cmp(cmp), stats(stats) {
         assert(std::__popcount(capacity) == 1);
-        assert(PRIORITYQUEUE_CAPACITY >= (1 << RUN_IDX_BITS) - 3);
+        assert(capacity >= (1 << RUN_IDX_BITS) - 3);
         workspace = new WorkspaceItem[capacity];
         heap = new Node[capacity];
-        for (int i = 0; i < capacity_; i++) {
+        for (int i = 0; i < capacity; i++) {
             heap[i].index = i;
             heap[i].key = LOW_SENTINEL(i);
         }
@@ -160,8 +156,8 @@ namespace ovc {
 
     template<typename Compare>
     bool PriorityQueueBase<Compare>::isCorrect() const {
-        for (Index i = 0; i < capacity() / 2; i++) {
-            for (Index j = capacity() / 2 + heap[i].index / 2; j > i; j = parent(j)) {
+        for (Index i = 0; i < getCapacity() / 2; i++) {
+            for (Index j = getCapacity() / 2 + heap[i].index / 2; j > i; j = parent(j)) {
                 if (!heap[j].isValid()) {
                     continue;
                 }
@@ -212,7 +208,7 @@ namespace ovc {
 
     template<typename Compare>
     void PriorityQueueBase<Compare>::flush_sentinels() {
-        for (int i = size_; i < capacity_; i++) {
+        for (int i = size; i < capacity; i++) {
             assert(heap[0].isLowSentinel());
             pass(heap[0].index, HIGH_SENTINEL(heap[0].index));
         }
@@ -239,7 +235,7 @@ namespace ovc {
 
     template<typename Compare>
     OVC PriorityQueueBase<Compare>::top_ovc() {
-        return heap[0].ovc();
+        return heap[0].getOVC();
     }
 
     template<typename Compare>
@@ -261,14 +257,14 @@ namespace ovc {
         // replace node with low sentinel
         heap[0].key = LOW_SENTINEL(workspace_index);
         workspace[workspace_index].row = nullptr;
-        size_--;
+        size--;
 
         return res;
     }
 
     template<typename Compare>
     void PriorityQueueBase<Compare>::push(Row *row, Index run_index, void *udata) {
-        assert(size_ < capacity_);
+        assert(size < capacity);
         assert(heap[0].isLowSentinel());
         assert(row != nullptr);
 
@@ -281,13 +277,13 @@ namespace ovc {
         } else {
             pass(workspace_index, NODE_KEYGEN(run_index, 0));
         }
-        size_++;
+        size++;
     }
 
     template<typename Compare>
     void PriorityQueueBase<Compare>::pass(Index index, Key key) {
         Node candidate(index, key);
-        for (Index slot = capacity_ / 2 + index / 2; slot != 0; slot /= 2) {
+        for (Index slot = capacity / 2 + index / 2; slot != 0; slot /= 2) {
             if (heap[slot].less(candidate, cmp, workspace, stats)) {
                 heap[slot].swap(candidate);
             }
@@ -298,7 +294,7 @@ namespace ovc {
     template<typename Compare>
     void PriorityQueueBase<Compare>::reset() {
         assert(isEmpty());
-        for (int i = 0; i < capacity(); i++) {
+        for (int i = 0; i < getCapacity(); i++) {
             heap[i].key = LOW_SENTINEL(i);
         }
     }

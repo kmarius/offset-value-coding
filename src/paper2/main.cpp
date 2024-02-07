@@ -1,31 +1,11 @@
 #include "lib/utils.h"
-#include "lib/iterators/Filter.h"
-#include "lib/iterators/IncreasingRangeGenerator.h"
 #include "lib/iterators/Sort.h"
 #include "lib/PriorityQueue.h"
 #include "lib/log.h"
-#include "lib/iterators/AssertSortedUnique.h"
-#include "lib/iterators/HashDistinct.h"
-#include "lib/iterators/PrefixTruncationCounter.h"
-#include "lib/iterators/InStreamDistinct.h"
 #include "lib/iterators/AssertSorted.h"
-#include "lib/iterators/RowGenerator.h"
-#include "lib/iterators/InStreamGroupBy.h"
-#include "lib/iterators/Shuffle.h"
-#include "lib/iterators/Scan.h"
-#include "lib/iterators/VectorScan.h"
-#include "lib/iterators/LeftSemiJoin.h"
-#include "lib/iterators/LeftSemiHashJoin.h"
-#include "lib/iterators/ApproximateDuplicateGenerator.h"
-#include "lib/iterators/HashGroupBy.h"
-#include "lib/iterators/DuplicateGenerator.h"
-#include "lib/iterators/OVCApplier.h"
-#include "lib/iterators/Transposer.h"
 #include "lib/iterators/GeneratorWithDomains.h"
-#include "lib/iterators/UniqueRowGenerator.h"
 #include "lib/iterators/SegmentedSort.h"
 #include "lib/comparators.h"
-#include "lib/iterators/InSortGroupBy.h"
 #include "lib/iterators/VectorGen.h"
 
 #include <vector>
@@ -106,11 +86,10 @@ void experiment_sort_order1() {
 
         for (auto &gen: gens) {
             for (int i = 0; i < reps; i++) {
-                auto ovc = new SegmentedSort(
+                auto ovc = new SegmentedSortOVC(
                         gen.gen->clone(),
-                        EqOffset(nil, key_length, 0),
-                        EqOffset(AB, key_length, list_length),
-                        CmpColumnListDerivingOVC(BA, key_length, list_length, list_length));
+                        AB, 0, list_length, list_length
+                );
 
                 Iterator *plan = ovc;
 #ifndef NDEBUG
@@ -141,9 +120,9 @@ void experiment_sort_order1() {
                 auto traditional = new
                         SegmentedSort(
                         gen.gen->clone(),
-                        EqColumnList(nil, 0),
-                        EqColumnList(A, list_length),
-                        CmpColumnList(BA, key_length));
+                        nil, 0,
+                        A, list_length,
+                        BA, 2 * list_length);
 
                 Iterator *plan = traditional;
 #ifndef NDEBUG
@@ -232,11 +211,10 @@ void experiment_sort_order2() {
 
         for (auto &gen: gens) {
             for (int i = 0; i < reps; i++) {
-                auto ovc = new SegmentedSort(
+                auto ovc = new SegmentedSortOVC(
                         gen.gen->clone(),
-                        EqOffset(ABC, key_length, list_length),
-                        EqOffset(ABC, key_length, list_length * 2),
-                        CmpColumnListDerivingOVC(ACB, key_length, list_length * 2, list_length));
+                        ABC, list_length, list_length, list_length
+                );
 
                 Iterator *plan = ovc;
 #ifndef NDEBUG
@@ -267,9 +245,9 @@ void experiment_sort_order2() {
                 auto traditional = new
                         SegmentedSort(
                         gen.gen->clone(),
-                        EqColumnList(A, list_length),
-                        EqColumnList(B, list_length),
-                        CmpColumnList(CB, 2 * list_length));
+                        A, list_length,
+                        B, list_length,
+                        CB, list_length);
                 Iterator *plan = traditional;
 
 #ifndef NDEBUG

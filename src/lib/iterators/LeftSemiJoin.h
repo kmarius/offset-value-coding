@@ -35,7 +35,7 @@ namespace ovc::iterators {
                 }
 
 
-                // This looks weird, but if the comparison shows equality, the offset value code of the right row will be
+                // This looks weird, but if the comparison shows equality, the offset-value code of the right row will be
                 // set to zero (it is the loser, since we are essentially keeping it in the "merge", left row is the output)
                 long c = -cmp(*row_left, *row_right);
 

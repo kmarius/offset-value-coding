@@ -46,7 +46,7 @@ namespace ovc {
         }
 
         /**
-         * The size (i.e. number of remaining rows) in the run.
+         * The getSize (i.e. number of remaining rows) in the run.
          * @return The number of remaining rows.
          */
         size_t size() const {

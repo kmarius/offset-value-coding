@@ -38,8 +38,8 @@ namespace ovc {
          * The number of items in the queue.
          * @return The number of items in the queue.
          */
-        inline size_t size() const {
-            return size_;
+        inline size_t getSize() const {
+            return size;
         }
 
         /**
@@ -47,15 +47,15 @@ namespace ovc {
          * @return true, if the queue is empty.
          */
         inline bool isEmpty() const {
-            return size() == 0;
+            return getSize() == 0;
         }
 
         /**
-         * Get the capacity of the queue.
-         * @return The capacity of the queue.
+         * Get the getCapacity of the queue.
+         * @return The getCapacity of the queue.
          */
-        size_t capacity() const {
-            return capacity_;
+        inline size_t getCapacity() const {
+            return capacity;
         }
 
         /**
@@ -97,7 +97,7 @@ namespace ovc {
         Row *pop_safe(Index run_index);
 
         friend std::ostream &operator<<(std::ostream &o, const PriorityQueueBase<Compare> &pq) {
-            for (size_t i = 0; i < pq.capacity(); i++) {
+            for (size_t i = 0; i < pq.getCapacity(); i++) {
                 if (i > 0) {
                     o << std::endl;
                 }
@@ -117,8 +117,8 @@ namespace ovc {
         struct WorkspaceItem;
         struct Node;
 
-        size_t size_;
-        size_t capacity_;
+        size_t size;
+        size_t capacity;
         Node *heap;
         WorkspaceItem *workspace;
     };

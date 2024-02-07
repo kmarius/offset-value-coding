@@ -4,6 +4,98 @@
 
 namespace ovc::comparators {
 
+    struct CmpColumnListCool {
+        uint8_t columns[ROW_ARITY];
+        int length;
+        int lengthC;
+        struct iterator_stats *stats;
+        static const bool USES_OVC = false;
+
+        CmpColumnListCool addStats(struct iterator_stats *stats) const {
+            CmpColumnListCool cmp;
+            cmp.stats = stats;
+            cmp.length = length;
+            cmp.lengthC = lengthC;
+            mempcpy(cmp.columns, columns, length * sizeof *columns);
+            return cmp;
+        }
+
+        CmpColumnListCool append(uint8_t *columns_, int length_) const {
+            CmpColumnListCool cmp;
+            cmp.stats = stats;
+            cmp.length = length + length_;
+            cmp.lengthC = lengthC;
+            mempcpy(cmp.columns, columns, length * sizeof *columns);
+            mempcpy(cmp.columns + length, columns_, length_ * sizeof *columns_);
+            return cmp;
+        }
+
+        explicit CmpColumnListCool(std::initializer_list<uint8_t> columns, iterator_stats *stats = nullptr)
+                : length(columns.size()), stats(stats), lengthC(columns.size()) {
+            assert(columns.size() <= ROW_ARITY);
+            int i = 0;
+            for (auto col: columns) {
+                this->columns[i++] = col;
+            }
+        };
+
+        CmpColumnListCool(const uint8_t *cols, int n, iterator_stats *stats = nullptr)
+                : length(n), stats(stats), lengthC(n) {
+            assert(n <= ROW_ARITY);
+            for (int i = 0; i < n; i++) {
+                columns[i] = cols[i];
+            }
+        };
+
+        long operator()(const ovc::Row &lhs, const ovc::Row &rhs) const {
+            long cmp;
+            int i = 0;
+            for (; i < lengthC; i++) {
+                cmp = (long) lhs.columns[columns[i]] - (long) rhs.columns[columns[i]];
+
+#ifdef COLLECT_STATS
+                if (stats) {
+                    log_trace("inc %lu %p", stats->column_comparisons, stats);
+                    stats->column_comparisons++;
+                }
+#endif
+                if (cmp) {
+                    break;
+                }
+            }
+
+            if (i < lengthC) {
+                // difference in C
+                return cmp;
+            }
+
+            // Equality on AC, derive the offset-value code from stored_ovcs
+            int ind_l = lhs.tid;
+            int ind_r = rhs.tid;
+            assert(ind_l - ind_r);
+            return ind_l - ind_r;
+        }
+
+        long raw(const ovc::Row &lhs, const ovc::Row &rhs) const {
+            for (int i = 0; i < length; i++) {
+                long cmp = (long) lhs.columns[columns[i]] - (long) rhs.columns[columns[i]];
+                if (cmp != 0) {
+                    return cmp;
+                }
+            }
+            return 0;
+        }
+
+        inline unsigned long makeOVC(long arity, long offset, const ovc::Row *row) const {
+            log_error("makeOVC called on CmpPrefix");
+            assert(false);
+            return 0;
+        }
+
+    private:
+        CmpColumnListCool() : columns(), length(0), stats(nullptr) {};
+    };
+
     struct CmpColumnList {
         uint8_t columns[ROW_ARITY];
         int length;
@@ -243,16 +335,37 @@ namespace ovc::comparators {
             return cmp;
         }
 
-        CmpColumnListDerivingOVC(const uint8_t *cols, int n, int ac, int c, iterator_stats *stats = nullptr)
-                : length(n), stats(stats), length_ac(ac), length_c(c) {
-            assert(n <= ROW_ARITY);
-            for (int i = 0; i < n; i++) {
+        CmpColumnListDerivingOVC transposeBC() const {
+            CmpColumnListDerivingOVC cmp;
+            cmp.stats = stats;
+            cmp.length = length;
+            int lA = length_ac - length_c;
+            int lB = length_c;
+            int lC = length - lA - lB;
+            cmp.length_c = lC;
+            cmp.length_ac = lA + lC;
+            for (int i = 0; i < lA; i++) {
+                cmp.columns[i] = columns[i];
+            }
+            for (int i = 0; i < lC; i++) {
+                cmp.columns[lA + i] = columns[lA + lB + i];
+            }
+            for (int i = 0; i < lB; i++) {
+                cmp.columns[lA + lC + i] = columns[lA + i];
+            }
+            return cmp;
+        }
+
+        CmpColumnListDerivingOVC(const uint8_t *cols, int a, int b, int c, iterator_stats *stats = nullptr)
+                : length(a + b + c), stats(stats), length_ac(a + b), length_c(b) {
+            assert(length <= ROW_ARITY);
+            for (int i = 0; i < length; i++) {
                 columns[i] = cols[i];
             }
         };
 
-        explicit CmpColumnListDerivingOVC(std::initializer_list<uint8_t> columns, int ac, int c,
-                                          iterator_stats *stats = nullptr)
+        CmpColumnListDerivingOVC(std::initializer_list<uint8_t> columns, int ac, int c,
+                                 iterator_stats *stats = nullptr)
                 : length(columns.size()), stats(stats), length_ac(ac), length_c(c) {
             assert(columns.size() <= ROW_ARITY);
             int i = 0;
