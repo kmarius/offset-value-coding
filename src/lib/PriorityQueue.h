@@ -24,7 +24,7 @@ namespace ovc {
     class PriorityQueueBase {
     public:
 
-        PriorityQueueBase(size_t capacity, iterator_stats *stats, const Compare &cmp = Compare());
+        PriorityQueueBase(size_t max_capacity, iterator_stats *stats, const Compare &cmp = Compare());
 
         ~PriorityQueueBase();
 
@@ -51,7 +51,7 @@ namespace ovc {
         }
 
         /**
-         * Get the getCapacity of the queue.
+         * Get the capacity of the queue.
          * @return The getCapacity of the queue.
          */
         inline size_t getCapacity() const {
@@ -59,12 +59,21 @@ namespace ovc {
         }
 
         /**
+        * Get the maximal capacity of the queue.
+        * @return The getCapacity of the queue.
+        */
+        inline size_t getMaxCapacity() const {
+            return max_capacity;
+        }
+
+        /**
          * Reset the nodes in the heap, so that run_idx can start at 1 again. The queue must be empty.
          */
-        inline void reset();
+        void reset();
+
+        void reset(size_t capacity);
 
         void pass(Index index, Key key);
-
 
         /**
          * Push a row into the queue.
@@ -75,10 +84,9 @@ namespace ovc {
 
         /**
          * Pop the lowest row. The top element will be replaced with a low sentinel.
-         * @param run_index The run index.
          * @return The row.
          */
-        Row *pop(Index run_index);
+        Row *pop();
 
         Row *top();
 
@@ -117,8 +125,9 @@ namespace ovc {
         struct WorkspaceItem;
         struct Node;
 
-        size_t size;
-        size_t capacity;
+        size_t size; /* number of items in the queue */
+        size_t capacity; /* current capacity, always <= max_capacity */
+        size_t max_capacity; /* maximal capacity of the queue */
         Node *heap;
         WorkspaceItem *workspace;
     };
@@ -160,7 +169,7 @@ namespace ovc {
          * @return The row at the head of the queue.
          */
         Row *pop_push(Row *row, Index run_index) {
-            Row *res = this->pop(run_index);
+            Row *res = this->pop();
             push(row, run_index);
             return res;
         }
@@ -171,7 +180,7 @@ namespace ovc {
          * @return The lowest row.
          */
         Row *pop_push_memory(MemoryRun *run) {
-            Row *res = this->pop(MERGE_RUN_IDX);
+            Row *res = this->pop();
             push(run->front(), MERGE_RUN_IDX, run);
             return res;
         }
@@ -182,7 +191,7 @@ namespace ovc {
          */
         Row *pop_memory() {
             auto *run = this->template top_udata2<MemoryRun>();
-            Row *res = this->pop(MERGE_RUN_IDX);
+            Row *res = this->pop();
             run->next();
 
             if (likely(run->size() > 0)) {
@@ -200,7 +209,7 @@ namespace ovc {
          */
         Row *pop_external() {
             auto *run = this->template top_udata2<io::ExternalRunR>();
-            Row *res = this->pop(MERGE_RUN_IDX);
+            Row *res = this->pop();
             Row *next = run->read();
 
 #ifdef COLLECT_STATS

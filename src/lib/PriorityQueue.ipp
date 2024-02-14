@@ -37,6 +37,7 @@ namespace ovc {
     struct PriorityQueueBase<Compare>::WorkspaceItem {
         Row *row;
         void *udata;
+
         WorkspaceItem() = default;
     };
 
@@ -102,30 +103,21 @@ namespace ovc {
 
         // sets ovc of the loser w.r.t. the winner
         inline bool less(Node &node, Compare &cmp, WorkspaceItem *ws, struct iterator_stats *stats) {
-
-#ifdef COLLECT_STATS
-            stats->comparisons++;
-#endif
-            if (key == node.key) {
-#ifdef COLLECT_STATS
-                stats->comparisons_equal_key++;
-                stats->comparisons_of_actual_rows++;
-#endif
-                // same run index, need to compare rows
-                if constexpr (!cmp.USES_OVC) {
-                    return cmp(*ws[index].row, *ws[node.index].row) < 0;
+            if (key != node.key) {
+                return key < node.key;
+            }
+            // same run index, need to compare rows
+            if constexpr (!cmp.USES_OVC) {
+                return cmp(*ws[index].row, *ws[node.index].row) < 0;
+            } else {
+                if (cmp(*ws[index].row, *ws[node.index].row) <= 0) {
+                    node.setOVC(ws[node.index].row->key);
+                    return true;
                 } else {
-                    if (cmp(*ws[index].row, *ws[node.index].row) <= 0) {
-                        node.setOVC(ws[node.index].row->key);
-                        return true;
-                    } else {
-                        setOVC(ws[index].row->key);
-                        return false;
-                    }
+                    setOVC(ws[index].row->key);
+                    return false;
                 }
             }
-
-            return key < node.key;
         }
 
         friend std::ostream &operator<<(std::ostream &stream, const Node &node) {
@@ -135,20 +127,21 @@ namespace ovc {
             } else if (node.isHighSentinel()) {
                 stream << ", run=" << node.getValue() << ", HI" << ":" << node.index << "]";
             } else {
-                stream << ", run=" << node.run_index() << ", getOffset=" << node.getValue() << ": ind=" << node.index << "]";
+                stream << ", run=" << node.run_index()
+                       << ", getOffset=" << node.getValue()
+                       << ": ind=" << node.index << "]";
             }
             return stream;
         }
     };
 
     template<typename Compare>
-    PriorityQueueBase<Compare>::PriorityQueueBase(size_t capacity, iterator_stats *stats, const Compare &cmp)
-            : capacity(capacity), size(0), cmp(cmp), stats(stats) {
-        assert(std::__popcount(capacity) == 1);
-        assert(capacity >= (1 << RUN_IDX_BITS) - 3);
-        workspace = new WorkspaceItem[capacity];
-        heap = new Node[capacity];
-        for (int i = 0; i < capacity; i++) {
+    PriorityQueueBase<Compare>::PriorityQueueBase(size_t max_capacity, iterator_stats *stats, const Compare &cmp)
+            : capacity(max_capacity), max_capacity(max_capacity), size(0), cmp(cmp), stats(stats),
+            workspace(new WorkspaceItem[max_capacity]), heap(new Node[max_capacity]) {
+        assert(std::__popcount(max_capacity) == 1);
+        assert(max_capacity >= (1 << RUN_IDX_BITS) - 3);
+        for (int i = 0; i < max_capacity; i++) {
             heap[i].index = i;
             heap[i].key = LOW_SENTINEL(i);
         }
@@ -189,9 +182,9 @@ namespace ovc {
     template<typename Compare>
     Row *PriorityQueueBase<Compare>::pop_safe(Index run_index) {
         while (heap[0].isLowSentinel()) {
-            flush_sentinel();
+            flush_sentinel(false);
         }
-        return pop(run_index);
+        return pop();
     }
 
     template<typename Compare>
@@ -212,6 +205,7 @@ namespace ovc {
             assert(heap[0].isLowSentinel());
             pass(heap[0].index, HIGH_SENTINEL(heap[0].index));
         }
+        assert(!heap[0].isLowSentinel());
     }
 
     template<typename Compare>
@@ -224,12 +218,14 @@ namespace ovc {
     template<typename Compare>
     size_t PriorityQueueBase<Compare>::top_run_idx() {
         assert(!isEmpty());
+        assert(!heap[0].isLowSentinel());
         return heap[0].run_index();
     }
 
     template<typename Compare>
     void *PriorityQueueBase<Compare>::top_udata() {
         assert(!isEmpty());
+        assert(!heap[0].isLowSentinel());
         return workspace[heap[0].index].udata;
     }
 
@@ -246,7 +242,7 @@ namespace ovc {
     }
 
     template<typename Compare>
-    Row *PriorityQueueBase<Compare>::pop(Index run_index) {
+    Row *PriorityQueueBase<Compare>::pop() {
         assert(!isEmpty());
         assert(!heap[0].isLowSentinel());
 
@@ -254,7 +250,7 @@ namespace ovc {
 
         Row *res = workspace[workspace_index].row;
 
-        // replace node with low sentinel
+        // Replace top node with low sentinel
         heap[0].key = LOW_SENTINEL(workspace_index);
         workspace[workspace_index].row = nullptr;
         size--;
@@ -292,10 +288,21 @@ namespace ovc {
     }
 
     template<typename Compare>
-    void PriorityQueueBase<Compare>::reset() {
+    void PriorityQueueBase<Compare>::reset(size_t capacity_) {
         assert(isEmpty());
-        for (int i = 0; i < getCapacity(); i++) {
-            heap[i].key = LOW_SENTINEL(i);
+        assert(capacity <= max_capacity);
+        if (getCapacity() != capacity_) {
+            log_trace("resized queue from %lu to %lu", getCapacity(), capacity_);
         }
+        capacity = capacity_;
+        for (int i = 0; i < capacity_; i++) {
+            heap[i].key = LOW_SENTINEL(i);
+            heap[i].index = i;
+        }
+    }
+
+    template<typename Compare>
+    void PriorityQueueBase<Compare>::reset() {
+        reset(this->capacity);
     }
 }

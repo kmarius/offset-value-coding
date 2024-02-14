@@ -7,11 +7,21 @@
 
 namespace ovc::iterators {
 
+    __attribute__ ((const))
+    static inline uint64_t p2(uint64_t x) {
+#if 0
+        assert(x > 1);
+         assert(x <= ((UINT32_MAX/2) + 1));
+#endif
+
+        return 1 << ((sizeof(x) << 3) - __builtin_clzl(x - 1));
+    }
+
     /*
      * Input: Rows sorted by A,B,C (optionally with OVCs)
      * Output: Rows sorted by A,C,B (optionally with OVCs)
      */
-    template<typename EqualsA, typename EqualsB, typename Compare>
+    template<typename EqualsA, typename EqualsB, typename Compare, size_t CAPACITY>
     struct SegmentedSorter {
         EqualsA eqA;
         EqualsB eqB;
@@ -19,14 +29,14 @@ namespace ovc::iterators {
         std::vector<Row> workspace;
         std::queue<MemoryRun> memory_runs;
         std::vector<MemoryRun> current_merge_runs;
-        PriorityQueue<Compare> queue;
+        PriorityQueue <Compare> queue;
         iterator_stats *stats;
         Row *prev;
         Row *next_segment;
         std::vector<OVC> stored_ovcs;
 
         SegmentedSorter(iterator_stats *stats, const EqualsA &eqA, const EqualsB &eqB, const Compare &cmp) :
-                queue(QUEUE_CAPACITY, stats, cmp), stats(stats), eqA(eqA), eqB(eqB), cmp(cmp), prev(nullptr),
+                queue(CAPACITY, stats, cmp), stats(stats), eqA(eqA), eqB(eqB), cmp(cmp), prev(nullptr),
                 next_segment(nullptr) {
             workspace.reserve(1 << 20);
 
@@ -65,18 +75,19 @@ namespace ovc::iterators {
                 if (initial_merge_fan_in == 0) {
                     initial_merge_fan_in = QUEUE_CAPACITY - 1;
                 }
-                merge_memory_runs(initial_merge_fan_in);
-            }
 
-            while (memory_runs.size() > QUEUE_CAPACITY) {
-                merge_memory_runs(QUEUE_CAPACITY);
+                merge_memory_runs(initial_merge_fan_in);
+
+                while (memory_runs.size() > QUEUE_CAPACITY) {
+                    merge_memory_runs(QUEUE_CAPACITY);
+                }
             }
 
             insert_memory_runs(memory_runs.size());
 
             if constexpr (eqA.USES_OVC) {
                 // Restore OVC for the first row in the segment
-                assert(stored_ovcs.size() > 0);
+                assert(!stored_ovcs.empty());
                 queue.top()->key = stored_ovcs[0];
             }
         }
@@ -92,7 +103,13 @@ namespace ovc::iterators {
             assert(num_runs > 0);
             assert(queue.isEmpty());
 
-            queue.reset();
+            uint64_t next_p2 = p2(num_runs);
+            if (next_p2 != queue.getCapacity()) {
+                queue.reset(next_p2);
+            } else {
+                queue.reset();
+            }
+
             current_merge_runs.clear();
             current_merge_runs.reserve(num_runs);
             for (size_t i = 0; i < num_runs; i++) {
@@ -152,6 +169,9 @@ namespace ovc::iterators {
                 if (!eqB(*row, *prev)) {
                     // Change in B detected, create a new run
                     memory_runs.push(run);
+#ifdef COLLECT_STATS
+                    stats->runs_generated++;
+#endif
                     run = {};
                     run_index++;
                     if constexpr (eqA.USES_OVC) {
@@ -177,6 +197,9 @@ namespace ovc::iterators {
 
             if (!run.isEmpty()) {
                 memory_runs.push(run);
+#ifdef COLLECT_STATS
+                stats->runs_generated++;
+#endif
             }
         }
 
@@ -193,6 +216,9 @@ namespace ovc::iterators {
                 return nullptr;
             }
             if (!prev) {
+#ifdef COLLECT_STATS
+                stats->segments_found++;
+#endif
                 // very first call in segment
                 workspace.push_back(*row);
                 prev = &workspace.back();
@@ -210,13 +236,16 @@ namespace ovc::iterators {
                     // Next segment, hold back the row and return null
                     next_segment = row;
                     prev = nullptr;
+#ifdef COLLECT_STATS
+                    stats->segments_found++;
+#endif
                     return nullptr;
                 }
             }
         }
     };
 
-    template<typename EqualsA, typename EqualsB, typename Compare>
+    template<typename EqualsA, typename EqualsB, typename Compare, size_t CAPACITY>
     class SegmentedSortBase : public UnaryIterator {
     public:
         SegmentedSortBase(Iterator *input, const EqualsA &eqA, const EqualsB &eqB, const Compare &cmp)
@@ -255,19 +284,20 @@ namespace ovc::iterators {
         }
 
     private:
-        SegmentedSorter<EqualsA, EqualsB, Compare> sorter;
+        SegmentedSorter<EqualsA, EqualsB, Compare, CAPACITY> sorter;
         bool input_empty;
     };
 
     using namespace comparators;
 
-    class SegmentedSort : public SegmentedSortBase<EqColumnList, EqColumnList, CmpColumnListCool> {
+    template<size_t CAPACITY = QUEUE_CAPACITY>
+    class SegmentedSort : public SegmentedSortBase<EqColumnList, EqColumnList, CmpColumnListCool, CAPACITY> {
     public:
         SegmentedSort(Iterator *input,
                       uint8_t *columnsA, uint8_t lengthA,
                       uint8_t *columnsB, uint8_t lengthB,
                       uint8_t *columnsC, uint8_t lengthC)
-                : SegmentedSortBase<EqColumnList, EqColumnList, CmpColumnListCool>(
+                : SegmentedSortBase<EqColumnList, EqColumnList, CmpColumnListCool, CAPACITY>(
                 input,
                 EqColumnList(columnsA, lengthA, &this->stats),
                 EqColumnList(columnsB, lengthB, &this->stats),
@@ -275,11 +305,12 @@ namespace ovc::iterators {
         };
     };
 
-    class SegmentedSortOVC : public SegmentedSortBase<EqOffset, EqOffset, CmpColumnListDerivingOVC> {
+    template<size_t CAPACITY = QUEUE_CAPACITY>
+    class SegmentedSortOVC : public SegmentedSortBase<EqOffset, EqOffset, CmpColumnListDerivingOVC, CAPACITY> {
     public:
         SegmentedSortOVC(Iterator *input,
                          uint8_t *columnsABC, uint8_t lengthA, uint8_t lengthB, uint8_t lengthC)
-                : SegmentedSortBase<EqOffset, EqOffset, CmpColumnListDerivingOVC>(
+                : SegmentedSortBase<EqOffset, EqOffset, CmpColumnListDerivingOVC, CAPACITY>(
                 input,
                 EqOffset(columnsABC, lengthA + lengthB + lengthC, lengthA, &this->stats),
                 EqOffset(columnsABC, lengthA + lengthB + lengthC, lengthA + lengthB, &this->stats),

@@ -18,10 +18,8 @@
 namespace ovc::iterators {
 
     template<bool DISTINCT, typename Compare, typename Aggregate>
-    Sorter<DISTINCT, Compare, Aggregate>::Sorter(iterator_stats *stats, const Compare &cmp,
-                                                                        const Aggregate &agg) :
-            cmp(cmp),
-            agg(agg),
+    Sorter<DISTINCT, Compare, Aggregate>::Sorter(iterator_stats *stats, const Compare &cmp, const Aggregate &agg) :
+            cmp(cmp), agg(agg),
             queue(QUEUE_CAPACITY, stats, cmp),
             buffer_manager(1024),
             workspace(new Row[SORTER_WORKSPACE_CAPACITY]),
@@ -56,8 +54,8 @@ namespace ovc::iterators {
 
         memory_runs = {};
         MemoryRun run;
-        run.reserve(QUEUE_CAPACITY);
-        memory_runs.reserve(QUEUE_CAPACITY);
+        run.reserve(queue.getCapacity());
+        memory_runs.reserve(queue.getCapacity());
         workspace_size = 0;
 
         Index insert_run_index = INITIAL_RUN_IDX;
@@ -93,7 +91,7 @@ namespace ovc::iterators {
             return false;
         }
 
-        if (inserted == QUEUE_CAPACITY) {
+        if (inserted == queue.getCapacity()) {
             insert_run_index++;
             inserted = 0;
         }
@@ -111,7 +109,6 @@ namespace ovc::iterators {
             row = &workspace[workspace_size++];
             if constexpr (cmp.USES_OVC) {
                 row->key = cmp.makeOVC(ROW_ARITY, 0, row);
-                stats->column_comparisons++;
             }
 #ifndef NDEBUG
             {
@@ -135,7 +132,7 @@ namespace ovc::iterators {
             inserted++;
             assert(queue.isCorrect());
 
-            if (inserted == QUEUE_CAPACITY) {
+            if (inserted == queue.getCapacity()) {
                 assert(run.isSorted(cmp));
                 memory_runs.push_back(std::move(run));
                 run = {};
@@ -154,7 +151,7 @@ namespace ovc::iterators {
 
         if (inserted == 0) {
             if (!queue.isEmpty()) {
-                inserted = QUEUE_CAPACITY;
+                inserted = queue.getCapacity();
             }
         }
 
@@ -169,7 +166,7 @@ namespace ovc::iterators {
             // and then (inserted) to fill the remaining run
             size_t i = 0;
             size_t j = 0;
-            for (; i < QUEUE_CAPACITY - inserted; i++) {
+            for (; i < queue.getCapacity() - inserted; i++) {
                 if (j < memory_runs.size()) {
                     Row *row1 = queue.pop_push_memory(&memory_runs[j++]);
                     process_row(row1, run);
@@ -189,13 +186,13 @@ namespace ovc::iterators {
             assert(queue.isCorrect());
 
             if (queue.getSize() == queue.getCapacity()) {
-                Row *row1 = queue.pop(MERGE_RUN_IDX);
+                Row *row1 = queue.pop();
                 process_row(row1, run);
                 i++;
             }
 
             // we do not have enough memory_runs to replace the rows with, pop the rest
-            for (; i < QUEUE_CAPACITY; i++) {
+            for (; i < queue.getCapacity(); i++) {
                 if (j < memory_runs.size()) {
                     queue.push_memory(memory_runs[j++]);
                     Row *row1 = queue.pop_safe(MERGE_RUN_IDX);
@@ -318,7 +315,7 @@ namespace ovc::iterators {
 
     template<bool DISTINCT, typename Compare, typename Aggregate>
     void Sorter<DISTINCT, Compare, Aggregate>::insert_external_runs(size_t fan_in) {
-        assert(fan_in <= QUEUE_CAPACITY);
+        assert(fan_in <= queue.getCapacity());
         assert(queue.isEmpty());
         assert(external_run_paths.size() >= fan_in);
 
@@ -416,26 +413,27 @@ namespace ovc::iterators {
     }
 
     template<bool DISTINCT, typename Compare, typename Aggregate>
-    void Sorter<DISTINCT, Compare, Aggregate>::consume(Iterator *input_) {
+    void Sorter<DISTINCT, Compare, Aggregate>::consume(Iterator *input) {
         for (bool has_more_input = true; has_more_input;) {
-            has_more_input = generate_initial_runs(input_);
+            has_more_input = generate_initial_runs(input);
             merge_in_memory();
             assert(memory_runs.empty());
         }
 
         size_t num_runs = external_run_paths.size();
+        size_t capacity = queue.getCapacity();
 
-        if (num_runs > QUEUE_CAPACITY) {
+        if (num_runs > capacity) {
             // this guarantees maximal fan-in for the later merges
-            size_t initial_merge_fan_in = num_runs % (QUEUE_CAPACITY - 1);
+            size_t initial_merge_fan_in = num_runs % (capacity - 1);
             if (initial_merge_fan_in == 0) {
-                initial_merge_fan_in = QUEUE_CAPACITY - 1;
+                initial_merge_fan_in = capacity - 1;
             }
             merge_external_runs(initial_merge_fan_in);
         }
 
-        while (external_run_paths.size() > QUEUE_CAPACITY) {
-            merge_external_runs(QUEUE_CAPACITY);
+        while (external_run_paths.size() > capacity) {
+            merge_external_runs(capacity);
         }
 
         insert_external_runs(external_run_paths.size());

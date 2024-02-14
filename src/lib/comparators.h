@@ -55,7 +55,6 @@ namespace ovc::comparators {
 
 #ifdef COLLECT_STATS
                 if (stats) {
-                    log_trace("inc %lu %p", stats->column_comparisons, stats);
                     stats->column_comparisons++;
                 }
 #endif
@@ -140,8 +139,10 @@ namespace ovc::comparators {
             for (int i = 0; i < length; i++) {
 
 #ifdef COLLECT_STATS
+                volatile static unsigned long dummy = 0;
                 if (stats) {
                     stats->column_comparisons++;
+                    dummy++;
                 }
 #endif
                 long cmp = (long) lhs.columns[columns[i]] - (long) rhs.columns[columns[i]];
@@ -216,6 +217,11 @@ namespace ovc::comparators {
         };
 
         inline unsigned long makeOVC(long arity, long offset, const ovc::Row *row) const {
+#ifdef COLLECT_STATS
+            if (stats) {
+                stats->column_comparisons++;
+            }
+#endif
             return MAKE_OVC(arity, offset, row->columns[columns[offset]]);
         }
 
@@ -379,6 +385,46 @@ namespace ovc::comparators {
         }
 
         long operator()(ovc::Row &lhs, ovc::Row &rhs) const {
+#if 0
+            long cmp = (long) lhs.key - (long) rhs.key;
+            if (cmp == 0) {
+                if (lhs.key == 0) {
+                    // equality, no need to go on
+                    return 0;
+                }
+                // if the offset is |AC|-1 (i.e. the last column of C) we can derive the offset-value code
+                // by taking the maximum ovc of the first rows all runs between the run of lhs, rhs
+
+                // if i > prefix, rows are equal
+                int i = lhs.getOffset() + 1;
+                for (; i < length; i++) {
+                    cmp = (long) lhs.columns[columns[i]] - (long) rhs.columns[columns[i]];
+
+#ifdef COLLECT_STATS
+                    if (stats) {
+                        stats->column_comparisons++;
+                    }
+#endif
+                    if (cmp) {
+                        break;
+                    }
+                }
+
+                if (i >= length) {
+                    // rows are equal
+                    rhs.key = 0;
+                    return 0;
+                }
+
+                if (cmp <= 0) {
+                    rhs.key = MAKE_OVC(ROW_ARITY, i, rhs.columns[columns[i]]);
+                }
+                if (cmp > 0) {
+                    lhs.key = MAKE_OVC(ROW_ARITY, i, lhs.columns[columns[i]]);
+                }
+            }
+            return cmp;
+#else
             long cmp = (long) lhs.key - (long) rhs.key;
             if (cmp) {
                 return cmp;
@@ -400,9 +446,10 @@ namespace ovc::comparators {
                 cmp = (long) lhs.columns[columns[i]] - (long) rhs.columns[columns[i]];
 
 #ifdef COLLECT_STATS
+                volatile static unsigned long dummy = 0;
                 if (stats) {
-                    log_trace("inc %lu %p", stats->column_comparisons, stats);
                     stats->column_comparisons++;
+                    dummy++;
                 }
 #endif
                 if (cmp) {
@@ -445,7 +492,10 @@ namespace ovc::comparators {
                     return 1;
                 }
             }
+#endif
         }
+
+
     };
 
     struct EqColumnList {

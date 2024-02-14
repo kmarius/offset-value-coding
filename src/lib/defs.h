@@ -22,14 +22,14 @@
 // This currently controls how many bits we use to store the run index in the key in the priority queue
 // which at the same time controls the fan-in of the merge
 // TODO: we should decouple this from the queue getSize
-#define RUN_IDX_BITS 6
+#define RUN_IDX_BITS 10
 
 #define PRIORITYQUEUE_CAPACITY (1 << RUN_IDX_BITS)
 
 #define LOGPATH "/tmp/ovc.log"
 #define NO_LOGGING
 
-//#define COLLECT_STATS
+#define COLLECT_STATS
 
 #define likely(x) __builtin_expect(x, 1)
 #define unlikely(x) __builtin_expect(x, 0)
@@ -46,6 +46,8 @@ struct iterator_stats {
     size_t columns_hashed;
     size_t rows_written;
     size_t rows_read;
+    size_t runs_generated; /* for segmented sorter only */
+    size_t segments_found; /* for segmented sorter only */
 
     iterator_stats() = default;
 
@@ -57,5 +59,7 @@ struct iterator_stats {
         columns_hashed += stats.columns_hashed;
         rows_written += stats.rows_written;
         rows_read += stats.rows_read;
+        runs_generated += stats.runs_generated;
+        segments_found += stats.segments_found;
     }
 };

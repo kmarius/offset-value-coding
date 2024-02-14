@@ -21,9 +21,14 @@ void experiment_sort_order1() {
 #ifndef NDEBUG
     reps = 1;
 #endif
+#ifdef COLLECT_STATS
+    reps = 1;
+#endif
 
     FILE *results = fopen("sort_order1.csv", "w");
-    fprintf(results, "%s,%s,%s,%s,%s\n", "experiment", "data", "list_length", "column_comparisons", "duration");
+    fprintf(results, "%s,%s,%s,%s,%s,%s,%s\n", "experiment", "data", "list_length", "segments_found", "runs_generated",
+            "column_comparisons",
+            "duration");
 
     uint8_t A[ROW_ARITY] = {0};
     uint8_t B[ROW_ARITY] = {0};
@@ -107,9 +112,15 @@ void experiment_sort_order1() {
                 assert(asserter->isSorted());
 #endif
 
-                fprintf(results, "%s,%s,%d,%lu,%lu\n", "ovc", gen.name, list_length, ovc->getStats().column_comparisons,
+                fprintf(results, "%s,%s,%d,%lu,%lu,%lu,%lu\n", "ovc", gen.name, list_length,
+                        ovc->getStats().segments_found,
+                        ovc->getStats().runs_generated,
+                        ovc->getStats().column_comparisons,
                         duration);
-                fprintf(stdout, "%s,%s,%d,%lu,%lu\n", "ovc", gen.name, list_length, ovc->getStats().column_comparisons,
+                fprintf(stdout, "%s,%s,%d,%lu,%lu,%lu,%lu\n", "ovc", gen.name, list_length,
+                        ovc->getStats().segments_found,
+                        ovc->getStats().runs_generated,
+                        ovc->getStats().column_comparisons,
                         duration);
                 fflush(results);
 
@@ -122,7 +133,7 @@ void experiment_sort_order1() {
                         gen.gen->clone(),
                         nil, 0,
                         A, list_length,
-                        BA, 2 * list_length);
+                        BA, list_length);
 
                 Iterator *plan = traditional;
 #ifndef NDEBUG
@@ -140,9 +151,13 @@ void experiment_sort_order1() {
                 assert(asserter->isSorted());
 #endif
 
-                fprintf(results, "%s,%s,%d,%lu,%lu\n", "traditional", gen.name, list_length,
+                fprintf(results, "%s,%s,%d,%lu,%lu,%lu,%lu\n", "traditional", gen.name, list_length,
+                        traditional->getStats().segments_found,
+                        traditional->getStats().runs_generated,
                         traditional->getStats().column_comparisons, duration);
-                fprintf(stdout, "%s,%s,%d,%lu,%lu\n", "traditional", gen.name, list_length,
+                fprintf(stdout, "%s,%s,%d,%lu,%lu,%lu,%lu\n", "traditional", gen.name, list_length,
+                        traditional->getStats().segments_found,
+                        traditional->getStats().runs_generated,
                         traditional->getStats().column_comparisons, duration);
                 fflush(results);
 
@@ -166,9 +181,13 @@ void experiment_sort_order2() {
 #ifndef NDEBUG
     reps = 1;
 #endif
+#ifdef COLLECT_STATS
+    //reps = 1;
+#endif
 
     FILE *results = fopen("sort_order2.csv", "w");
-    fprintf(results, "%s,%s,%s,%s\n", "experiment", "bits_per_row", "column_comparisons", "duration");
+    fprintf(results, "%s,%s,%s,%s,%s,%s\n", "experiment", "bits_per_row", "segments_found", "runs_generated",
+            "column_comparisons", "duration");
 
     uint8_t A[ROW_ARITY] = {0};
     uint8_t B[ROW_ARITY] = {0};
@@ -176,7 +195,8 @@ void experiment_sort_order2() {
     uint8_t ABC[ROW_ARITY] = {0};
     uint8_t ACB[ROW_ARITY] = {0};
 
-    for (uint64_t bitsA = 1; bitsA < 20; bitsA += 3) {
+    uint64_t step = 1;
+    for (uint64_t bitsA = 1; bitsA < 20; bitsA += step) {
         const int key_length = list_length * 3;
 
         // initialize key column lists
@@ -193,90 +213,101 @@ void experiment_sort_order2() {
             }
         }
 
+        size_t bits_total = 30;
+        size_t bitsB = 10;
+        size_t bitsC = bits_total - bitsA - bitsB;
+        assert(bits_total > bitsA + bitsB);
+
         domains[0][list_length - 1] = 1 << bitsA;
-        domains[0][2 * list_length - 1] = QUEUE_CAPACITY;
-        domains[0][3 * list_length - 1] = 1024;
+        domains[0][2 * list_length - 1] = 1 << bitsB;
+        domains[0][3 * list_length - 1] = 1 << bitsC;
 
-        // generate data and sort by ABC
-        struct {
-            Generator *gen;
-            const char *name;
-        } gens[] = {
-                {new VectorGen(
-                        new SortPrefixOVC(
-                                new GeneratorWithDomains(num_rows, domains[0], 1337),
-                                key_length)),
-                 "last_decides"},
-        };
+        for (int j = 0; j < reps; j++) {
+            // generate data and sort by ABC
+            struct {
+                Generator *gen;
+                const char *name;
+            } gens[] = {
+                    {new VectorGen(
+                            new SortPrefixOVC(
+                                    new GeneratorWithDomains(num_rows, domains[0], 1337 + j),
+                                    key_length)),
+                     "last_decides"},
+            };
 
-        for (auto &gen: gens) {
-            for (int i = 0; i < reps; i++) {
-                auto ovc = new SegmentedSortOVC(
-                        gen.gen->clone(),
-                        ABC, list_length, list_length, list_length
-                );
+            for (auto &gen: gens) {
+                for (int i = 0; i < 1; i++) {
+                    auto ovc = new SegmentedSortOVC<1024>(
+                            gen.gen->clone(),
+                            ABC, list_length, list_length, list_length
+                    );
 
-                Iterator *plan = ovc;
+                    Iterator *plan = ovc;
 #ifndef NDEBUG
-                auto asserter = new AssertSorted(plan, CmpColumnListOVC(ACB, key_length));
-                plan = asserter;
+                    auto asserter = new AssertSorted(plan, CmpColumnListOVC(ACB, key_length));
+                    plan = asserter;
 #endif
 
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                auto t0 = now();
-                plan->run(true);
-                auto duration = since(t0);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    auto t0 = now();
+                    plan->run(true);
+                    auto duration = since(t0);
 
 #ifndef NDEBUG
-                assert(asserter->getCount() == num_rows);
-                assert(asserter->isSorted());
+                    assert(asserter->getCount() == num_rows);
+                    assert(asserter->isSorted());
 #endif
 
-                fprintf(results, "%s,%lu,%lu,%lu\n", "ovc", bitsA,
-                        ovc->getStats().column_comparisons, duration);
-                fprintf(stdout, "%s,%lu,%lu,%lu\n", "ovc", bitsA,
-                        ovc->getStats().column_comparisons, duration);
-                fflush(results);
+                    fprintf(results, "%s,%lu,%lu,%lu,%lu,%lu\n", "ovc", bitsA, ovc->getStats().segments_found,
+                            ovc->getStats().runs_generated,
+                            ovc->getStats().column_comparisons, duration);
+                    fprintf(stdout, "%s,%lu,%lu,%lu,%lu,%lu\n", "ovc", bitsA, ovc->getStats().segments_found,
+                            ovc->getStats().runs_generated,
+                            ovc->getStats().column_comparisons, duration);
+                    fflush(results);
 
-                delete plan;
+                    delete plan;
+                }
+
+                for (int i = 0; i < 1; i++) {
+                    auto traditional = new
+                            SegmentedSort<1024>(
+                            gen.gen->clone(),
+                            A, list_length,
+                            B, list_length,
+                            CB, list_length);
+                    Iterator *plan = traditional;
+
+#ifndef NDEBUG
+                    auto asserter = new AssertSorted(traditional, CmpColumnList(ACB, key_length));
+                    plan = asserter;
+#endif
+
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    auto t0 = now();
+                    plan->run();
+                    auto duration = since(t0);
+
+#ifndef NDEBUG
+                    assert(asserter->getCount() == num_rows);
+                    assert(asserter->isSorted());
+#endif
+
+                    fprintf(results, "%s,%lu,%lu,%lu,%lu,%lu\n", "traditional", bitsA,
+                            traditional->getStats().segments_found, traditional->getStats().runs_generated,
+                            traditional->getStats().column_comparisons, duration);
+                    fprintf(stdout, "%s,%lu,%lu,%lu,%lu,%lu\n", "traditional", bitsA,
+                            traditional->getStats().segments_found, traditional->getStats().runs_generated,
+                            traditional->getStats().column_comparisons, duration);
+                    fflush(results);
+
+                    delete plan;
+                }
             }
 
-            for (int i = 0; i < reps; i++) {
-                auto traditional = new
-                        SegmentedSort(
-                        gen.gen->clone(),
-                        A, list_length,
-                        B, list_length,
-                        CB, list_length);
-                Iterator *plan = traditional;
-
-#ifndef NDEBUG
-                auto asserter = new AssertSorted(traditional, CmpColumnList(ACB, key_length));
-                plan = asserter;
-#endif
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                auto t0 = now();
-                plan->run();
-                auto duration = since(t0);
-
-#ifndef NDEBUG
-                assert(asserter->getCount() == num_rows);
-                assert(asserter->isSorted());
-#endif
-
-                fprintf(results, "%s,%lu,%lu,%lu\n", "traditional", bitsA,
-                        traditional->getStats().column_comparisons, duration);
-                fprintf(stdout, "%s,%lu,%lu,%lu\n", "traditional", bitsA,
-                        traditional->getStats().column_comparisons, duration);
-                fflush(results);
-
-                delete plan;
+            for (auto &gen: gens) {
+                delete gen.gen;
             }
-        }
-
-        for (auto &gen: gens) {
-            delete gen.gen;
         }
     }
 
@@ -291,7 +322,7 @@ int main(int argc, char *argv[]) {
 
     auto start = now();
 
-    experiment_sort_order1();
+    //experiment_sort_order1();
     experiment_sort_order2();
 
     log_info("elapsed=%lums", since(start));

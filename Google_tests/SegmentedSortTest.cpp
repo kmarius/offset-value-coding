@@ -55,7 +55,7 @@ TEST_F(SegmentedSortTest, BigTest) {
                     CB, list_length * 2),
             CmpColumnList(ACB, key_length));
 
-    plan.run();
+    plan.run(true);
     ASSERT_TRUE(plan.isSorted());
     ASSERT_TRUE(plan.getCount() == num_rows);
 }
