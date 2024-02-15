@@ -62,7 +62,7 @@ namespace ovc::iterators {
         size_t inserted = 0;
 
         assert(queue.isCorrect());
-        queue.reset();
+        queue.reset(queue.getMaxCapacity());
 
         Row *row;
 
@@ -319,7 +319,12 @@ namespace ovc::iterators {
         assert(queue.isEmpty());
         assert(external_run_paths.size() >= fan_in);
 
-        queue.reset();
+        uint64_t next_p2 = p2(fan_in);
+        if (next_p2 != queue.getCapacity()) {
+            queue.reset(next_p2);
+        } else {
+            queue.reset();
+        }
 
         external_runs.clear();
         external_runs.reserve(external_run_paths.size());

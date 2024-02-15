@@ -23,4 +23,14 @@ namespace ovc {
         auto iptr = reinterpret_cast<std::uintptr_t>(ptr);
         return iptr % alignment == 0;
     }
+
+    __attribute__ ((const))
+    static inline uint64_t p2(uint64_t x) {
+#if 0
+        assert(x > 1);
+         assert(x <= ((UINT32_MAX/2) + 1));
+#endif
+
+        return 1 << ((sizeof(x) << 3) - __builtin_clzl(x - 1));
+    }
 }

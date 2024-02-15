@@ -9,4 +9,5 @@ namespace ovc {
         static int pid = getpid();
         return std::string(BASEDIR "/ovc." + std::to_string(pid) + "." + std::to_string(i++) + ".dat");
     }
+
 };

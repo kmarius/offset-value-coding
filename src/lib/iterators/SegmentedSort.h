@@ -4,18 +4,9 @@
 #include "Iterator.h"
 #include "lib/io/BufferManager.h"
 #include "lib/PriorityQueue.h"
+#include "lib/utils.h"
 
 namespace ovc::iterators {
-
-    __attribute__ ((const))
-    static inline uint64_t p2(uint64_t x) {
-#if 0
-        assert(x > 1);
-         assert(x <= ((UINT32_MAX/2) + 1));
-#endif
-
-        return 1 << ((sizeof(x) << 3) - __builtin_clzl(x - 1));
-    }
 
     /*
      * Input: Rows sorted by A,B,C (optionally with OVCs)
@@ -67,19 +58,19 @@ namespace ovc::iterators {
                 return;
             }
 
-            if (num_runs > QUEUE_CAPACITY) {
+            if (num_runs > CAPACITY) {
                 assert(false); // disabled for now
 
                 // this guarantees maximal fan-in for the later merges
-                size_t initial_merge_fan_in = num_runs % (QUEUE_CAPACITY - 1);
+                size_t initial_merge_fan_in = num_runs % (CAPACITY - 1);
                 if (initial_merge_fan_in == 0) {
-                    initial_merge_fan_in = QUEUE_CAPACITY - 1;
+                    initial_merge_fan_in = CAPACITY - 1;
                 }
 
                 merge_memory_runs(initial_merge_fan_in);
 
-                while (memory_runs.size() > QUEUE_CAPACITY) {
-                    merge_memory_runs(QUEUE_CAPACITY);
+                while (memory_runs.size() > CAPACITY) {
+                    merge_memory_runs(CAPACITY);
                 }
             }
 
