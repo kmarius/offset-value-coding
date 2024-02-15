@@ -57,7 +57,8 @@ add_library(libovc
         src/lib/iterators/SegmentedSort.h
         src/lib/iterators/AssertCount.h
         src/lib/iterators/VectorGen.h
-        src/paper1/main.cpp)
+        src/paper1/main.cpp
+        src/lib/iterators/SegmentedGen.h)
 
 target_link_libraries(libovc uring)
 

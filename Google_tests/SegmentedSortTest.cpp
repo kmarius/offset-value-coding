@@ -28,10 +28,35 @@ protected:
 };
 
 TEST_F(SegmentedSortTest, EmptyTest) {
-    auto *plan = new AssertCount(new VectorScan({}));
-    plan->run();
-    ASSERT_EQ(plan->getCount(), 0);
-    delete plan;
+    auto plan = AssertCount(new VectorScan({}));
+    plan.run();
+    ASSERT_EQ(plan.getCount(), 0);
+}
+
+TEST_F(SegmentedSortTest, SmallTest) {
+    unsigned long domain = 2;
+    unsigned long num_rows = 100;
+
+    uint8_t A[ROW_ARITY] = {0};
+    uint8_t B[ROW_ARITY] = {1};
+    uint8_t ACB[ROW_ARITY] = {0, 2, 1};
+    uint8_t CB[ROW_ARITY] = {2, 1};
+    int list_length = 1;
+    int key_length = 3;
+
+    auto plan = AssertSorted(
+            new SegmentedSort(
+                    new SortPrefix(
+                            new GeneratorWithDomains(num_rows, {domain, domain, domain}, SEED),
+                            key_length),
+                    A, list_length,
+                    B, list_length,
+                    CB, list_length * 2),
+            CmpColumnList(ACB, key_length));
+
+    plan.run(true);
+    ASSERT_TRUE(plan.isSorted());
+    ASSERT_TRUE(plan.getCount() == num_rows);
 }
 
 TEST_F(SegmentedSortTest, BigTest) {

@@ -29,14 +29,13 @@ namespace ovc::iterators {
         std::vector<Row> workspace;
         std::queue<MemoryRun> memory_runs;
         std::vector<MemoryRun> current_merge_runs;
-        PriorityQueue <Compare> queue;
+        PriorityQueue<Compare> queue;
         iterator_stats *stats;
-        Row *prev;
         Row *next_segment;
         std::vector<OVC> stored_ovcs;
 
         SegmentedSorter(iterator_stats *stats, const EqualsA &eqA, const EqualsB &eqB, const Compare &cmp) :
-                queue(CAPACITY, stats, cmp), stats(stats), eqA(eqA), eqB(eqB), cmp(cmp), prev(nullptr),
+                queue(CAPACITY, stats, cmp), stats(stats), eqA(eqA), eqB(eqB), cmp(cmp),
                 next_segment(nullptr) {
             workspace.reserve(1 << 20);
 
@@ -51,6 +50,7 @@ namespace ovc::iterators {
 
             assert(queue.isEmpty());
             stored_ovcs.clear();
+            //workspace.clear();
             sort_next_segment(input);
             assert(queue.isEmpty());
 
@@ -138,17 +138,25 @@ namespace ovc::iterators {
             assert(memory_runs.empty());
             queue.reset();
 
-            // Read rows from the segment (until next_from_segment returns null
+            // Read rows from the segment (until next_row returns null
             // Rows with same B go to the same run
             // when input is exhausted, merge the runs on attributes CB
 
-            MemoryRun run;
-
-            Row *row = next_from_segment(input);
-            if (!row) {
-                // no more input
-                return;
+            Row *row;
+            if (next_segment) {
+                row = next_segment;
+                next_segment = nullptr;
+            } else {
+                row = next_row(input);
+                if (!row) {
+                    // no more input
+                    return;
+                }
             }
+
+#ifdef COLLECT_STATS
+            stats->segments_found++;
+#endif
 
             if constexpr (eqA.USES_OVC) {
                 // First row in run, store its offset-value code
@@ -158,41 +166,59 @@ namespace ovc::iterators {
                 row->setNewOVC(eqA.arity, eqA.offset, eqA.columns[eqB.offset]);
             }
 
+            MemoryRun run;
             long run_index = 0;
 
             row->tid = run_index;
             run.add(row);
 
-            Row *prev = row;
-
-            for (; (row = next_from_segment(input));) {
-                if (!eqB(*row, *prev)) {
-                    // Change in B detected, create a new run
-                    memory_runs.push(run);
+            for (Row *prev = row; (row = next_row(input)); prev = row) {
+                if constexpr (eqA.USES_OVC) {
+                    unsigned long ovc = row->key;
+                    unsigned long offset = OVC_GET_OFFSET(ovc, ROW_ARITY);
+                    if (offset < eqA.offset) {
+                        // Next segment, hold back the row
+                        log_trace("segment boundary detected at row %s", row->c_str());
+                        next_segment = row;
+                        break;
+                    } else if (offset < eqB.offset) {
+                        // Change in B detected, create a new run
+                        memory_runs.push(run);
 #ifdef COLLECT_STATS
-                    stats->runs_generated++;
+                        stats->runs_generated++;
 #endif
-                    run = {};
-                    run_index++;
-                    if constexpr (eqA.USES_OVC) {
+                        run = {};
+                        run_index++;
+
                         // First row in run, store its offset-value code
-                        stored_ovcs.push_back(row->key);
+                        stored_ovcs.push_back(ovc);
 
                         // Set new offset-value code with offset |A| and value C[0]
                         row->setNewOVC(eqA.arity, eqA.offset, eqA.columns[eqB.offset]);
-                    }
-                } else {
-                    if constexpr (eqA.USES_OVC) {
-                        // Unless the row is a dupe (indicated by a code of 0), decrement the offset-value code by |B|
+                    } else {
+                        // same run, unless the row is a dupe (indicated by a code of 0), decrement the offset-value code by |B|
                         if (row->key) {
-                            auto offset = row->getOffset();
                             row->setNewOVC(eqA.arity, offset - (eqB.offset - eqA.offset), eqA.columns[offset]);
                         }
+                    }
+                } else {
+                    if (!eqA(*row, *prev)) {
+                        // Next segment
+                        next_segment = row;
+                        log_trace("segment boundary detected at row %s", row->c_str());
+                        break;
+                    } else if (!eqB(*row, *prev)) {
+                        // Change in B detected, create a new run
+                        memory_runs.push(run);
+#ifdef COLLECT_STATS
+                        stats->runs_generated++;
+#endif
+                        run = {};
+                        run_index++;
                     }
                 }
                 row->tid = run_index;
                 run.add(row);
-                prev = row;
             }
 
             if (!run.isEmpty()) {
@@ -203,45 +229,17 @@ namespace ovc::iterators {
             }
         }
 
-        Row *next_from_segment(Iterator *input) {
-            if (next_segment) {
-                prev = next_segment;
-                next_segment = nullptr;
-                return prev;
-            }
+        inline Row *next_row(Iterator *input) {
             Row *row = input->next();
             if (!row) {
-                log_trace("next_from_segment: input empty");
+                log_trace("next_row: input empty");
                 // input empty
                 return nullptr;
             }
-            if (!prev) {
-#ifdef COLLECT_STATS
-                stats->segments_found++;
-#endif
-                // very first call in segment
-                workspace.push_back(*row);
-                prev = &workspace.back();
-                return prev;
-            } else {
-                workspace.push_back(*row);
-                row = &workspace.back();
 
-                if (eqA(*row, *prev)) {
-                    // same segment
-                    prev = row;
-                    return row;
-                } else {
-                    log_trace("next_from_segment: segment boundary detected at row %s", row->c_str());
-                    // Next segment, hold back the row and return null
-                    next_segment = row;
-                    prev = nullptr;
-#ifdef COLLECT_STATS
-                    stats->segments_found++;
-#endif
-                    return nullptr;
-                }
-            }
+            //workspace.push_back(*row);
+            //row = &workspace.back();
+            return row;
         }
     };
 

@@ -13,7 +13,9 @@ namespace ovc::iterators {
         bool owns;
 
         explicit VectorGen(Row *rows, unsigned long length)
-                : rows(rows), length(length), index(0), owns(false) {}
+                : rows(new Row[length]), length(length), index(0), owns(false) {
+            memcpy(this->rows, rows, length * sizeof *rows);
+        }
 
     public:
         explicit VectorGen(Iterator *input) : rows(nullptr), length(0), index(0), owns(true) {
@@ -27,9 +29,7 @@ namespace ovc::iterators {
         }
 
         ~VectorGen() override {
-            if (owns) {
-                delete rows;
-            }
+            delete[] rows;
         };
 
         Row *next() override {

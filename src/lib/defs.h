@@ -27,7 +27,7 @@
 #define PRIORITYQUEUE_CAPACITY (1 << RUN_IDX_BITS)
 
 #define LOGPATH "/tmp/ovc.log"
-#define NO_LOGGING
+//#define NO_LOGGING
 
 #define COLLECT_STATS
 
