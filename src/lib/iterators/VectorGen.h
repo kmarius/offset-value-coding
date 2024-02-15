@@ -10,21 +10,18 @@ namespace ovc::iterators {
         Row *rows;
         unsigned long length;
         unsigned long index;
-        bool owns;
 
         explicit VectorGen(Row *rows, unsigned long length)
-                : rows(new Row[length]), length(length), index(0), owns(false) {
+                : rows(new Row[length]), length(length), index(0) {
             memcpy(this->rows, rows, length * sizeof *rows);
         }
 
     public:
-        explicit VectorGen(Iterator *input) : rows(nullptr), length(0), index(0), owns(true) {
-            auto v = input->collect();
-            length = v.size();
+        explicit VectorGen(Iterator *input) : rows(nullptr), length(0), index(0) {
+            auto vec = input->collect();
+            length = vec.size();
             rows = new Row[length];
-            for (unsigned long i = 0; i < length; i++) {
-                rows[i] = v[i];
-            }
+            memcpy(rows, &vec[0], length * sizeof *rows);
             delete input;
         }
 

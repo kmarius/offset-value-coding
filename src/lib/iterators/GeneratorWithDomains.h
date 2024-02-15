@@ -1,12 +1,13 @@
 #pragma once
 
 #include "Iterator.h"
+#include "RandomGenerator.h"
 
 #include <vector>
 #include <random>
 
 namespace ovc::iterators {
-    class GeneratorWithDomains : public Generator {
+    class GeneratorWithDomains : public RandomGenerator {
     public :
         GeneratorWithDomains(unsigned long num_rows, const uint64_t domains[ROW_ARITY], unsigned long seed = -1);
         GeneratorWithDomains(unsigned long num_rows, std::initializer_list<uint64_t> domains, unsigned long seed = -1);
@@ -23,10 +24,7 @@ namespace ovc::iterators {
     private :
         GeneratorWithDomains(unsigned long num_rows, unsigned long seed, void *dummy);
         unsigned long num_rows;
-        uint64_t domains[ROW_ARITY]; // bits used per column
-        std::mt19937 rng;
-        std::uniform_int_distribution<std::mt19937::result_type> dist;
+        uint64_t domains[ROW_ARITY];
         Row buf;
-        unsigned long seed;
     };
 }

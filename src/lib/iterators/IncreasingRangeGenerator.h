@@ -2,30 +2,27 @@
 
 #include "Iterator.h"
 #include "../defs.h"
+#include "RandomGenerator.h"
 
 #include <vector>
 #include <random>
 
 namespace ovc::iterators {
 
-    class IncreasingRangeGenerator : public Generator {
+    class IncreasingRangeGenerator : public RandomGenerator {
     public :
         explicit IncreasingRangeGenerator(Count rows, unsigned long upper, unsigned long seed = -1);
 
         Row *next() override;
 
         Generator *clone() const override {
-            return new IncreasingRangeGenerator(num_rows, upper_, seed_);
+            return new IncreasingRangeGenerator(num_rows, upper, seed);
         }
 
     private :
         unsigned long num_rows;
         unsigned long tid;
-        std::mt19937 rng;
-        std::uniform_int_distribution<std::mt19937::result_type> dist;
         Row buf;
-        bool store;
-        unsigned long upper_;
-        unsigned long seed_;
+        unsigned long upper;
     };
 }

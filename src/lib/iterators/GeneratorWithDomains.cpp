@@ -4,15 +4,10 @@
 namespace ovc::iterators {
 
     GeneratorWithDomains::GeneratorWithDomains(unsigned long num_rows, unsigned long seed, void *dummy)
-            : Generator(), num_rows(num_rows), buf({0}), domains() {
+            : RandomGenerator(seed), num_rows(num_rows), buf({0}), domains() {
         for (int i = 0; i < ROW_ARITY; i++) {
             domains[i] = 1;
         }
-        std::random_device dev;
-        seed = seed == (unsigned long) -1 ? dev() : seed;
-        this->seed = seed;
-        rng = std::mt19937(seed);
-        dist = std::uniform_int_distribution<std::mt19937::result_type>(0, UINT64_MAX);
     }
 
     GeneratorWithDomains::GeneratorWithDomains(unsigned long num_rows, int upper, int prefix, unsigned long seed)
@@ -46,7 +41,9 @@ namespace ovc::iterators {
         num_rows--;
 
         for (int i = 0; i < ROW_ARITY; i++) {
-            buf.columns[i] = dist(rng) % domains[i];
+            if (domains[i]) {
+                buf.columns[i] = dist(rng) % domains[i];
+            }
         }
 
         buf.tid++;

@@ -4,6 +4,7 @@
 #include <cmath>
 #include "Iterator.h"
 #include "lib/log.h"
+#include "RandomGenerator.h"
 
 namespace ovc::iterators {
 
@@ -25,17 +26,13 @@ namespace ovc::iterators {
         return upper;
     }
 
-    class ApproximateDuplicateGenerator : public Generator {
+    class ApproximateDuplicateGenerator : public RandomGenerator {
 
     public:
-
         ApproximateDuplicateGenerator(int num_rows, int output_size, int prefix = 0, int suffix = 0,
                                       unsigned long seed = -1)
-                : num_rows(num_rows), output_size(output_size), prefix(prefix), suffix(suffix), row(), count(0) {
-
-            std::random_device dev;
-            this->seed = seed == (unsigned long) -1 ? dev() : seed;
-            rng = std::mt19937(this->seed);
+                : RandomGenerator(seed), num_rows(num_rows), output_size(output_size), prefix(prefix), suffix(suffix),
+                  buf(), count(0) {
 
             int non_zero_columns = ROW_ARITY - prefix - suffix;
             assert(non_zero_columns >= 0);
@@ -55,14 +52,14 @@ namespace ovc::iterators {
                 }
                 acc *= upper;
                 rem /= upper;
-                dist[i] = std::uniform_int_distribution<std::mt19937::result_type>(0, upper - 1);
+                domains[i] = upper;
             }
 
             if (labs(global_upper - acc * (rem + 1)) < labs(global_upper - acc * rem)) {
                 rem++;
             }
 
-            dist[ROW_ARITY - suffix - 1] = std::uniform_int_distribution<std::mt19937::result_type>(0, rem - 1);
+            domains[ROW_ARITY - suffix - 1] = rem;
         }
 
         ApproximateDuplicateGenerator(int num_rows, double percent_unique, int prefix = 0, int suffix = 0,
@@ -79,23 +76,22 @@ namespace ovc::iterators {
                 return nullptr;
             }
             count++;
-            row.tid++;
+            buf.tid++;
             for (int i = prefix; i < ROW_ARITY - suffix; i++) {
-                row.columns[i] = dist[i](rng);
+                if (domains[i]) {
+                    buf.columns[i] = dist(rng) % domains[i];
+                }
             }
-            return &row;
+            return &buf;
         }
 
     private:
         int num_rows;
+        int count;
         int output_size;
         int prefix;
         int suffix;
-        Row row;
-        int count;
-
-        std::mt19937 rng;
-        std::uniform_int_distribution<std::mt19937::result_type> dist[ROW_ARITY];
-        unsigned long seed;
+        Row buf;
+        unsigned long domains[ROW_ARITY];
     };
 }
