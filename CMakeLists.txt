@@ -52,14 +52,14 @@ add_library(libovc
         src/lib/iterators/Transposer.h
         src/lib/iterators/GeneratorWithDomains.cpp
         src/lib/iterators/GeneratorWithDomains.h
-        src/lib/iterators/UniqueRowGenerator.cpp
         src/lib/iterators/UniqueRowGenerator.h
         src/lib/iterators/SegmentedSort.h
         src/lib/iterators/AssertCount.h
         src/lib/iterators/VectorGen.h
         src/paper1/main.cpp
         src/lib/iterators/SegmentedGen.h
-        src/lib/iterators/RandomGenerator.h)
+        src/lib/iterators/RandomGenerator.h
+        src/lib/iterators/RowBuffer.h)
 
 target_link_libraries(libovc uring)
 
