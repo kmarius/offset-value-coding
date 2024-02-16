@@ -20,8 +20,8 @@ protected:
     const size_t SEED = 1337;
 
     void SetUp() override {
-        log_set_level(LOG_ERROR);
-        //log_set_quiet(true);
+        log_set_level(LOG_TRACE);
+        log_set_quiet(true);
     }
 
     void TearDown() override {

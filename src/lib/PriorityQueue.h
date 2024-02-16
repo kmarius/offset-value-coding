@@ -82,6 +82,8 @@ namespace ovc {
          */
         void push(Row *row, Index run_index, void *udata);
 
+        void push_next(Row *row);
+
         /**
          * Pop the lowest row. The top element will be replaced with a low sentinel.
          * @return The row.
@@ -154,6 +156,11 @@ namespace ovc {
             push(run.front(), MERGE_RUN_IDX, &run);
         }
 
+        inline void push_memory2(std::tuple<Row **, Row **> *run) {
+            log_trace("pushing %s", (*std::get<0>(*run))->c_str());
+            push(*std::get<0>(*run), MERGE_RUN_IDX, run);
+        }
+
         inline void push_external(io::ExternalRunR &run) {
             Row *row = run.read();
             if (row) {
@@ -196,6 +203,20 @@ namespace ovc {
 
             if (likely(run->size() > 0)) {
                 push(run->front(), MERGE_RUN_IDX, run);
+            } else {
+                this->flush_sentinel();
+            }
+
+            return res;
+        }
+
+        Row *pop_memory2() {
+            auto run = this->template top_udata2<std::tuple<Row **,Row **>>();
+            Row *res = this->pop();
+            std::get<0>(*run)++;
+
+            if (likely(std::get<0>(*run) < std::get<1>(*run))) {
+                this->push_next(*std::get<0>(*run));
             } else {
                 this->flush_sentinel();
             }

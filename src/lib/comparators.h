@@ -139,10 +139,8 @@ namespace ovc::comparators {
             for (int i = 0; i < length; i++) {
 
 #ifdef COLLECT_STATS
-                volatile static unsigned long dummy = 0;
                 if (stats) {
                     stats->column_comparisons++;
-                    dummy++;
                 }
 #endif
                 long cmp = (long) lhs.columns[columns[i]] - (long) rhs.columns[columns[i]];
@@ -433,8 +431,6 @@ namespace ovc::comparators {
                 // equality, no need to go on
                 return 0;
             }
-            char buf[128];
-            log_trace("%s, %s", lhs.c_str(), rhs.c_str(buf));
 
             int offset = lhs.getOffset();
 
@@ -446,10 +442,8 @@ namespace ovc::comparators {
                 cmp = (long) lhs.columns[columns[i]] - (long) rhs.columns[columns[i]];
 
 #ifdef COLLECT_STATS
-                volatile static unsigned long dummy = 0;
                 if (stats) {
                     stats->column_comparisons++;
-                    dummy++;
                 }
 #endif
                 if (cmp) {

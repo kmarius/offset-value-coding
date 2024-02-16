@@ -277,6 +277,22 @@ namespace ovc {
     }
 
     template<typename Compare>
+    void PriorityQueueBase<Compare>::push_next(Row *row) {
+        assert(size < capacity);
+        assert(heap[0].isLowSentinel());
+        assert(row != nullptr);
+
+        Index workspace_index = heap[0].index;
+        workspace[workspace_index].row = row;
+        if constexpr (cmp.USES_OVC) {
+            pass(workspace_index, NODE_KEYGEN(MERGE_RUN_IDX, row->key));
+        } else {
+            pass(workspace_index, NODE_KEYGEN(MERGE_RUN_IDX, 0));
+        }
+        size++;
+    }
+
+    template<typename Compare>
     void PriorityQueueBase<Compare>::pass(Index index, Key key) {
         Node candidate(index, key);
         for (Index slot = capacity / 2 + index / 2; slot != 0; slot /= 2) {

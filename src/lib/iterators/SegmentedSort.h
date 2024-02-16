@@ -1,10 +1,18 @@
 #pragma once
 
-#include <queue>
 #include "Iterator.h"
 #include "lib/io/BufferManager.h"
 #include "lib/PriorityQueue.h"
 #include "lib/utils.h"
+
+#include <queue>
+#include <tuple>
+
+/*
+ * CAUTION:
+ * This currently is not a valid ONC operator because it doesn't copy rows into its own memory to sort them, but assumes
+ * they exist for the whole lifetime of a segment. A RowBuffer iterator can be used before this one to buffer rows.
+ */
 
 namespace ovc::iterators {
 
@@ -17,31 +25,31 @@ namespace ovc::iterators {
         EqualsA eqA;
         EqualsB eqB;
         Compare cmp;
-        std::vector<Row> workspace;
-        std::queue<MemoryRun> memory_runs;
-        std::vector<MemoryRun> current_merge_runs;
-        PriorityQueue<Compare> queue;
+        PriorityQueue <Compare> queue;
         iterator_stats *stats;
-        Row *next_segment;
-        std::vector<OVC> stored_ovcs;
+        std::vector<Row *> ptrs; // pointers to rows in insertion order
+        std::vector<std::tuple<Row **, Row **>> runs; // (begin, end) of runs point into the ptrs array
+        Row *next_segment; // first row of the next segment once it is detected
+        std::vector<OVC> stored_ovcs; // original ovcs of the first row in each run; reset for each segment
 
         SegmentedSorter(iterator_stats *stats, const EqualsA &eqA, const EqualsB &eqB, const Compare &cmp) :
                 queue(CAPACITY, stats, cmp), stats(stats), eqA(eqA), eqB(eqB), cmp(cmp),
                 next_segment(nullptr) {
-            workspace.reserve(1 << 20);
+            ptrs.reserve(1 << 20);
 
             assert(cmp.USES_OVC == eqA.USES_OVC);
             assert(cmp.USES_OVC == eqB.USES_OVC);
         }
 
-        ~SegmentedSorter() {};
+        ~SegmentedSorter() = default;
 
         void prep_next_segment(Iterator *input) {
             log_trace("prep_next_segment");
 
             assert(queue.isEmpty());
             stored_ovcs.clear();
-            //workspace.clear();
+            runs.clear();
+            ptrs.clear();
             sort_next_segment(input);
             assert(queue.isEmpty());
 
@@ -52,7 +60,7 @@ namespace ovc::iterators {
                 }
             }
 
-            size_t num_runs = memory_runs.size();
+            size_t num_runs = runs.size();
 
             if (num_runs == 0) {
                 return;
@@ -69,12 +77,12 @@ namespace ovc::iterators {
 
                 merge_memory_runs(initial_merge_fan_in);
 
-                while (memory_runs.size() > CAPACITY) {
+                while (runs.size() > CAPACITY) {
                     merge_memory_runs(CAPACITY);
                 }
             }
 
-            insert_memory_runs(memory_runs.size());
+            insert_memory_runs(runs.size());
 
             if constexpr (eqA.USES_OVC) {
                 // Restore OVC for the first row in the segment
@@ -84,7 +92,7 @@ namespace ovc::iterators {
         }
 
         inline Row *next() {
-            return queue.pop_memory();
+            return queue.pop_memory2();
         }
 
     private:
@@ -101,19 +109,15 @@ namespace ovc::iterators {
                 queue.reset();
             }
 
-            current_merge_runs.clear();
-            current_merge_runs.reserve(num_runs);
             for (size_t i = 0; i < num_runs; i++) {
-                MemoryRun run = memory_runs.front();
-                memory_runs.pop();
-                current_merge_runs.push_back(run);
-                queue.push_memory(current_merge_runs.back());
+                queue.push_memory2(&runs[i]);
             }
             queue.flush_sentinels();
             assert(!queue.isEmpty());
         }
 
         void merge_memory_runs(size_t num_runs) {
+            assert(false); // broken after newest changes, and not needed
             log_trace("merge_memory_runs %lu", num_runs);
             assert(num_runs > 0);
             insert_memory_runs(num_runs);
@@ -121,12 +125,12 @@ namespace ovc::iterators {
             while (!queue.isEmpty()) {
                 run.add(queue.pop_memory());
             }
-            memory_runs.push(run);
+            // runs.push(run);
         }
 
         void sort_next_segment(Iterator *input) {
             assert(queue.isEmpty());
-            assert(memory_runs.empty());
+            assert(runs.empty());
             queue.reset();
 
             // Read rows from the segment (until next_row returns null
@@ -138,7 +142,7 @@ namespace ovc::iterators {
                 row = next_segment;
                 next_segment = nullptr;
             } else {
-                row = next_row(input);
+                row = input->next();
                 if (!row) {
                     // no more input
                     return;
@@ -157,13 +161,17 @@ namespace ovc::iterators {
                 row->setNewOVC(eqA.arity, eqA.offset, eqA.columns[eqB.offset]);
             }
 
-            MemoryRun run;
             long run_index = 0;
-
             row->tid = run_index;
-            run.add(row);
 
-            for (Row *prev = row; (row = next_row(input)); prev = row) {
+            assert(ptrs.empty());
+            Row **run_first = &ptrs[0];
+            size_t run_length = 0;
+
+            ptrs.push_back(row);
+            run_length++;
+
+            for (Row *prev = row; (row = input->next()); prev = row) {
                 if constexpr (eqA.USES_OVC) {
                     unsigned long ovc = row->key;
                     unsigned long offset = OVC_GET_OFFSET(ovc, ROW_ARITY);
@@ -174,13 +182,13 @@ namespace ovc::iterators {
                         break;
                     } else if (offset < eqB.offset) {
                         // Change in B detected, create a new run
-                        memory_runs.push(run);
+                        runs.emplace_back(run_first, run_first + run_length);
+                        run_first = &ptrs[ptrs.size()];
+                        run_length = 0;
+                        run_index++;
 #ifdef COLLECT_STATS
                         stats->runs_generated++;
 #endif
-                        run = {};
-                        run_index++;
-
                         // First row in run, store its offset-value code
                         stored_ovcs.push_back(ovc);
 
@@ -200,37 +208,26 @@ namespace ovc::iterators {
                         break;
                     } else if (!eqB(*row, *prev)) {
                         // Change in B detected, create a new run
-                        memory_runs.push(run);
+                        runs.emplace_back(run_first, run_first + run_length);
+                        run_first = &ptrs[ptrs.size()];
+                        run_length = 0;
+                        run_index++;
 #ifdef COLLECT_STATS
                         stats->runs_generated++;
 #endif
-                        run = {};
-                        run_index++;
                     }
                 }
                 row->tid = run_index;
-                run.add(row);
+                ptrs.push_back(row);
+                run_length++;
             }
 
-            if (!run.isEmpty()) {
-                memory_runs.push(run);
+            if (run_length > 0) {
+                runs.emplace_back(run_first, run_first + run_length);
 #ifdef COLLECT_STATS
                 stats->runs_generated++;
 #endif
             }
-        }
-
-        inline Row *next_row(Iterator *input) {
-            Row *row = input->next();
-            if (!row) {
-                log_trace("next_row: input empty");
-                // input empty
-                return nullptr;
-            }
-
-            //workspace.push_back(*row);
-            //row = &workspace.back();
-            return row;
         }
     };
 

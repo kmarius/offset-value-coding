@@ -199,14 +199,10 @@ void experiment_sort_order2() {
         }
 
         // initialize domains
-        uint64_t domains[1][ROW_ARITY];
-        for (int i = 0; i < ROW_ARITY; i++) {
-            for (auto &domain: domains) {
-                domain[i] = 1;
-            }
-        }
+        uint64_t domain[3];
+        uint8_t columns[3];
 
-        size_t bits_total = 32;
+        size_t bits_total = num_rows_exp + 2;
         size_t maxB = 10;
 
         ssize_t bitsB = num_rows_exp - (bitsA / 2) - maxB - 1;
@@ -222,14 +218,18 @@ void experiment_sort_order2() {
 
         fprintf(stdout, "bitsA=%lu, bitsB=%lu, bitsC=%lu\n", bitsA, bitsB, bitsC);
 
-        domains[0][list_length - 1] = 1 << bitsA;
-        domains[0][2 * list_length - 1] = 1 << bitsB;
-        domains[0][3 * list_length - 1] = 1 << bitsC;
+        columns[0] = list_length - 1;
+        columns[1] = 2 * list_length - 1;
+        columns[2] = 3 * list_length - 1;
+
+        domain[0] = 1 << bitsA;
+        domain[1] = 1 << bitsB;
+        domain[2] = 1 << bitsC;
 
         // generate data and sort by ABC
         auto gen = VectorGen(
                 new SortPrefixOVC(
-                        new GeneratorWithDomains(num_rows, domains[0], 1337),
+                        new SegmentedGen(num_rows, domain, columns, 1337),
                         key_length));
 
         for (int i = 0; i < reps; i++) {
@@ -261,6 +261,7 @@ void experiment_sort_order2() {
 
             delete plan;
         }
+        return;
 
         for (int i = 0; i < reps; i++) {
             auto traditional = new
@@ -441,11 +442,7 @@ int main(int argc, char *argv[]) {
     auto start = now();
 
     //experiment_sort_order1();
-    //experiment_sort_order2();
-    uint8_t columns[] = {0, 1, 2};
-    size_t domains[] = {2, 4, 8};
-    auto gen = SegmentedGen(10, domains, columns);
-    gen.run(true);
+    experiment_sort_order2();
 
     log_info("elapsed=%lums", since(start));
     log_info("fin");
