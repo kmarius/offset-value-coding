@@ -25,7 +25,7 @@ namespace ovc::iterators {
         EqualsA eqA;
         EqualsB eqB;
         Compare cmp;
-        PriorityQueue <Compare> queue;
+        PriorityQueue<Compare> queue;
         iterator_stats *stats;
         std::vector<Row *> ptrs; // pointers to rows in insertion order
         std::vector<std::tuple<Row **, Row **>> runs; // (begin, end) of runs point into the ptrs array
@@ -35,7 +35,7 @@ namespace ovc::iterators {
         SegmentedSorter(iterator_stats *stats, const EqualsA &eqA, const EqualsB &eqB, const Compare &cmp) :
                 queue(CAPACITY, stats, cmp), stats(stats), eqA(eqA), eqB(eqB), cmp(cmp),
                 next_segment(nullptr) {
-            ptrs.reserve(1 << 20);
+            ptrs.reserve(1 << 21);
 
             assert(cmp.USES_OVC == eqA.USES_OVC);
             assert(cmp.USES_OVC == eqB.USES_OVC);
@@ -50,7 +50,7 @@ namespace ovc::iterators {
             stored_ovcs.clear();
             runs.clear();
             ptrs.clear();
-            sort_next_segment(input);
+            process_next_segment(input);
             assert(queue.isEmpty());
 
             if constexpr (eqA.USES_OVC) {
@@ -68,18 +68,40 @@ namespace ovc::iterators {
 
             if (num_runs > CAPACITY) {
                 assert(false); // disabled for now
+            }
 
-                // this guarantees maximal fan-in for the later merges
-                size_t initial_merge_fan_in = num_runs % (CAPACITY - 1);
-                if (initial_merge_fan_in == 0) {
-                    initial_merge_fan_in = CAPACITY - 1;
-                }
+            insert_memory_runs(runs.size());
 
-                merge_memory_runs(initial_merge_fan_in);
+            if constexpr (eqA.USES_OVC) {
+                // Restore OVC for the first row in the segment
+                assert(!stored_ovcs.empty());
+                queue.top()->key = stored_ovcs[0];
+            }
+        }
 
-                while (runs.size() > CAPACITY) {
-                    merge_memory_runs(CAPACITY);
-                }
+        // treat everything as one large segment, generating runs for constant values of AB
+        void prep_next_unsegment(Iterator *input) {
+            log_trace("prep_next_unsegment");
+
+            assert(queue.isEmpty());
+            stored_ovcs.clear();
+            runs.clear();
+            ptrs.clear();
+            sort_next_unsegment(input);
+            assert(queue.isEmpty());
+
+            if constexpr (eqA.USES_OVC) {
+                //queue.cmp.stored_ovcs = &stored_ovcs[0];
+            }
+
+            size_t num_runs = runs.size();
+
+            if (num_runs == 0) {
+                return;
+            }
+
+            if (num_runs > CAPACITY) {
+                assert(false); // disabled for now
             }
 
             insert_memory_runs(runs.size());
@@ -116,24 +138,12 @@ namespace ovc::iterators {
             assert(!queue.isEmpty());
         }
 
-        void merge_memory_runs(size_t num_runs) {
-            assert(false); // broken after newest changes, and not needed
-            log_trace("merge_memory_runs %lu", num_runs);
-            assert(num_runs > 0);
-            insert_memory_runs(num_runs);
-            MemoryRun run;
-            while (!queue.isEmpty()) {
-                run.add(queue.pop_memory());
-            }
-            // runs.push(run);
-        }
-
-        void sort_next_segment(Iterator *input) {
+        // processes the next segment in the input
+        void process_next_segment(Iterator *input) {
             assert(queue.isEmpty());
             assert(runs.empty());
-            queue.reset();
 
-            // Read rows from the segment (until next_row returns null
+            // Read rows from the segment (until next_from_segment returns null
             // Rows with same B go to the same run
             // when input is exhausted, merge the runs on attributes CB
 
@@ -229,9 +239,85 @@ namespace ovc::iterators {
 #endif
             }
         }
+
+        // whole input is one large segment
+        void sort_next_unsegment(Iterator *input) {
+            assert(queue.isEmpty());
+            assert(runs.empty());
+
+            Row *row = input->next();
+            if (!row) {
+                return;
+            }
+
+#ifdef COLLECT_STATS
+            stats->segments_found++;
+#endif
+
+            if constexpr (eqA.USES_OVC) {
+                stored_ovcs.push_back(row->key);
+                row->setNewOVC(eqA.arity, 0, eqA.columns[0]);
+            }
+
+            long run_index = 0;
+            row->tid = run_index;
+
+            assert(ptrs.empty());
+            Row **run_first = &ptrs[0];
+            size_t run_length = 0;
+
+            ptrs.push_back(row);
+            run_length++;
+
+            for (Row *prev = row; (row = input->next()); prev = row) {
+                if constexpr (eqA.USES_OVC) {
+                    unsigned long ovc = row->key;
+                    unsigned long offset = OVC_GET_OFFSET(ovc, ROW_ARITY);
+                    if (offset < eqB.offset) {
+                        // Change in AB detected, create a new run
+                        runs.emplace_back(run_first, run_first + run_length);
+                        run_first = &ptrs[ptrs.size()];
+                        run_length = 0;
+                        run_index++;
+#ifdef COLLECT_STATS
+                        stats->runs_generated++;
+#endif
+                        stored_ovcs.push_back(ovc);
+                        row->setNewOVC(eqA.arity, 0, eqA.columns[0]);
+                    } else {
+                        // same run, unless the row is a dupe (indicated by a code of 0), decrement the offset-value code by |B|
+                        if (row->key) {
+                            row->setNewOVC(eqA.arity, offset - (eqB.offset - eqA.offset), eqA.columns[offset]);
+                        }
+                    }
+                } else {
+                    if (!eqA(*row, *prev) || !eqB(*row, *prev)) {
+                        // Change in AB detected, create a new run
+                        runs.emplace_back(run_first, run_first + run_length);
+                        run_first = &ptrs[ptrs.size()];
+                        run_length = 0;
+                        run_index++;
+#ifdef COLLECT_STATS
+                        stats->runs_generated++;
+#endif
+                    }
+                }
+                row->tid = run_index;
+                ptrs.push_back(row);
+                run_length++;
+            }
+
+            if (run_length > 0) {
+                runs.emplace_back(run_first, run_first + run_length);
+#ifdef COLLECT_STATS
+                stats->runs_generated++;
+#endif
+            }
+            log_trace("unsegmented: %lu runs created", runs.size());
+        }
     };
 
-    template<typename EqualsA, typename EqualsB, typename Compare, size_t CAPACITY>
+    template<typename EqualsA, typename EqualsB, typename Compare, size_t CAPACITY, bool SEGMENT>
     class SegmentedSortBase : public UnaryIterator {
     public:
         SegmentedSortBase(Iterator *input, const EqualsA &eqA, const EqualsB &eqB, const Compare &cmp)
@@ -250,7 +336,11 @@ namespace ovc::iterators {
                     return nullptr;
                 }
 
-                sorter.prep_next_segment(input);
+                if constexpr (SEGMENT) {
+                    sorter.prep_next_segment(input);
+                } else {
+                    sorter.prep_next_unsegment(input);
+                }
 
                 if (sorter.queue.isEmpty()) {
                     input_empty = true;
@@ -277,13 +367,13 @@ namespace ovc::iterators {
     using namespace comparators;
 
     template<size_t CAPACITY = QUEUE_CAPACITY>
-    class SegmentedSort : public SegmentedSortBase<EqColumnList, EqColumnList, CmpColumnListCool, CAPACITY> {
+    class SegmentedSort : public SegmentedSortBase<EqColumnList, EqColumnList, CmpColumnListCool, CAPACITY, true> {
     public:
         SegmentedSort(Iterator *input,
                       uint8_t *columnsA, uint8_t lengthA,
                       uint8_t *columnsB, uint8_t lengthB,
                       uint8_t *columnsC, uint8_t lengthC)
-                : SegmentedSortBase<EqColumnList, EqColumnList, CmpColumnListCool, CAPACITY>(
+                : SegmentedSortBase<EqColumnList, EqColumnList, CmpColumnListCool, CAPACITY, true>(
                 input,
                 EqColumnList(columnsA, lengthA, &this->stats),
                 EqColumnList(columnsB, lengthB, &this->stats),
@@ -292,15 +382,47 @@ namespace ovc::iterators {
     };
 
     template<size_t CAPACITY = QUEUE_CAPACITY>
-    class SegmentedSortOVC : public SegmentedSortBase<EqOffset, EqOffset, CmpColumnListDerivingOVC, CAPACITY> {
+    class SegmentedSortOVC : public SegmentedSortBase<EqOffset, EqOffset, CmpColumnListDerivingOVC, CAPACITY, true> {
     public:
         SegmentedSortOVC(Iterator *input,
                          uint8_t *columnsABC, uint8_t lengthA, uint8_t lengthB, uint8_t lengthC)
-                : SegmentedSortBase<EqOffset, EqOffset, CmpColumnListDerivingOVC, CAPACITY>(
+                : SegmentedSortBase<EqOffset, EqOffset, CmpColumnListDerivingOVC, CAPACITY, true>(
                 input,
                 EqOffset(columnsABC, lengthA + lengthB + lengthC, lengthA, &this->stats),
                 EqOffset(columnsABC, lengthA + lengthB + lengthC, lengthA + lengthB, &this->stats),
                 CmpColumnListDerivingOVC(columnsABC, lengthA, lengthB, lengthC, &this->stats).transposeBC()
+        ) {};
+    };
+
+    // Unsegmented variants merely exist to investigate the effects of segmenting
+
+    template<size_t CAPACITY = QUEUE_CAPACITY>
+    class UnSegmentedSort : public SegmentedSortBase<EqColumnList, EqColumnList, CmpColumnListCool, CAPACITY, false> {
+    public:
+        UnSegmentedSort(Iterator *input,
+                        uint8_t *columnsA, uint8_t lengthA,
+                        uint8_t *columnsB, uint8_t lengthB,
+                        uint8_t *columnsC, uint8_t lengthC)
+                : SegmentedSortBase<EqColumnList, EqColumnList, CmpColumnListCool, CAPACITY, false>(
+                input,
+                EqColumnList(columnsA, lengthA, &this->stats),
+                EqColumnList(columnsB, lengthB, &this->stats),
+                CmpColumnListCool(combine_lists(columnsA, lengthA, columnsC, lengthC), lengthA + lengthC,
+                                  &this->stats).append(columnsB, lengthB)) {
+        };
+    };
+
+    template<size_t CAPACITY = QUEUE_CAPACITY>
+    class UnSegmentedSortOVC : public SegmentedSortBase<EqOffset, EqOffset, CmpColumnListOVC, CAPACITY, false> {
+    public:
+        UnSegmentedSortOVC(Iterator *input,
+                           uint8_t *columnsABC, uint8_t lengthA, uint8_t lengthB, uint8_t lengthC)
+                : SegmentedSortBase<EqOffset, EqOffset, CmpColumnListOVC, CAPACITY, false>(
+                input,
+                EqOffset(columnsABC, lengthA + lengthB + lengthC, lengthA, &this->stats),
+                EqOffset(columnsABC, lengthA + lengthB + lengthC, lengthA + lengthB, &this->stats),
+                //CmpColumnListDerivingOVC(columnsABC, lengthA, lengthB, lengthC, &this->stats).transposeBC()
+                CmpColumnListOVC(transpose_cb(columnsABC, lengthA, lengthB, lengthC), lengthA+ lengthB+ lengthC, &this->stats)
         ) {};
     };
 }

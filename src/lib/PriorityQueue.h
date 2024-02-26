@@ -90,6 +90,9 @@ namespace ovc {
          */
         Row *pop();
 
+        /* pop and flush */
+        Row *popf();
+
         Row *top();
 
         void *top_udata();
@@ -157,7 +160,7 @@ namespace ovc {
         }
 
         inline void push_memory2(std::tuple<Row **, Row **> *run) {
-            log_trace("pushing %s", (*std::get<0>(*run))->c_str());
+            auto row = *std::get<0>(*run);
             push(*std::get<0>(*run), MERGE_RUN_IDX, run);
         }
 
@@ -202,7 +205,7 @@ namespace ovc {
             run->next();
 
             if (likely(run->size() > 0)) {
-                push(run->front(), MERGE_RUN_IDX, run);
+                this->push_next(run->front());
             } else {
                 this->flush_sentinel();
             }
@@ -238,7 +241,7 @@ namespace ovc {
 #endif
 
             if (likely(next != nullptr)) {
-                push(next, MERGE_RUN_IDX, run);
+                this->push_next(next);
             } else {
                 this->flush_sentinel();
             }

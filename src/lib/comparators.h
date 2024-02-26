@@ -4,6 +4,21 @@
 
 namespace ovc::comparators {
 
+    const static inline uint8_t *combine_lists(uint8_t *A, int lengthA, uint8_t *B, int lengthB) {
+        static uint8_t columns[ROW_ARITY];
+        memcpy(columns, A, lengthA);
+        memcpy(columns + lengthA, B, lengthB);
+        return columns;
+    }
+
+    const static inline uint8_t *transpose_cb(uint8_t *ABC, int lengthA, int lengthB, int lengthC) {
+        static uint8_t columns[ROW_ARITY];
+        memcpy(&columns[0], &ABC[0], lengthA);
+        memcpy(&columns[lengthA], &ABC[lengthA + lengthB], lengthC);
+        memcpy(&columns[lengthA + lengthC], &ABC[lengthA], lengthB);
+        return columns;
+    }
+
     struct CmpColumnListCool {
         uint8_t columns[ROW_ARITY];
         int length;
@@ -68,7 +83,6 @@ namespace ovc::comparators {
                 return cmp;
             }
 
-            // Equality on AC, derive the offset-value code from stored_ovcs
             int ind_l = lhs.tid;
             int ind_r = rhs.tid;
             assert(ind_l - ind_r);
@@ -384,42 +398,41 @@ namespace ovc::comparators {
 
         long operator()(ovc::Row &lhs, ovc::Row &rhs) const {
 #if 0
+            // dont perform ovc derivation
             long cmp = (long) lhs.key - (long) rhs.key;
-            if (cmp == 0) {
-                if (lhs.key == 0) {
-                    // equality, no need to go on
-                    return 0;
-                }
-                // if the offset is |AC|-1 (i.e. the last column of C) we can derive the offset-value code
-                // by taking the maximum ovc of the first rows all runs between the run of lhs, rhs
+            if (cmp) {
+                return cmp;
+            }
+            if (lhs.key == 0) {
+                // equality, no need to go on
+                return 0;
+            }
 
-                // if i > prefix, rows are equal
-                int i = lhs.getOffset() + 1;
-                for (; i < length; i++) {
-                    cmp = (long) lhs.columns[columns[i]] - (long) rhs.columns[columns[i]];
+            // if i > prefix, rows are equal
+            int i = lhs.getOffset() + 1;
+            for (; i < length; i++) {
+                cmp = (long) lhs.columns[columns[i]] - (long) rhs.columns[columns[i]];
 
 #ifdef COLLECT_STATS
-                    if (stats) {
-                        stats->column_comparisons++;
-                    }
+                if (stats) {
+                    stats->column_comparisons++;
+                }
 #endif
-                    if (cmp) {
-                        break;
-                    }
+                if (cmp) {
+                    break;
                 }
+            }
 
-                if (i >= length) {
-                    // rows are equal
-                    rhs.key = 0;
-                    return 0;
-                }
+            if (i >= length) {
+                // rows are equal
+                rhs.key = 0;
+                return 0;
+            }
 
-                if (cmp <= 0) {
-                    rhs.key = MAKE_OVC(ROW_ARITY, i, rhs.columns[columns[i]]);
-                }
-                if (cmp > 0) {
-                    lhs.key = MAKE_OVC(ROW_ARITY, i, lhs.columns[columns[i]]);
-                }
+            if (cmp <= 0) {
+                rhs.key = MAKE_OVC(ROW_ARITY, i, rhs.columns[columns[i]]);
+            } else {
+                lhs.key = MAKE_OVC(ROW_ARITY, i, lhs.columns[columns[i]]);
             }
             return cmp;
 #else
@@ -436,7 +449,7 @@ namespace ovc::comparators {
 
             int i = offset + 1;
             if (i < length_ac) {
-                log_trace("checking for difference in AC");
+                log_trace("checking for difference in AC; i=%d", i);
             }
             for (; i < length_ac; i++) {
                 cmp = (long) lhs.columns[columns[i]] - (long) rhs.columns[columns[i]];
@@ -450,6 +463,8 @@ namespace ovc::comparators {
                     break;
                 }
             }
+            // if the offset is |AC|-1 (i.e. the last column of C) we can derive the offset-value code
+            // by taking the maximum ovc of the first rows all runs between the run of lhs, rhs
             if (i < length_ac) {
                 // rows differ within AC
                 if (cmp <= 0) {
@@ -488,8 +503,6 @@ namespace ovc::comparators {
             }
 #endif
         }
-
-
     };
 
     struct EqColumnList {

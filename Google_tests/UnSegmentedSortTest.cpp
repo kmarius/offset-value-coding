@@ -1,20 +1,19 @@
 #include "lib/Row.h"
 #include "lib/iterators/VectorScan.h"
-#include "lib/iterators/SegmentedSort.h"
-#include "lib/iterators/AssertEqual.h"
 #include "lib/iterators/GeneratorWithDomains.h"
 #include "lib/iterators/AssertCount.h"
 #include "lib/comparators.h"
 #include "lib/iterators/Sort.h"
 #include "lib/iterators/AssertSorted.h"
 #include "lib/iterators/RowBuffer.h"
+#include "lib/iterators/SegmentedSort.h"
 
 #include <gtest/gtest.h>
 
 using namespace ovc;
 using namespace iterators;
 
-class SegmentedSortTest : public ::testing::Test {
+class UnSegmentedSortTest : public ::testing::Test {
 protected:
 
     const size_t SEED = 1337;
@@ -28,13 +27,14 @@ protected:
     }
 };
 
-TEST_F(SegmentedSortTest, EmptyTest) {
-    auto plan = AssertCount(new VectorScan({}));
+TEST_F(UnSegmentedSortTest, EmptyTest) {
+    uint8_t A[ROW_ARITY] = {0};
+    auto plan = AssertCount(new UnSegmentedSort(new VectorScan({}), A, 0, A, 0, A, 0));
     plan.run();
     ASSERT_EQ(plan.getCount(), 0);
 }
 
-TEST_F(SegmentedSortTest, SmallTest) {
+TEST_F(UnSegmentedSortTest, SmallTest) {
     unsigned long domain = 2;
     unsigned long num_rows = 16;
 
@@ -46,7 +46,7 @@ TEST_F(SegmentedSortTest, SmallTest) {
     int key_length = 3;
 
     auto plan = AssertSorted(
-            new SegmentedSort(
+            new UnSegmentedSort(
                     new SortPrefix(
                             new GeneratorWithDomains(num_rows, {domain, domain, domain}, SEED),
                             key_length),
@@ -60,7 +60,7 @@ TEST_F(SegmentedSortTest, SmallTest) {
     ASSERT_TRUE(plan.getCount() == num_rows);
 }
 
-TEST_F(SegmentedSortTest, BigTest) {
+TEST_F(UnSegmentedSortTest, BigTest) {
     unsigned long domain = 16;
     unsigned long num_rows = 1 << 12;
 
@@ -72,7 +72,7 @@ TEST_F(SegmentedSortTest, BigTest) {
     int key_length = 6;
 
     auto plan = AssertSorted(
-            new SegmentedSort(
+            new UnSegmentedSort<4096>(
                     new RowBuffer(
                             new SortPrefix(
                                     new GeneratorWithDomains(
@@ -91,7 +91,7 @@ TEST_F(SegmentedSortTest, BigTest) {
     ASSERT_TRUE(plan.getCount() == num_rows);
 }
 
-TEST_F(SegmentedSortTest, BigTest2) {
+TEST_F(UnSegmentedSortTest, BigTest2) {
     unsigned long domain = 16;
     unsigned long num_rows = 1 << 12;
 
@@ -104,7 +104,7 @@ TEST_F(SegmentedSortTest, BigTest2) {
     int key_length = 3;
 
     auto plan = AssertSorted(
-            new SegmentedSort(
+            new UnSegmentedSort<4096>(
                     new RowBuffer(
                             new SortPrefix(
                                     new GeneratorWithDomains(num_rows, {domain, domain, domain}, SEED),
@@ -120,7 +120,31 @@ TEST_F(SegmentedSortTest, BigTest2) {
     ASSERT_TRUE(plan.getCount() == num_rows);
 }
 
-TEST_F(SegmentedSortTest, BigTest2OVC) {
+TEST_F(UnSegmentedSortTest, SmallTestOVC) {
+    unsigned long domain = 2;
+    unsigned long num_rows = 16;
+
+    uint8_t ABC[ROW_ARITY] = {0, 1, 2};
+    uint8_t ACB[ROW_ARITY] = {0, 2, 1};
+    auto list_length = 1;
+    auto key_length = 3;
+
+    auto plan = AssertSorted(
+            new UnSegmentedSortOVC<4096>(
+                    new RowBuffer(
+                            new SortPrefixOVC(
+                                    new GeneratorWithDomains(num_rows, {domain, domain, domain}, SEED),
+                                    key_length),
+                            num_rows),
+                    ABC, list_length, list_length, list_length),
+            CmpColumnList(ACB, key_length));
+
+    plan.run();
+    ASSERT_TRUE(plan.isSorted());
+    ASSERT_TRUE(plan.getCount() == num_rows);
+}
+
+TEST_F(UnSegmentedSortTest, BigTest2OVC) {
     unsigned long domain = 8;
     unsigned long num_rows = 1 << 12;
 
@@ -130,7 +154,7 @@ TEST_F(SegmentedSortTest, BigTest2OVC) {
     auto key_length = 3;
 
     auto plan = AssertSorted(
-            new SegmentedSortOVC(
+            new UnSegmentedSortOVC<4096>(
                     new RowBuffer(
                             new SortPrefixOVC(
                                     new GeneratorWithDomains(num_rows, {domain, domain, domain}, SEED),
@@ -145,7 +169,7 @@ TEST_F(SegmentedSortTest, BigTest2OVC) {
 }
 
 
-TEST_F(SegmentedSortTest, BigTest3OVC) {
+TEST_F(UnSegmentedSortTest, BigTest3OVC) {
     unsigned long domain = 16;
     unsigned long num_rows = 1 << 10;
 
@@ -155,15 +179,15 @@ TEST_F(SegmentedSortTest, BigTest3OVC) {
     auto list_length = 2;
 
     auto plan = AssertSorted(
-            new SegmentedSortOVC(
+            new UnSegmentedSortOVC<4096>(
                     new RowBuffer(
                             new SortPrefixOVC(
                                     new GeneratorWithDomains(num_rows, {domain, domain, domain, domain, domain, domain},
                                                              SEED),
                                     key_length),
                             num_rows),
-                            ABC, list_length, list_length, list_length),
-                    CmpColumnListOVC(ACB, key_length));
+                    ABC, list_length, list_length, list_length),
+            CmpColumnListOVC(ACB, key_length));
 
     plan.run();
     ASSERT_TRUE(plan.isSorted());
@@ -171,7 +195,7 @@ TEST_F(SegmentedSortTest, BigTest3OVC) {
 }
 
 
-TEST_F(SegmentedSortTest, BigTest4OVC) {
+TEST_F(UnSegmentedSortTest, BigTest4OVC) {
     unsigned long domain = 16;
     unsigned long num_rows = 1 << 10;
 
@@ -180,15 +204,15 @@ TEST_F(SegmentedSortTest, BigTest4OVC) {
     auto key_length = 6;
 
     auto plan = AssertSorted(
-            new SegmentedSortOVC(
+            new UnSegmentedSortOVC<4096>(
                     new RowBuffer(
                             new SortPrefixOVC(
                                     new GeneratorWithDomains(num_rows, {domain, domain, domain, domain, domain, domain},
                                                              SEED),
                                     key_length),
                             num_rows),
-                            ABC, 1, 2, 3),
-                    CmpColumnListOVC(ACB, key_length));
+                    ABC, 2, 2, 2),
+            CmpColumnListOVC(ACB, key_length));
 
     plan.run();
     ASSERT_TRUE(plan.isSorted());

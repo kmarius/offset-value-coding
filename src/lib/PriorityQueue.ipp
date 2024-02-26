@@ -128,7 +128,6 @@ namespace ovc {
                 stream << ", run=" << node.getValue() << ", HI" << ":" << node.index << "]";
             } else {
                 stream << ", run=" << node.run_index()
-                       << ", getOffset=" << node.getValue()
                        << ": ind=" << node.index << "]";
             }
             return stream;
@@ -255,6 +254,22 @@ namespace ovc {
         workspace[workspace_index].row = nullptr;
         size--;
 
+        return res;
+    }
+
+    template<typename Compare>
+    Row *PriorityQueueBase<Compare>::popf() {
+        assert(!isEmpty());
+        assert(!heap[0].isLowSentinel());
+
+        Index workspace_index = heap[0].index;
+        Row *res = workspace[workspace_index].row;
+
+        //workspace[workspace_index].row = nullptr;
+
+        size--;
+
+        pass(workspace_index, HIGH_SENTINEL(workspace_index));
         return res;
     }
 

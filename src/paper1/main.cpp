@@ -443,7 +443,7 @@ void experiment_column_order_sort() {
     fprintf(results, "num_rows,pos,experiment,column_comparisons\n");
 
     for (int pos = 0; pos < ROW_ARITY; pos++) {
-        uint8_t bits[] = {1, 1, 1, 1, 1, 1, 1, 1};
+        uint8_t bits[ROW_ARITY] = {1, 1, 1, 1, 1, 1, 1, 1};
         bits[pos] = 64 - 7 * 1;
 
         auto gen = RowGenerator(num_rows, bits);

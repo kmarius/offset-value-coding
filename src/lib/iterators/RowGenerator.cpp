@@ -13,7 +13,7 @@ namespace ovc::iterators {
         }
     }
 
-    RowGenerator::RowGenerator(unsigned long num_rows, const uint8_t bits[8], unsigned long seed)
+    RowGenerator::RowGenerator(unsigned long num_rows, const uint8_t bits[ROW_ARITY], unsigned long seed)
             : RowGenerator(num_rows, seed, nullptr) {
         memcpy(this->bits, bits, sizeof this->bits);
     }

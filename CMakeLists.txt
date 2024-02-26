@@ -59,7 +59,8 @@ add_library(libovc
         src/paper1/main.cpp
         src/lib/iterators/SegmentedGen.h
         src/lib/iterators/RandomGenerator.h
-        src/lib/iterators/RowBuffer.h)
+        src/lib/iterators/RowBuffer.h
+        src/lib/iterators/SegmentedSortNoRuns.h)
 
 target_link_libraries(libovc uring)
 
