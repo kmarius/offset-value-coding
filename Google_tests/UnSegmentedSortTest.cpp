@@ -20,7 +20,7 @@ protected:
 
     void SetUp() override {
         log_set_level(LOG_TRACE);
-        //log_set_quiet(true);
+        log_set_quiet(true);
     }
 
     void TearDown() override {
@@ -200,7 +200,7 @@ TEST_F(UnSegmentedSortTest, BigTest4OVC) {
     unsigned long num_rows = 1 << 10;
 
     uint8_t ABC[ROW_ARITY] = {0, 1, 2, 3, 4, 5};
-    uint8_t ACB[ROW_ARITY] = {0, 3, 4, 5, 1, 2};
+    uint8_t ACB[ROW_ARITY] = {0, 1, 4, 5, 2, 3};
     auto key_length = 6;
 
     auto plan = AssertSorted(
