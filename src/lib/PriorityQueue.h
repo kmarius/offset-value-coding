@@ -160,7 +160,6 @@ namespace ovc {
         }
 
         inline void push_memory2(std::tuple<Row **, Row **> *run) {
-            auto row = *std::get<0>(*run);
             push(*std::get<0>(*run), MERGE_RUN_IDX, run);
         }
 

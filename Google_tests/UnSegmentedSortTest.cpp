@@ -218,3 +218,32 @@ TEST_F(UnSegmentedSortTest, BigTest4OVC) {
     ASSERT_TRUE(plan.isSorted());
     ASSERT_TRUE(plan.getCount() == num_rows);
 }
+
+
+TEST_F(UnSegmentedSortTest, BigTest3ColsOVC) {
+    unsigned long domain = 64;
+    unsigned long num_rows = 1 << 16;
+
+    uint8_t ABC[ROW_ARITY] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+    uint8_t ACB[ROW_ARITY] = {0, 1, 2, 6, 7, 8, 3, 4, 5};
+    auto list_length = 3;
+    auto key_length = 9;
+
+    auto plan = AssertSorted(
+            new UnSegmentedSortOVC<1 << 20>(
+                    new RowBuffer(
+                            new SortPrefixOVC(
+                                    new GeneratorWithDomains(num_rows,
+                                                             {0, 0, domain * domain * domain,
+                                                              0, 0, domain * domain * domain,
+                                                              0, 0, domain * domain * domain},
+                                                             SEED),
+                                    key_length),
+                            num_rows),
+                    ABC, list_length, list_length, list_length),
+            CmpColumnListOVC(ACB, key_length));
+
+    plan.run();
+    ASSERT_TRUE(plan.isSorted());
+    ASSERT_TRUE(plan.getCount() == num_rows);
+}
