@@ -12,12 +12,7 @@
 // Memory (doesn't support O_DIRECT)
 //#define BASEDIR "/tmp"
 
-// TODO: create BASEDIR if it doesn't exist?
-// SSD:
-#define BASEDIR "/home/marius"
-
-// HDD:
-//#define BASEDIR "/home/marius/Data"
+#define BASEDIR "./"
 
 // This currently controls how many bits we use to store the run index in the key in the priority queue
 // which at the same time controls the fan-in of the merge
@@ -29,7 +24,9 @@
 #define LOGPATH "/tmp/ovc.log"
 #define NO_LOGGING
 
-//#define COLLECT_STATS
+#ifndef NO_COLLECT_STATS
+#define COLLECT_STATS
+#endif
 
 #define likely(x) __builtin_expect(x, 1)
 #define unlikely(x) __builtin_expect(x, 0)

@@ -55,9 +55,6 @@ namespace ovc::iterators {
 
             if constexpr (eqA.USES_OVC) {
                 queue.cmp.stored_ovcs = &stored_ovcs[0];
-                for (auto ovc: stored_ovcs) {
-                    log_trace("%lu@%lu", OVC_FMT(ovc));
-                }
             }
 
             size_t num_runs = runs.size();
@@ -91,7 +88,7 @@ namespace ovc::iterators {
             assert(queue.isEmpty());
 
             if constexpr (eqA.USES_OVC) {
-                //queue.cmp.stored_ovcs = &stored_ovcs[0];
+                queue.cmp.stored_ovcs = &stored_ovcs[0];
             }
 
             size_t num_runs = runs.size();
@@ -413,16 +410,16 @@ namespace ovc::iterators {
     };
 
     template<size_t CAPACITY = QUEUE_CAPACITY>
-    class UnSegmentedSortOVC : public SegmentedSortBase<EqOffset, EqOffset, CmpColumnListOVC, CAPACITY, false> {
+    class UnSegmentedSortOVC : public SegmentedSortBase<EqOffset, EqOffset, CmpColumnListDerivingOVC, CAPACITY, false> {
     public:
         UnSegmentedSortOVC(Iterator *input,
                            uint8_t *columnsABC, uint8_t lengthA, uint8_t lengthB, uint8_t lengthC)
-                : SegmentedSortBase<EqOffset, EqOffset, CmpColumnListOVC, CAPACITY, false>(
+                : SegmentedSortBase<EqOffset, EqOffset, CmpColumnListDerivingOVC, CAPACITY, false>(
                 input,
                 EqOffset(columnsABC, lengthA + lengthB + lengthC, lengthA, &this->stats),
                 EqOffset(columnsABC, lengthA + lengthB + lengthC, lengthA + lengthB, &this->stats),
-                //CmpColumnListDerivingOVC(columnsABC, lengthA, lengthB, lengthC, &this->stats).transposeBC()
-                CmpColumnListOVC(transpose_cb(columnsABC, lengthA, lengthB, lengthC), lengthA+ lengthB+ lengthC, &this->stats)
+                CmpColumnListDerivingOVC(columnsABC, lengthA, lengthB, lengthC, &this->stats).transposeBC()
+                //CmpColumnListOVC(transpose_cb(columnsABC, lengthA, lengthB, lengthC), lengthA+ lengthB+ lengthC, &this->stats)
         ) {};
     };
 }

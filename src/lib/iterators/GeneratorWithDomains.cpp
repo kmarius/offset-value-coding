@@ -41,8 +41,10 @@ namespace ovc::iterators {
         num_rows--;
 
         for (int i = 0; i < ROW_ARITY; i++) {
-            if (domains[i]) {
+            if (domains[i] > 1) {
                 buf.columns[i] = dist(rng) % domains[i];
+            } else {
+                buf.columns[i] = 0;
             }
         }
 

@@ -17,6 +17,14 @@ include_directories(src)
 
 add_subdirectory(Google_tests)
 
+if (NOT COLLECT_STATS)
+        set(COLLECT_STATS 0)
+endif()
+if(COLLECT_STATS)
+else()
+        add_definitions(-DNO_COLLECT_STATS)
+endif()
+
 add_library(libovc
         STATIC
         src/lib/defs.h
