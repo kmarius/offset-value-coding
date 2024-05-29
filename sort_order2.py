@@ -29,8 +29,8 @@ class Column():
 # items in the legend appear in this order
 columns = [
     Column("no_runs", "Segmenting",  "red", "^"),
-    Column("no_segment", "Preserving runs",  "orange", "^"),
-    Column("ovc", "Segmenting + preserving runs", "dodgerblue", "s"),
+    Column("no_segment", "Pre-existing runs",  "orange", "^"),
+    Column("ovc", "Segmenting + pre-existing runs", "dodgerblue", "s"),
 ]
 
 order = []
